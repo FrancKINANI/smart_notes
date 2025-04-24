@@ -16,6 +16,8 @@ import TakeQuiz from "@/pages/quizzes/take";
 import Schedule from "@/pages/schedule";
 import Assistant from "@/pages/assistant";
 import AuthPage from "@/pages/auth-page";
+import StudyGroups from "@/pages/study-groups/index";
+import StudyGroupDetails from "@/pages/study-groups/[id]";
 
 import Sidebar from "@/components/layout/sidebar";
 import MobileHeader from "@/components/layout/mobile-header";
@@ -39,6 +41,8 @@ function Router() {
       <ProtectedRoute path="/quizzes/:id" component={TakeQuiz} />
       <ProtectedRoute path="/schedule" component={Schedule} />
       <ProtectedRoute path="/assistant" component={Assistant} />
+      <ProtectedRoute path="/study-groups" component={StudyGroups} />
+      <ProtectedRoute path="/study-groups/:id" component={StudyGroupDetails} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
