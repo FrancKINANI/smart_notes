@@ -1,6 +1,7 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { setupAuth } from "./auth";
 import { z } from "zod";
 import {
   insertNoteSchema,
@@ -8,39 +9,33 @@ import {
   insertQuizResultSchema,
   insertFlashcardSchema,
   insertRevisionItemSchema,
+  insertStudyGroupSchema,
+  insertGroupMemberSchema,
+  insertSharedNoteSchema,
+  insertCommentSchema,
   QuizQuestion
 } from "@shared/schema";
 import OpenAI from "openai";
 
+// Configuration de l'API OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+// Middleware pour vérifier si l'utilisateur est authentifié
+const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: "Non authentifié" });
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configuration de l'authentification
+  setupAuth(app);
+  
   // API Routes
   const apiRouter = app.route("/api");
-
-  // User authentication - simplified for demo
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username and password required" });
-    }
-
-    const user = await storage.getUserByUsername(username);
-    if (!user || user.password !== password) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    // In a real app, you'd use JWT or sessions here
-    res.json({
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      role: user.role
-    });
-  });
 
   // Subjects
   app.get("/api/subjects", async (req: Request, res: Response) => {
@@ -508,6 +503,299 @@ export async function registerRoutes(app: Express): Promise<Server> {
       success: true,
       message: "TTS request processed. In a real app, audio would be generated."
     });
+  });
+
+  // === Routes pour les fonctionnalités collaboratives ===
+  // Groupes d'étude
+  app.get("/api/study-groups", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const groups = await storage.getStudyGroupsByUser(userId);
+      res.json(groups);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération des groupes d'étude" });
+    }
+  });
+
+  app.post("/api/study-groups", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const groupData = insertStudyGroupSchema.parse({
+        ...req.body,
+        creatorId: req.user!.id
+      });
+      
+      const group = await storage.createStudyGroup(groupData);
+      res.status(201).json(group);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Données de groupe invalides", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Erreur lors de la création du groupe d'étude" });
+    }
+  });
+
+  app.get("/api/study-groups/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      const group = await storage.getStudyGroup(groupId);
+      
+      if (!group) {
+        return res.status(404).json({ message: "Groupe d'étude non trouvé" });
+      }
+      
+      // Vérifier si l'utilisateur est membre du groupe
+      const members = await storage.getGroupMembers(groupId);
+      const isMember = members.some(member => member.userId === req.user!.id);
+      
+      if (!isMember && group.isPrivate) {
+        return res.status(403).json({ message: "Vous n'êtes pas autorisé à accéder à ce groupe" });
+      }
+      
+      res.json(group);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération du groupe d'étude" });
+    }
+  });
+
+  // Membres des groupes
+  app.get("/api/study-groups/:id/members", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      const members = await storage.getGroupMembers(groupId);
+      
+      // Récupérer les détails des utilisateurs
+      const memberDetails = await Promise.all(
+        members.map(async (member) => {
+          const user = await storage.getUser(member.userId);
+          return {
+            ...member,
+            user: user ? {
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              avatar: user.avatar
+            } : null
+          };
+        })
+      );
+      
+      res.json(memberDetails);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération des membres du groupe" });
+    }
+  });
+
+  app.post("/api/study-groups/:id/members", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      const { userId, role = "member" } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "userId est requis" });
+      }
+      
+      // Vérifier si le groupe existe
+      const group = await storage.getStudyGroup(groupId);
+      if (!group) {
+        return res.status(404).json({ message: "Groupe d'étude non trouvé" });
+      }
+      
+      // Vérifier si l'utilisateur actuel est l'administrateur du groupe
+      const members = await storage.getGroupMembers(groupId);
+      const currentUserMember = members.find(member => member.userId === req.user!.id);
+      
+      if (!currentUserMember || (currentUserMember.role !== "admin" && group.creatorId !== req.user!.id)) {
+        return res.status(403).json({ message: "Vous n'êtes pas autorisé à ajouter des membres" });
+      }
+      
+      // Ajouter le membre
+      const member = await storage.addGroupMember({
+        groupId,
+        userId,
+        role
+      });
+      
+      res.status(201).json(member);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de l'ajout du membre" });
+    }
+  });
+
+  // Notes partagées
+  app.get("/api/study-groups/:id/shared-notes", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      
+      // Vérifier si l'utilisateur est membre du groupe
+      const members = await storage.getGroupMembers(groupId);
+      const isMember = members.some(member => member.userId === req.user!.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ message: "Vous n'êtes pas autorisé à accéder aux notes de ce groupe" });
+      }
+      
+      const sharedNotes = await storage.getSharedNotes(groupId);
+      
+      // Récupérer les détails des notes
+      const notesWithDetails = await Promise.all(
+        sharedNotes.map(async (shared) => {
+          const note = await storage.getNote(shared.noteId);
+          const user = await storage.getUser(shared.sharedBy);
+          
+          return {
+            ...shared,
+            note: note ? {
+              id: note.id,
+              title: note.title,
+              content: note.content,
+              summary: note.summary,
+              createdAt: note.createdAt
+            } : null,
+            sharedByUser: user ? {
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName
+            } : null
+          };
+        })
+      );
+      
+      res.json(notesWithDetails);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération des notes partagées" });
+    }
+  });
+
+  app.post("/api/study-groups/:id/shared-notes", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      const { noteId, permissions = "read" } = req.body;
+      
+      if (!noteId) {
+        return res.status(400).json({ message: "noteId est requis" });
+      }
+      
+      // Vérifier si l'utilisateur est membre du groupe
+      const members = await storage.getGroupMembers(groupId);
+      const isMember = members.some(member => member.userId === req.user!.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ message: "Vous n'êtes pas autorisé à partager des notes dans ce groupe" });
+      }
+      
+      // Vérifier si la note appartient à l'utilisateur
+      const note = await storage.getNote(noteId);
+      if (!note) {
+        return res.status(404).json({ message: "Note non trouvée" });
+      }
+      
+      if (note.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Vous ne pouvez partager que vos propres notes" });
+      }
+      
+      // Partager la note
+      const sharedNote = await storage.shareNote({
+        noteId,
+        groupId,
+        sharedBy: req.user!.id,
+        permissions
+      });
+      
+      res.status(201).json(sharedNote);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors du partage de la note" });
+    }
+  });
+
+  // Commentaires
+  app.get("/api/notes/:id/comments", async (req: Request, res: Response) => {
+    try {
+      const noteId = parseInt(req.params.id);
+      const comments = await storage.getNoteComments(noteId);
+      
+      // Enrichir les commentaires avec les informations des utilisateurs
+      const commentsWithUsers = await Promise.all(
+        comments.map(async (comment) => {
+          const user = await storage.getUser(comment.userId);
+          return {
+            ...comment,
+            user: user ? {
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              avatar: user.avatar
+            } : null
+          };
+        })
+      );
+      
+      res.json(commentsWithUsers);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération des commentaires" });
+    }
+  });
+
+  app.post("/api/notes/:id/comments", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const noteId = parseInt(req.params.id);
+      const { content } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ message: "Le contenu du commentaire est requis" });
+      }
+      
+      // Vérifier si l'utilisateur peut commenter (propriétaire ou note partagée)
+      const note = await storage.getNote(noteId);
+      if (!note) {
+        return res.status(404).json({ message: "Note non trouvée" });
+      }
+      
+      // Si l'utilisateur n'est pas le propriétaire, vérifier s'il a accès via un partage
+      if (note.userId !== req.user!.id) {
+        // Trouver tous les groupes dont l'utilisateur est membre
+        const userGroups = await storage.getUserGroups(req.user!.id);
+        const groupIds = userGroups.map(membership => membership.groupId);
+        
+        // Vérifier si la note est partagée dans l'un de ces groupes
+        let hasAccess = false;
+        for (const groupId of groupIds) {
+          const sharedNotes = await storage.getSharedNotes(groupId);
+          if (sharedNotes.some(shared => shared.noteId === noteId)) {
+            hasAccess = true;
+            break;
+          }
+        }
+        
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Vous n'êtes pas autorisé à commenter cette note" });
+        }
+      }
+      
+      // Ajouter le commentaire
+      const comment = await storage.addComment({
+        noteId,
+        userId: req.user!.id,
+        content
+      });
+      
+      // Récupérer l'utilisateur pour l'inclure dans la réponse
+      const user = await storage.getUser(req.user!.id);
+      
+      res.status(201).json({
+        ...comment,
+        user: {
+          id: user!.id,
+          username: user!.username,
+          displayName: user!.displayName,
+          avatar: user!.avatar
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de l'ajout du commentaire" });
+    }
   });
 
   const httpServer = createServer(app);

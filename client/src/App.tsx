@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
@@ -15,30 +15,31 @@ import QuizIndex from "@/pages/quizzes/index";
 import TakeQuiz from "@/pages/quizzes/take";
 import Schedule from "@/pages/schedule";
 import Assistant from "@/pages/assistant";
+import AuthPage from "@/pages/auth-page";
 
 import Sidebar from "@/components/layout/sidebar";
 import MobileHeader from "@/components/layout/mobile-header";
+import { ProtectedRoute } from "@/components/protected-route";
+import { useAuth } from "@/hooks/use-auth";
 
-// Mock user for demo
-const DEFAULT_USER = {
-  id: 1,
-  username: "student",
-  displayName: "Thomas Dubois",
-  role: "student"
-};
+// Fournisseur d'authentification pour rendre le hook disponible dans toute l'application
+function AuthProvider({ children }: { children: React.ReactNode }) {
+  return children;
+}
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/notes" component={Notes} />
-      <Route path="/notes/create" component={CreateNote} />
-      <Route path="/notes/:id" component={ViewNote} />
-      <Route path="/flashcards" component={Flashcards} />
-      <Route path="/quizzes" component={QuizIndex} />
-      <Route path="/quizzes/:id" component={TakeQuiz} />
-      <Route path="/schedule" component={Schedule} />
-      <Route path="/assistant" component={Assistant} />
+      <ProtectedRoute path="/" component={Dashboard} />
+      <ProtectedRoute path="/notes" component={Notes} />
+      <ProtectedRoute path="/notes/create" component={CreateNote} />
+      <ProtectedRoute path="/notes/:id" component={ViewNote} />
+      <ProtectedRoute path="/flashcards" component={Flashcards} />
+      <ProtectedRoute path="/quizzes" component={QuizIndex} />
+      <ProtectedRoute path="/quizzes/:id" component={TakeQuiz} />
+      <ProtectedRoute path="/schedule" component={Schedule} />
+      <ProtectedRoute path="/assistant" component={Assistant} />
+      <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -46,6 +47,12 @@ function Router() {
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+
+  // Si l'utilisateur n'est pas authentifié, ne pas afficher la mise en page principale
+  if (!isAuthenticated) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="h-screen flex overflow-hidden">
@@ -62,21 +69,15 @@ function MainLayout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const [user, setUser] = useState(DEFAULT_USER);
-
-  // In a real app, we would check for authentication here
-  useEffect(() => {
-    // This is just a placeholder for authentication logic
-    // We're using the default user for demo purposes
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <MainLayout>
-          <Router />
-        </MainLayout>
-        <Toaster />
+        <AuthProvider>
+          <MainLayout>
+            <Router />
+          </MainLayout>
+          <Toaster />
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
