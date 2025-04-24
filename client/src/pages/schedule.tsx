@@ -1,0 +1,226 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Calendar as CalendarIcon, Clock, AlertTriangle } from "lucide-react";
+import { format, addDays, startOfToday } from "date-fns";
+import { Link } from "wouter";
+
+export default function Schedule() {
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const userId = 1; // Default user ID for demo
+  
+  // Fetch revision items due for review
+  const { data: revisionItems, isLoading: isLoadingItems } = useQuery({
+    queryKey: ["/api/revision-items/due", { userId }],
+    queryFn: () => fetch(`/api/revision-items/due?userId=${userId}`).then(res => res.json())
+  });
+  
+  // Fetch notes for reference
+  const { data: notes, isLoading: isLoadingNotes } = useQuery({
+    queryKey: ["/api/notes", { userId }],
+    queryFn: () => fetch(`/api/notes?userId=${userId}`).then(res => res.json())
+  });
+  
+  // Generate review schedule
+  const generateSchedule = () => {
+    if (!revisionItems || !notes) return [];
+    
+    // For demo purposes, create a schedule for the next 7 days
+    const today = startOfToday();
+    const schedule = [];
+    
+    for (let i = 0; i < 7; i++) {
+      const day = addDays(today, i);
+      const itemsForDay = revisionItems
+        .filter((item: any) => {
+          const reviewDate = new Date(item.nextReviewDate);
+          return reviewDate.toDateString() === day.toDateString();
+        })
+        .map((item: any) => {
+          const note = notes.find((n: any) => n.id === item.noteId);
+          return {
+            ...item,
+            noteTitle: note?.title || 'Unknown Note'
+          };
+        });
+      
+      schedule.push({
+        date: day,
+        items: itemsForDay
+      });
+    }
+    
+    return schedule;
+  };
+  
+  const schedule = generateSchedule();
+  
+  // Get review items for selected date
+  const getItemsForSelectedDate = () => {
+    if (!date || !schedule) return [];
+    
+    const selectedDateString = date.toDateString();
+    const daySchedule = schedule.find(day => day.date.toDateString() === selectedDateString);
+    
+    return daySchedule?.items || [];
+  };
+  
+  const selectedDateItems = getItemsForSelectedDate();
+  
+  return (
+    <div className="py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">Planning de révision</h1>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Calendar */}
+          <Card className="md:col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CalendarIcon className="mr-2 h-5 w-5 text-primary-500" />
+                Calendrier
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                className="rounded-md border"
+              />
+            </CardContent>
+          </Card>
+          
+          {/* Schedule for selected date */}
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Clock className="mr-2 h-5 w-5 text-primary-500" />
+                Révisions du {date ? format(date, 'dd MMMM yyyy') : 'jour sélectionné'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingItems || isLoadingNotes ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-20" />
+                  ))}
+                </div>
+              ) : selectedDateItems.length > 0 ? (
+                <div className="space-y-4">
+                  {selectedDateItems.map((item: any) => (
+                    <div key={item.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                      <div>
+                        <h3 className="font-medium text-gray-900">{item.noteTitle}</h3>
+                        <p className="text-sm text-gray-500">
+                          Niveau de maîtrise: {item.masteryLevel}%
+                        </p>
+                      </div>
+                      <Button asChild>
+                        <Link href={`/notes/${item.noteId}`}>
+                          Réviser
+                        </Link>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <AlertTriangle className="h-10 w-10 text-amber-500 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Aucune révision prévue
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Vous n'avez aucune révision prévue pour cette date.
+                  </p>
+                  <Button asChild variant="outline">
+                    <Link href="/notes">
+                      Consulter vos notes
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Weekly overview */}
+        <div className="mt-8">
+          <Tabs defaultValue="weekly">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Aperçu des révisions</h2>
+              <TabsList>
+                <TabsTrigger value="weekly">Semaine</TabsTrigger>
+                <TabsTrigger value="monthly">Mois</TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="weekly">
+              {isLoadingItems ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} className="h-32" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4">
+                  {schedule.map((day, index) => (
+                    <Card key={index} className={day.date.toDateString() === date?.toDateString() ? 'border-primary-500' : ''}>
+                      <CardHeader className="py-3 px-4">
+                        <CardTitle className="text-sm font-medium">
+                          {format(day.date, 'EEEE')}
+                          <span className="block text-xs text-gray-500">
+                            {format(day.date, 'dd/MM')}
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="py-2 px-4">
+                        {day.items.length > 0 ? (
+                          <div className="space-y-2">
+                            {day.items.slice(0, 3).map((item: any) => (
+                              <div key={item.id} className="text-xs bg-gray-50 p-2 rounded">
+                                {item.noteTitle}
+                              </div>
+                            ))}
+                            {day.items.length > 3 && (
+                              <p className="text-xs text-gray-500 text-center">
+                                +{day.items.length - 3} autres
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500 text-center py-2">
+                            Aucune révision
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="monthly">
+              <div className="flex items-center justify-center py-12 text-center">
+                <div>
+                  <p className="text-gray-500 mb-4">
+                    La vue mensuelle sera disponible prochainement.
+                  </p>
+                  <Button onClick={() => document.querySelector<HTMLButtonElement>('[value="weekly"]')?.click()}>
+                    Voir la vue hebdomadaire
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </div>
+  );
+}
