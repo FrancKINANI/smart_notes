@@ -128,7 +128,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     className="cursor-pointer text-red-600" 
-                    onClick={logout}
+                    onClick={() => logout()}
                     disabled={isLogoutLoading}
                   >
                     <LogOut className="mr-2 h-4 w-4" />

@@ -24,10 +24,7 @@ import MobileHeader from "@/components/layout/mobile-header";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/hooks/use-auth";
 
-// Fournisseur d'authentification pour rendre le hook disponible dans toute l'application
-function AuthProvider({ children }: { children: React.ReactNode }) {
-  return children;
-}
+// Le hook useAuth est déjà implémenté dans src/hooks/use-auth.ts
 
 function Router() {
   return (
@@ -76,12 +73,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <MainLayout>
-            <Router />
-          </MainLayout>
-          <Toaster />
-        </AuthProvider>
+        <MainLayout>
+          <Router />
+        </MainLayout>
+        <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
   );

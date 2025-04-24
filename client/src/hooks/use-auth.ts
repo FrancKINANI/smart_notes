@@ -29,13 +29,6 @@ interface RegisterData {
   lastName?: string;
 }
 
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: Error | null;
-}
-
 // Hook d'authentification pour interagir avec l'API
 export function useAuth() {
   const { toast } = useToast();
