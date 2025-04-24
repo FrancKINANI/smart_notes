@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar as CalendarIcon, Clock, AlertTriangle } from "lucide-react";
 import { format, addDays, startOfToday } from "date-fns";
 import { Link } from "wouter";
+import PageHeader from "@/components/layout/page-header";
 
 export default function Schedule() {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -72,12 +73,13 @@ export default function Schedule() {
   const selectedDateItems = getItemsForSelectedDate();
   
   return (
-    <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Planning de révision</h1>
-        </div>
-        
+    <>
+      <PageHeader 
+        title="Planning de révision" 
+        description="Organisez et suivez vos sessions de révision"
+      />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Calendar */}
           <Card className="md:col-span-1">
@@ -123,7 +125,7 @@ export default function Schedule() {
                         </p>
                       </div>
                       <Button asChild>
-                        <Link href={`/notes/${item.noteId}`}>
+                        <Link to={`/notes/${item.noteId}`}>
                           Réviser
                         </Link>
                       </Button>
@@ -131,7 +133,7 @@ export default function Schedule() {
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="flex flex-col items-center justify-center py-12 text-center h-60">
                   <AlertTriangle className="h-10 w-10 text-amber-500 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
                     Aucune révision prévue
@@ -140,7 +142,7 @@ export default function Schedule() {
                     Vous n'avez aucune révision prévue pour cette date.
                   </p>
                   <Button asChild variant="outline">
-                    <Link href="/notes">
+                    <Link to="/notes">
                       Consulter vos notes
                     </Link>
                   </Button>
@@ -221,6 +223,6 @@ export default function Schedule() {
           </Tabs>
         </div>
       </div>
-    </div>
+    </>
   );
 }
