@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -106,9 +107,12 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 <DropdownMenuTrigger className="w-full">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="h-9 w-9 rounded-full bg-primary-200 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary-700" />
-                      </div>
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={user?.avatar || ""} />
+                        <AvatarFallback className="bg-primary-200 text-primary-700">
+                          {(user?.displayName || user?.username || "UN").substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                     </div>
                     <div className="ml-3 text-left">
                       <p className="text-sm font-medium text-gray-700">
@@ -121,10 +125,16 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profil</span>
-                  </DropdownMenuItem>
+                  <div className="px-2 py-1.5">
+                    <p className="text-sm font-medium">{user?.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <Link href="/profile">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Mon profil</span>
+                    </DropdownMenuItem>
+                  </Link>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     className="cursor-pointer text-red-600" 
