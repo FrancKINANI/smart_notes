@@ -20,33 +20,68 @@ export default function TakeQuiz() {
   const { toast } = useToast();
   const quizId = parseInt(params.id);
   const userId = 1; // Default user ID for demo
-  
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<string, string>
+  >({});
   const [isQuizCompleted, setIsQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
-  
+
   // Fetch quiz details
-  const { data: quiz, isLoading: isLoadingQuiz, error } = useQuery({
-    queryKey: [`/api/quizzes/${quizId}`],
-    queryFn: () => fetch(`/api/quizzes/${quizId}`).then(res => res.json())
+  const {
+    data: quiz,
+    isLoading: isLoadingQuiz,
+    error,
+  } = useQuery({
+    queryKey: [`/api/quizzes/${quizId}`, { userId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/quizzes/${quizId}?userId=${userId}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Le quiz demandé n'existe plus.");
+        }
+        if (response.status === 403) {
+          throw new Error("Vous n'avez pas la permission d'accéder à ce quiz.");
+        }
+        throw new Error("Une erreur est survenue lors du chargement du quiz.");
+      }
+      return response.json();
+    },
   });
-  
-  // Fetch note details
+
+  // Fetch note details avec gestion d'erreur améliorée
   const { data: note } = useQuery({
     queryKey: [`/api/notes/${quiz?.noteId}`],
-    queryFn: () => fetch(`/api/notes/${quiz?.noteId}`).then(res => res.json()),
-    enabled: !!quiz?.noteId
+    queryFn: async () => {
+      const response = await fetch(`/api/notes/${quiz?.noteId}`);
+      if (!response.ok) {
+        console.error(
+          "Erreur lors du chargement de la note associée:",
+          response.status
+        );
+        return null;
+      }
+      return response.json();
+    },
+    enabled: !!quiz?.noteId,
   });
-  
+
   // Submit quiz results mutation
   const submitQuizMutation = useMutation({
-    mutationFn: async (data: { answers: Record<string, string>, score: number }) => {
-      const response = await apiRequest("POST", `/api/quizzes/${quizId}/submit`, {
-        userId,
-        answers: data.answers,
-        score: data.score
-      });
+    mutationFn: async (data: {
+      answers: Record<string, string>;
+      score: number;
+    }) => {
+      const response = await apiRequest(
+        "POST",
+        `/api/quizzes/${quizId}/submit`,
+        {
+          userId,
+          answers: data.answers,
+          score: data.score,
+        }
+      );
       return response.json();
     },
     onSuccess: () => {
@@ -62,17 +97,17 @@ export default function TakeQuiz() {
         description: "Failed to save quiz results. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
-  
+
   // Handle answer selection
   const handleAnswerSelect = (questionId: string, answer: string) => {
     setSelectedAnswers({
       ...selectedAnswers,
-      [questionId]: answer
+      [questionId]: answer,
     });
   };
-  
+
   // Move to next question
   const handleNextQuestion = () => {
     if (quiz && currentQuestionIndex < quiz.questions.length - 1) {
@@ -82,59 +117,64 @@ export default function TakeQuiz() {
       calculateScore();
     }
   };
-  
+
   // Move to previous question
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   };
-  
+
   // Calculate final score
   const calculateScore = () => {
     if (!quiz) return;
-    
+
     let correctAnswers = 0;
-    
+
     quiz.questions.forEach((question: any) => {
       if (selectedAnswers[question.id] === question.correctAnswer) {
         correctAnswers++;
       }
     });
-    
-    const calculatedScore = Math.round((correctAnswers / quiz.questions.length) * 100);
+
+    const calculatedScore = Math.round(
+      (correctAnswers / quiz.questions.length) * 100
+    );
     setScore(calculatedScore);
     setIsQuizCompleted(true);
-    
+
     // Submit quiz results
     submitQuizMutation.mutate({
       answers: selectedAnswers,
-      score: calculatedScore
+      score: calculatedScore,
     });
   };
-  
+
   // Get current question
   const currentQuestion = quiz?.questions[currentQuestionIndex];
-  
+
   // Progress percentage
-  const progressPercentage = quiz 
-    ? ((currentQuestionIndex + 1) / quiz.questions.length) * 100 
+  const progressPercentage = quiz
+    ? ((currentQuestionIndex + 1) / quiz.questions.length) * 100
     : 0;
-  
+
   if (error) {
+    let errorMessage = "Une erreur est survenue lors du chargement du quiz.";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
     return (
       <div className="py-6">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <Alert variant="destructive">
-            <AlertDescription>
-              Failed to load quiz. It may have been deleted or you don't have permission to view it.
-            </AlertDescription>
+            <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
           <div className="mt-4">
             <Button asChild>
               <Link to="/quizzes">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Quizzes
+                Retour aux Quiz
               </Link>
             </Button>
           </div>
@@ -142,7 +182,7 @@ export default function TakeQuiz() {
       </div>
     );
   }
-  
+
   // Quiz completed view
   if (isQuizCompleted) {
     return (
@@ -154,8 +194,10 @@ export default function TakeQuiz() {
                 <Check className="h-12 w-12 text-primary-500" />
               </div>
               <h1 className="text-2xl font-bold mb-2">Quiz Completed!</h1>
-              <p className="text-gray-600 mb-6">You scored {score}% on this quiz.</p>
-              
+              <p className="text-gray-600 mb-6">
+                You scored {score}% on this quiz.
+              </p>
+
               <div className="w-full max-w-md mx-auto mb-8">
                 <div className="relative pt-1">
                   <div className="flex mb-2 items-center justify-between">
@@ -171,23 +213,22 @@ export default function TakeQuiz() {
                     </div>
                   </div>
                   <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-primary-200">
-                    <div style={{ width: `${score}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-500"></div>
+                    <div
+                      className="progress-bar bg-primary-500"
+                      style={{ width: `${score}%` }}
+                    ></div>
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Button asChild variant="outline">
-                  <Link to="/quizzes">
-                    Back to Quizzes
-                  </Link>
+                  <Link to="/quizzes">Back to Quizzes</Link>
                 </Button>
-                
+
                 {note && (
                   <Button asChild>
-                    <Link to={`/notes/${note.id}`}>
-                      Review Note
-                    </Link>
+                    <Link to={`/notes/${note.id}`}>Review Note</Link>
                   </Button>
                 )}
               </div>
@@ -197,7 +238,7 @@ export default function TakeQuiz() {
       </div>
     );
   }
-  
+
   return (
     <div className="py-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -209,21 +250,22 @@ export default function TakeQuiz() {
               Exit Quiz
             </Link>
           </Button>
-          
+
           {note && (
             <h1 className="text-lg font-medium">Quiz on: {note.title}</h1>
           )}
-          
+
           <div className="text-sm text-gray-500">
-            Question {currentQuestionIndex + 1} of {quiz?.questions.length || '...'}
+            Question {currentQuestionIndex + 1} of{" "}
+            {quiz?.questions.length || "..."}
           </div>
         </div>
-        
+
         {/* Progress bar */}
         <div className="mb-6">
           <Progress value={progressPercentage} className="h-2" />
         </div>
-        
+
         {/* Question card */}
         {isLoadingQuiz ? (
           <Card>
@@ -248,40 +290,53 @@ export default function TakeQuiz() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <RadioGroup 
-                value={selectedAnswers[currentQuestion.id] || ''} 
-                onValueChange={(value) => handleAnswerSelect(currentQuestion.id, value)}
+              <RadioGroup
+                value={selectedAnswers[currentQuestion.id] || ""}
+                onValueChange={(value) =>
+                  handleAnswerSelect(currentQuestion.id, value)
+                }
               >
                 {currentQuestion.options.map((option: string) => (
-                  <div key={option} className="flex items-center space-x-2 mb-4">
+                  <div
+                    key={option}
+                    className="flex items-center space-x-2 mb-4"
+                  >
                     <RadioGroupItem id={option} value={option} />
-                    <Label htmlFor={option} className="flex-grow">{option}</Label>
+                    <Label htmlFor={option} className="flex-grow">
+                      {option}
+                    </Label>
                   </div>
                 ))}
               </RadioGroup>
             </CardContent>
           </Card>
         ) : null}
-        
+
         {/* Navigation buttons */}
         <div className="flex justify-between mt-6">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handlePreviousQuestion}
             disabled={currentQuestionIndex === 0}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Previous
           </Button>
-          
-          <Button 
+
+          <Button
             onClick={handleNextQuestion}
-            disabled={!selectedAnswers[currentQuestion?.id || '']}
+            disabled={!selectedAnswers[currentQuestion?.id || ""]}
           >
             {currentQuestionIndex === (quiz?.questions.length || 0) - 1 ? (
-              <>Finish Quiz<Check className="ml-2 h-4 w-4" /></>
+              <>
+                Finish Quiz
+                <Check className="ml-2 h-4 w-4" />
+              </>
             ) : (
-              <>Next<ArrowRight className="ml-2 h-4 w-4" /></>
+              <>
+                Next
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
             )}
           </Button>
         </div>

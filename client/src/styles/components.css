@@ -1,0 +1,40 @@
+.subject-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+/* Styles pour les badges de sujet avec des couleurs dynamiques */
+.subject-badge[data-color] {
+  background-color: var(--subject-bg-color);
+  color: var(--subject-text-color);
+}
+
+.progress-bar {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  white-space: nowrap;
+  justify-content: center;
+  height: 100%;
+}
+
+/* Styles pour la barre de progression du quiz */
+.quiz-progress {
+  overflow: hidden;
+  height: 0.5rem;
+  margin-bottom: 1rem;
+  border-radius: 0.25rem;
+  background-color: var(--primary-200);
+}
+
+.quiz-progress-bar {
+  height: 100%;
+  transition: width 0.3s ease;
+  --progress-width: 0%;
+  width: var(--progress-width);
+}

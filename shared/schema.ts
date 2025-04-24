@@ -1,283 +1,284 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+  mysqlTable,
+  text,
+  int,
+  varchar,
+  boolean,
+  json,
+  timestamp,
+  primaryKey,
+} from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Base tables
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
-  displayName: text("display_name"),
+export const users = mysqlTable("users", {
+  id: int("id").autoincrement().primaryKey(),
+  username: varchar("username", { length: 255 }).notNull().unique(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  displayName: varchar("display_name", { length: 255 }),
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
-  avatar: text("avatar"),
+  avatar: varchar("avatar", { length: 255 }),
   bio: text("bio"),
-  role: text("role").default("student"),
+  role: varchar("role", { length: 50 }).default("student"),
   isEmailVerified: boolean("is_email_verified").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const subjects = pgTable("subjects", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  color: text("color").notNull(),
+export const subjects = mysqlTable("subjects", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  color: varchar("color", { length: 50 }).notNull(),
 });
 
-export const notes = pgTable("notes", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  subjectId: integer("subject_id").notNull(),
-  title: text("title").notNull(),
+export const notes = mysqlTable("notes", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  subjectId: int("subject_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
   content: text("content").notNull(),
   summary: text("summary"),
   enhancedContent: text("enhanced_content"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastReviewed: timestamp("last_reviewed"),
-  sourceType: text("source_type").notNull(), // "text", "photo", "import"
+  sourceType: varchar("source_type", { length: 50 }).notNull(),
 });
 
-export const quizzes = pgTable("quizzes", {
-  id: serial("id").primaryKey(),
-  noteId: integer("note_id").notNull(),
-  userId: integer("user_id").notNull(),
-  questions: jsonb("questions").notNull(), // Array of question objects
+export const quizzes = mysqlTable("quizzes", {
+  id: int("id").autoincrement().primaryKey(),
+  noteId: int("note_id").notNull(),
+  userId: int("user_id").notNull(),
+  questions: json("questions").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const quizResults = pgTable("quiz_results", {
-  id: serial("id").primaryKey(),
-  quizId: integer("quiz_id").notNull(),
-  userId: integer("user_id").notNull(),
-  score: integer("score").notNull(),
-  answers: jsonb("answers").notNull(), // User answers
+export const quizResults = mysqlTable("quiz_results", {
+  id: int("id").autoincrement().primaryKey(),
+  quizId: int("quiz_id").notNull(),
+  userId: int("user_id").notNull(),
+  score: int("score").notNull(),
+  answers: json("answers").notNull(),
   completedAt: timestamp("completed_at").defaultNow().notNull(),
 });
 
-export const flashcards = pgTable("flashcards", {
-  id: serial("id").primaryKey(),
-  noteId: integer("note_id").notNull(),
-  userId: integer("user_id").notNull(),
+export const flashcards = mysqlTable("flashcards", {
+  id: int("id").autoincrement().primaryKey(),
+  noteId: int("note_id").notNull(),
+  userId: int("user_id").notNull(),
   front: text("front").notNull(),
   back: text("back").notNull(),
   nextReviewDate: timestamp("next_review_date"),
-  interval: integer("interval").default(1),
-  easeFactor: integer("ease_factor").default(250),
+  interval: int("interval").default(1),
+  easeFactor: int("ease_factor").default(250),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const revisionItems = pgTable("revision_items", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  noteId: integer("note_id").notNull(),
-  masteryLevel: integer("mastery_level").default(0), // 0-100
+export const revisionItems = mysqlTable("revision_items", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  noteId: int("note_id").notNull(),
+  masteryLevel: int("mastery_level").default(0),
   nextReviewDate: timestamp("next_review_date"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// User profile and preferences
-export const userProfiles = pgTable("user_profiles", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().unique(),
-  studyPreferences: jsonb("study_preferences"),
-  notificationSettings: jsonb("notification_settings"),
+export const userProfiles = mysqlTable("user_profiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull().unique(),
+  studyPreferences: json("study_preferences"),
+  notificationSettings: json("notification_settings"),
   lastActive: timestamp("last_active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// User-subject relation (for favorites)
-export const userSubjects = pgTable("user_subjects", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  subjectId: integer("subject_id").notNull(),
+export const studyGroups = mysqlTable("study_groups", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  ownerId: int("owner_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const groupMembers = mysqlTable("group_members", {
+  id: int("id").autoincrement().primaryKey(),
+  groupId: int("group_id").notNull(),
+  userId: int("user_id").notNull(),
+  role: varchar("role", { length: 50 }).default("member"),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+});
+
+export const sharedNotes = mysqlTable("shared_notes", {
+  id: int("id").autoincrement().primaryKey(),
+  noteId: int("note_id").notNull(),
+  groupId: int("group_id").notNull(),
+  sharedBy: int("shared_by").notNull(),
+  sharedAt: timestamp("shared_at").defaultNow().notNull(),
+});
+
+export const comments = mysqlTable("comments", {
+  id: int("id").autoincrement().primaryKey(),
+  noteId: int("note_id").notNull(),
+  userId: int("user_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userSubjects = mysqlTable("user_subjects", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  subjectId: int("subject_id").notNull(),
   isFavorite: boolean("is_favorite").default(false),
   addedAt: timestamp("added_at").defaultNow().notNull(),
 });
 
-// Collaborative features tables
-export const studyGroups = pgTable("study_groups", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  creatorId: integer("creator_id").notNull(),
-  isPrivate: boolean("is_private").default(false),
-  inviteCode: text("invite_code").unique(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const groupMembers = pgTable("group_members", {
-  id: serial("id").primaryKey(),
-  groupId: integer("group_id").notNull(),
-  userId: integer("user_id").notNull(),
-  role: text("role").default("member"), // "admin", "member"
-  joinedAt: timestamp("joined_at").defaultNow().notNull(),
-});
-
-export const sharedNotes = pgTable("shared_notes", {
-  id: serial("id").primaryKey(),
-  noteId: integer("note_id").notNull(),
-  groupId: integer("group_id").notNull(),
-  sharedBy: integer("shared_by").notNull(),
-  permissions: text("permissions").default("read"), // "read", "comment", "edit"
-  sharedAt: timestamp("shared_at").defaultNow().notNull(),
-});
-
-export const comments = pgTable("comments", {
-  id: serial("id").primaryKey(),
-  noteId: integer("note_id").notNull(),
-  userId: integer("user_id").notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
 // Relations
-export const userRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many }) => ({
   notes: many(notes),
   quizzes: many(quizzes),
   quizResults: many(quizResults),
   flashcards: many(flashcards),
   revisionItems: many(revisionItems),
   profile: many(userProfiles),
-  userSubjects: many(userSubjects),
-  groupMemberships: many(groupMembers),
-  sharedNotes: many(sharedNotes, { relationName: "sharedBy" }),
-  comments: many(comments)
+  ownedGroups: many(studyGroups, { relationName: "owner" }),
+  memberGroups: many(groupMembers),
+  sharedNotes: many(sharedNotes),
+  comments: many(comments),
+  subjects: many(userSubjects),
 }));
 
 export const subjectRelations = relations(subjects, ({ many }) => ({
   notes: many(notes),
-  userSubjects: many(userSubjects)
+  userSubjects: many(userSubjects),
 }));
 
 export const noteRelations = relations(notes, ({ one, many }) => ({
   user: one(users, {
     fields: [notes.userId],
-    references: [users.id]
+    references: [users.id],
   }),
   subject: one(subjects, {
     fields: [notes.subjectId],
-    references: [subjects.id]
+    references: [subjects.id],
   }),
   quizzes: many(quizzes),
   flashcards: many(flashcards),
   revisionItems: many(revisionItems),
   sharedNotes: many(sharedNotes),
-  comments: many(comments)
+  comments: many(comments),
 }));
 
 export const quizRelations = relations(quizzes, ({ one, many }) => ({
   note: one(notes, {
     fields: [quizzes.noteId],
-    references: [notes.id]
+    references: [notes.id],
   }),
   user: one(users, {
     fields: [quizzes.userId],
-    references: [users.id]
+    references: [users.id],
   }),
-  results: many(quizResults)
+  results: many(quizResults),
 }));
 
 export const quizResultRelations = relations(quizResults, ({ one }) => ({
   quiz: one(quizzes, {
     fields: [quizResults.quizId],
-    references: [quizzes.id]
+    references: [quizzes.id],
   }),
   user: one(users, {
     fields: [quizResults.userId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 
 export const flashcardRelations = relations(flashcards, ({ one }) => ({
   note: one(notes, {
     fields: [flashcards.noteId],
-    references: [notes.id]
+    references: [notes.id],
   }),
   user: one(users, {
     fields: [flashcards.userId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 
 export const revisionItemRelations = relations(revisionItems, ({ one }) => ({
   note: one(notes, {
     fields: [revisionItems.noteId],
-    references: [notes.id]
+    references: [notes.id],
   }),
   user: one(users, {
     fields: [revisionItems.userId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 
 export const userProfileRelations = relations(userProfiles, ({ one }) => ({
   user: one(users, {
     fields: [userProfiles.userId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 
 export const userSubjectRelations = relations(userSubjects, ({ one }) => ({
   user: one(users, {
     fields: [userSubjects.userId],
-    references: [users.id]
+    references: [users.id],
   }),
   subject: one(subjects, {
     fields: [userSubjects.subjectId],
-    references: [subjects.id]
-  })
+    references: [subjects.id],
+  }),
 }));
 
 export const studyGroupRelations = relations(studyGroups, ({ one, many }) => ({
-  creator: one(users, {
-    fields: [studyGroups.creatorId],
-    references: [users.id]
+  owner: one(users, {
+    fields: [studyGroups.ownerId],
+    references: [users.id],
   }),
   members: many(groupMembers),
-  sharedNotes: many(sharedNotes)
+  sharedNotes: many(sharedNotes),
 }));
 
 export const groupMemberRelations = relations(groupMembers, ({ one }) => ({
   group: one(studyGroups, {
     fields: [groupMembers.groupId],
-    references: [studyGroups.id]
+    references: [studyGroups.id],
   }),
   user: one(users, {
     fields: [groupMembers.userId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 
 export const sharedNoteRelations = relations(sharedNotes, ({ one }) => ({
   note: one(notes, {
     fields: [sharedNotes.noteId],
-    references: [notes.id]
+    references: [notes.id],
   }),
   group: one(studyGroups, {
     fields: [sharedNotes.groupId],
-    references: [studyGroups.id]
+    references: [studyGroups.id],
   }),
   sharedByUser: one(users, {
     fields: [sharedNotes.sharedBy],
     references: [users.id],
-    relationName: "sharedBy"
-  })
+    relationName: "sharedBy",
+  }),
 }));
 
 export const commentRelations = relations(comments, ({ one }) => ({
   note: one(notes, {
     fields: [comments.noteId],
-    references: [notes.id]
+    references: [notes.id],
   }),
   user: one(users, {
     fields: [comments.userId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 
 // Mettez à jour le schéma d'insertion pour l'utilisateur pour inclure les nouveaux champs
@@ -288,7 +289,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   displayName: true,
   firstName: true,
   lastName: true,
-  role: true
+  role: true,
 });
 
 export const insertSubjectSchema = createInsertSchema(subjects).pick({
@@ -313,7 +314,7 @@ export const insertQuizSchema = createInsertSchema(quizzes).pick({
 });
 
 export const insertQuizResultSchema = createInsertSchema(quizResults).pick({
-  quizId: true, 
+  quizId: true,
   userId: true,
   score: true,
   answers: true,
@@ -345,8 +346,7 @@ export const insertUserProfileSchema = createInsertSchema(userProfiles).pick({
 export const insertStudyGroupSchema = createInsertSchema(studyGroups).pick({
   name: true,
   description: true,
-  creatorId: true,
-  isPrivate: true,
+  ownerId: true,
 });
 
 export const insertGroupMemberSchema = createInsertSchema(groupMembers).pick({
@@ -411,7 +411,7 @@ export type QuizQuestion = {
   question: string;
   options: string[];
   correctAnswer: string;
-  type: 'multiple-choice' | 'true-false' | 'short-answer';
+  type: "multiple-choice" | "true-false" | "short-answer";
 };
 
 // Custom validators
@@ -422,13 +422,17 @@ export const fileUploadSchema = z.object({
 });
 
 // Registration and authentication
-export const registerSchema = insertUserSchema.extend({
-  password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Les mots de passe ne correspondent pas",
-  path: ["confirmPassword"],
-});
+export const registerSchema = insertUserSchema
+  .extend({
+    password: z
+      .string()
+      .min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Les mots de passe ne correspondent pas",
+    path: ["confirmPassword"],
+  });
 
 export const loginSchema = z.object({
   email: z.string().email("Veuillez fournir une adresse email valide"),
@@ -443,11 +447,17 @@ export const updateUserSchema = createInsertSchema(users).partial().pick({
   bio: true,
 });
 
-export const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Le mot de passe actuel est requis"),
-  newPassword: z.string().min(8, "Le nouveau mot de passe doit contenir au moins 8 caractères"),
-  confirmPassword: z.string().min(1, "Veuillez confirmer votre nouveau mot de passe"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Les mots de passe ne correspondent pas",
-  path: ["confirmPassword"],
-});
+export const updatePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Le mot de passe actuel est requis"),
+    newPassword: z
+      .string()
+      .min(8, "Le nouveau mot de passe doit contenir au moins 8 caractères"),
+    confirmPassword: z
+      .string()
+      .min(1, "Veuillez confirmer votre nouveau mot de passe"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Les mots de passe ne correspondent pas",
+    path: ["confirmPassword"],
+  });

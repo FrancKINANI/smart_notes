@@ -1,8 +1,5 @@
 import { apiRequest } from "./queryClient";
 
-// Note: This file contains client-side helper functions for OpenAI-related features
-// The actual API calls are handled on the server side
-
 export interface EnhanceNoteResult {
   id: number;
   enhancedContent: string;
@@ -31,10 +28,12 @@ export interface FlashcardGeneration {
   count?: number;
 }
 
-export async function generateFlashcards(params: FlashcardGeneration): Promise<any> {
+export async function generateFlashcards(
+  params: FlashcardGeneration
+): Promise<any> {
   const response = await apiRequest(
-    "POST", 
-    `/api/notes/${params.noteId}/generate-flashcards`, 
+    "POST",
+    `/api/notes/${params.noteId}/generate-flashcards`,
     { userId: params.userId, count: params.count || 5 }
   );
   return await response.json();
