@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, UploadIcon } from "lucide-react";
+import PageHeader from "@/components/layout/page-header";
 import ProgressSection from "@/components/dashboard/progress-section";
 import RecentNotes from "@/components/dashboard/recent-notes";
 import RevisionReminders from "@/components/dashboard/revision-reminders";
@@ -27,48 +28,50 @@ export default function Dashboard() {
     queryFn: () => fetch(`/api/revision-items/due?userId=${userId}`).then(res => res.json())
   });
   
+  // Actions for the header
+  const headerActions = (
+    <>
+      <Button asChild>
+        <Link href="/notes/create">
+          <PlusIcon className="mr-2 h-4 w-4" />
+          <span className="hidden sm:inline">Nouvelle note</span>
+          <span className="sm:hidden">Note</span>
+        </Link>
+      </Button>
+      <Button variant="outline" onClick={() => setIsUploadModalOpen(true)}>
+        <UploadIcon className="mr-2 h-4 w-4" />
+        <span className="hidden sm:inline">Importer</span>
+        <span className="sm:hidden">Import</span>
+      </Button>
+    </>
+  );
+
   return (
     <>
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-gray-900">Tableau de bord</h1>
-            <div className="flex space-x-3">
-              <Button asChild>
-                <Link to="/notes/create">
-                  <PlusIcon className="mr-2 h-4 w-4" />
-                  Nouvelle note
-                </Link>
-              </Button>
-              <Button variant="outline" onClick={() => setIsUploadModalOpen(true)}>
-                <UploadIcon className="mr-2 h-4 w-4" />
-                Importer
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="py-4">
-            {/* Progress stats */}
-            <ProgressSection userId={userId} />
-            
-            {/* Recent notes */}
-            <RecentNotes 
-              notes={recentNotes || []} 
-              isLoading={isLoadingNotes} 
-            />
-            
-            {/* Revision reminders */}
-            <RevisionReminders 
-              items={revisionItems || []} 
-              isLoading={isLoadingRevisionItems} 
-            />
-            
-            {/* Features showcase */}
-            <FeaturesShowcase />
-          </div>
-        </div>
+      <PageHeader 
+        title="Tableau de bord" 
+        description="Bienvenue dans votre espace d'apprentissage" 
+        actions={headerActions}
+      />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pb-6">
+        {/* Progress stats */}
+        <ProgressSection userId={userId} />
+        
+        {/* Recent notes */}
+        <RecentNotes 
+          notes={recentNotes || []} 
+          isLoading={isLoadingNotes} 
+        />
+        
+        {/* Revision reminders */}
+        <RevisionReminders 
+          items={revisionItems || []} 
+          isLoading={isLoadingRevisionItems} 
+        />
+        
+        {/* Features showcase */}
+        <FeaturesShowcase />
       </div>
       
       {/* Upload modal */}

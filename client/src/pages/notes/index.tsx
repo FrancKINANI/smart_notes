@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlusIcon, UploadIcon, SearchIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PageHeader from "@/components/layout/page-header";
 import NoteCard from "@/components/notes/note-card";
 import UploadModal from "@/components/modals/upload-modal";
 import { useState } from "react";
