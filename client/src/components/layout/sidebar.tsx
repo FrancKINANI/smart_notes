@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Home,
   BookOpen,
@@ -9,8 +10,16 @@ import {
   Calendar,
   MessageSquare,
   Users,
-  User
+  User,
+  LogOut
 } from "lucide-react";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -19,6 +28,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [location] = useLocation();
+  const { user, logout, isLogoutLoading } = useAuth();
 
   // Navigation items
   const navigationItems = [
@@ -28,7 +38,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     { name: "Quiz", href: "/quizzes", icon: <HelpCircle className="mr-3 h-5 w-5" /> },
     { name: "Planning", href: "/schedule", icon: <Calendar className="mr-3 h-5 w-5" /> },
     { name: "Assistant", href: "/assistant", icon: <MessageSquare className="mr-3 h-5 w-5" /> },
-    { name: "Collaboratif", href: "#", icon: <Users className="mr-3 h-5 w-5" /> }
+    { name: "Groupes d'étude", href: "/study-groups", icon: <Users className="mr-3 h-5 w-5" /> }
   ];
 
   // Close sidebar on mobile when clicking outside
@@ -92,17 +102,40 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             
             {/* User profile */}
             <div className="px-4 py-4 border-t border-gray-200">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-9 w-9 rounded-full bg-primary-200 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary-700" />
+              <DropdownMenu>
+                <DropdownMenuTrigger className="w-full">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-9 w-9 rounded-full bg-primary-200 flex items-center justify-center">
+                        <User className="h-5 w-5 text-primary-700" />
+                      </div>
+                    </div>
+                    <div className="ml-3 text-left">
+                      <p className="text-sm font-medium text-gray-700">
+                        {user?.displayName || user?.username || 'Utilisateur'}
+                      </p>
+                      <p className="text-xs font-medium text-gray-500">
+                        {user?.role || 'Étudiant'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700">Thomas Dubois</p>
-                  <p className="text-xs font-medium text-gray-500">Étudiant</p>
-                </div>
-              </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profil</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="cursor-pointer text-red-600" 
+                    onClick={logout}
+                    disabled={isLogoutLoading}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Déconnexion</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
