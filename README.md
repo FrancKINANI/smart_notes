@@ -116,3 +116,5 @@ Ce projet est sous licence [MIT](LICENSE).
 
 Merci à tous les contributeurs et utilisateurs de **SmartNotes** pour leur soutien et leurs idées. Ensemble, nous rendons l’apprentissage plus intelligent et accessible !
 ```
+
+Ce fichier README inclut une description complète du projet, les technologies utilisées, les instructions d'installation, la documentation de base, et des informations pour contribuer. Vous pouvez l'adapter selon vos besoins spécifiques.
