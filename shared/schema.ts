@@ -99,8 +99,11 @@ export const studyGroups = mysqlTable("study_groups", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  ownerId: int("owner_id").notNull(),
+  creatorId: int("creator_id").notNull(),
+  isPrivate: boolean("is_private").default(false),
+  inviteCode: varchar("invite_code", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const groupMembers = mysqlTable("group_members", {
@@ -116,6 +119,7 @@ export const sharedNotes = mysqlTable("shared_notes", {
   noteId: int("note_id").notNull(),
   groupId: int("group_id").notNull(),
   sharedBy: int("shared_by").notNull(),
+  permissions: varchar("permissions", { length: 50 }).default("read"),
   sharedAt: timestamp("shared_at").defaultNow().notNull(),
 });
 
@@ -236,7 +240,7 @@ export const userSubjectRelations = relations(userSubjects, ({ one }) => ({
 
 export const studyGroupRelations = relations(studyGroups, ({ one, many }) => ({
   owner: one(users, {
-    fields: [studyGroups.ownerId],
+    fields: [studyGroups.creatorId],
     references: [users.id],
   }),
   members: many(groupMembers),

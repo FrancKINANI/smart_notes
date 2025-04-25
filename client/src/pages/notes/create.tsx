@@ -1,14 +1,28 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { useState } from "react";
+import { useLocation, useParams } from "wouter";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
@@ -28,16 +42,27 @@ const textNoteSchema = z.object({
 
 export default function CreateNote() {
   const [_, navigate] = useLocation();
+  const params = useParams<{ id?: string }>();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("text");
   const userId = 1; // Default user ID for demo
-  
+
+  const isEditMode = !!params.id;
+  const noteId = params.id ? parseInt(params.id) : undefined;
+
+  // Fetch note if in edit mode
+  const { data: existingNote, isLoading: isLoadingNote } = useQuery({
+    queryKey: [`/api/notes/${noteId}`],
+    queryFn: () => fetch(`/api/notes/${noteId}`).then((res) => res.json()),
+    enabled: isEditMode,
+  });
+
   // Fetch subjects
   const { data: subjects, isLoading: isLoadingSubjects } = useQuery({
     queryKey: ["/api/subjects"],
-    queryFn: () => fetch("/api/subjects").then(res => res.json())
+    queryFn: () => fetch("/api/subjects").then((res) => res.json()),
   });
-  
+
   // Setup form for text notes
   const form = useForm<z.infer<typeof textNoteSchema>>({
     resolver: zodResolver(textNoteSchema),
@@ -47,25 +72,41 @@ export default function CreateNote() {
       content: "",
     },
   });
-  
-  // Create note mutation
-  const createNoteMutation = useMutation({
+
+  // Update form values when editing an existing note
+  useEffect(() => {
+    if (existingNote) {
+      form.reset({
+        title: existingNote.title,
+        subjectId: existingNote.subjectId.toString(),
+        content: existingNote.content,
+      });
+    }
+  }, [existingNote, form]);
+
+  // Create/Update note mutation
+  const noteMutation = useMutation({
     mutationFn: async (values: z.infer<typeof textNoteSchema>) => {
-      const response = await apiRequest("POST", "/api/notes", {
+      const endpoint = isEditMode ? `/api/notes/${noteId}` : "/api/notes";
+      const method = isEditMode ? "PUT" : "POST";
+
+      const response = await apiRequest(method, endpoint, {
         userId,
         subjectId: parseInt(values.subjectId),
         title: values.title,
         content: values.content,
-        summary: "",
-        enhancedContent: "",
-        sourceType: "text"
+        summary: existingNote?.summary || "",
+        enhancedContent: existingNote?.enhancedContent || "",
+        sourceType: "text",
       });
       return response.json();
     },
     onSuccess: (data) => {
       toast({
-        title: "Note created",
-        description: "Your note has been successfully created.",
+        title: isEditMode ? "Note updated" : "Note created",
+        description: isEditMode
+          ? "Your note has been updated."
+          : "Your note has been created.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/notes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notes/recent"] });
@@ -74,13 +115,15 @@ export default function CreateNote() {
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to create note. Please try again.",
+        description: isEditMode
+          ? "Failed to update note."
+          : "Failed to create note.",
         variant: "destructive",
       });
-    }
+    },
   });
-  
-  // OCR processing mutation
+
+  // OCR processing mutation (only for new notes)
   const ocrMutation = useMutation({
     mutationFn: processImageOCR,
     onSuccess: (data) => {
@@ -95,35 +138,52 @@ export default function CreateNote() {
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to process image. Please try again with a clearer image.",
+        description:
+          "Failed to process image. Please try again with a clearer image.",
         variant: "destructive",
       });
-    }
+    },
   });
-  
+
   // Handle text note submission
   const onSubmit = (values: z.infer<typeof textNoteSchema>) => {
-    createNoteMutation.mutate(values);
+    noteMutation.mutate(values);
   };
-  
-  // Handle image upload for OCR
-  const handleImageUpload = async (file: File, title: string, subjectId: string) => {
-    // Convert file to base64
+
+  // Handle image upload for OCR (only for new notes)
+  const handleImageUpload = async (
+    file: File,
+    title: string,
+    subjectId: string
+  ) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => {
-      const base64Image = reader.result?.toString().split(',')[1];
+      const base64Image = reader.result?.toString().split(",")[1];
       if (base64Image) {
         ocrMutation.mutate({
           image: base64Image,
           userId,
           subjectId: parseInt(subjectId),
-          title
+          title,
         });
       }
     };
   };
-  
+
+  if (isEditMode && isLoadingNote) {
+    return (
+      <div className="py-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-32 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="py-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -136,110 +196,156 @@ export default function CreateNote() {
                 Back
               </Link>
             </Button>
-            <h1 className="text-2xl font-semibold text-gray-900">Create New Note</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              {isEditMode ? "Edit Note" : "Create New Note"}
+            </h1>
           </div>
         </div>
-        
-        {/* Input methods tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="text">Text Input</TabsTrigger>
-            <TabsTrigger value="photo">Photo Upload</TabsTrigger>
-          </TabsList>
-          
-          {/* Text input tab */}
-          <TabsContent value="text">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Title</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter a title for your note" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+
+        {/* Input methods tabs - only show for new notes */}
+        {!isEditMode ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="text">Text Input</TabsTrigger>
+              <TabsTrigger value="photo">Photo Upload</TabsTrigger>
+            </TabsList>
+
+            {/* Text input tab */}
+            <TabsContent value="text">
+              <div className="bg-white p-6 rounded-lg shadow">
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-6"
+                  >
+                    <FormFields
+                      form={form}
+                      subjects={subjects}
+                      isLoadingSubjects={isLoadingSubjects}
                     />
-                    
-                    <FormField
-                      control={form.control}
-                      name="subjectId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Subject</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a subject" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {isLoadingSubjects ? (
-                                <SelectItem value="loading" disabled>Loading subjects...</SelectItem>
-                              ) : subjects?.map((subject: any) => (
-                                <SelectItem key={subject.id} value={subject.id.toString()}>
-                                  {subject.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name="content"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Content</FormLabel>
-                        <FormControl>
-                          <NoteEditor value={field.value} onChange={field.onChange} />
-                        </FormControl>
-                        <FormDescription>
-                          Write your note content here. You can format text using the toolbar.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="flex justify-end">
-                    <Button 
-                      type="submit" 
-                      disabled={createNoteMutation.isPending}
-                    >
-                      {createNoteMutation.isPending ? "Creating..." : "Create Note"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </div>
-          </TabsContent>
-          
-          {/* Photo upload tab */}
-          <TabsContent value="photo">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <FileUpload 
-                onFileUpload={handleImageUpload}
-                isLoading={ocrMutation.isPending}
-                subjects={subjects || []}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+                  </form>
+                </Form>
+              </div>
+            </TabsContent>
+
+            {/* Photo upload tab */}
+            <TabsContent value="photo">
+              <div className="bg-white p-6 rounded-lg shadow">
+                <FileUpload
+                  onFileUpload={handleImageUpload}
+                  isLoading={ocrMutation.isPending}
+                  subjects={subjects || []}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          /* Edit mode - just show the form */
+          <div className="bg-white p-6 rounded-lg shadow">
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                <FormFields
+                  form={form}
+                  subjects={subjects}
+                  isLoadingSubjects={isLoadingSubjects}
+                />
+              </form>
+            </Form>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+// Form fields component to avoid duplication
+function FormFields({
+  form,
+  subjects,
+  isLoadingSubjects,
+}: {
+  form: any;
+  subjects: any[];
+  isLoadingSubjects: boolean;
+}) {
+  return (
+    <>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter a title for your note" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="subjectId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Subject</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a subject" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {isLoadingSubjects ? (
+                    <SelectItem value="loading" disabled>
+                      Loading subjects...
+                    </SelectItem>
+                  ) : (
+                    subjects?.map((subject: any) => (
+                      <SelectItem
+                        key={subject.id}
+                        value={subject.id.toString()}
+                      >
+                        {subject.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="content"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Content</FormLabel>
+            <FormControl>
+              <NoteEditor value={field.value} onChange={field.onChange} />
+            </FormControl>
+            <FormDescription>
+              Write your note content here. You can format text using the
+              toolbar.
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="flex justify-end">
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? "Saving..." : "Save Note"}
+        </Button>
+      </div>
+    </>
   );
 }

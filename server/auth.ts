@@ -9,7 +9,17 @@ import { z } from "zod";
 // Définir un type pour Express.User qui correspond à notre type User
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User {
+      id: number;
+      username: string;
+      email: string;
+      displayName?: string | null;
+      firstName?: string | null;
+      lastName?: string | null;
+      avatar?: string | null;
+      bio?: string | null;
+      role: string;
+    }
   }
 }
 

@@ -11,25 +11,45 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { FileText, BarChart, ArrowRight } from "lucide-react";
+import {
+  FileText,
+  BarChart,
+  ArrowRight,
+  Eye,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function QuizIndex() {
   const [activeTab, setActiveTab] = useState("available");
 
-  const userId = 1; // Default user ID for demo
-
-  // Fetch quizzes
+  // Fetch quizzes with notes info
   const { data: quizzes, isLoading: isLoadingQuizzes } = useQuery({
-    queryKey: ["/api/quizzes", { userId }],
-    queryFn: () =>
-      fetch(`/api/quizzes?userId=${userId}`).then((res) => res.json()),
+    queryKey: ["/api/quizzes"],
+    queryFn: async () => {
+      const response = await fetch("/api/quizzes", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch quizzes");
+      }
+      return response.json();
+    },
   });
 
   // Fetch quiz results with better error handling
   const { data: quizResults = [], isLoading: isLoadingResults } = useQuery({
-    queryKey: ["/api/quizzes/results", { userId }],
+    queryKey: ["/api/quizzes/results"],
     queryFn: async () => {
-      const response = await fetch(`/api/quizzes/results?userId=${userId}`);
+      const response = await fetch("/api/quizzes/results", {
+        credentials: "include",
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch quiz results");
       }
@@ -37,19 +57,6 @@ export default function QuizIndex() {
       return Array.isArray(data) ? data : [];
     },
   });
-
-  // Fetch notes for reference
-  const { data: notes } = useQuery({
-    queryKey: ["/api/notes", { userId }],
-    queryFn: () =>
-      fetch(`/api/notes?userId=${userId}`).then((res) => res.json()),
-  });
-
-  // Find note title by ID
-  const getNoteTitle = (noteId: number) => {
-    const note = notes?.find((n: any) => n.id === noteId);
-    return note?.title || "Unknown Note";
-  };
 
   // Render quiz list
   const renderQuizzes = () => {
@@ -67,10 +74,10 @@ export default function QuizIndex() {
       return (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">
-            No quizzes available. Generate a quiz from your notes!
+            Aucun quiz disponible. Générez un quiz à partir de vos notes !
           </p>
           <Button asChild>
-            <Link to="/notes">Browse Notes</Link>
+            <Link to="/notes">Parcourir les Notes</Link>
           </Button>
         </div>
       );
@@ -83,7 +90,7 @@ export default function QuizIndex() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <FileText className="h-5 w-5 mr-2 text-primary-500" />
-                Quiz on {getNoteTitle(quiz.noteId)}
+                Quiz sur : {quiz.note?.title || "Note supprimée"}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -91,13 +98,13 @@ export default function QuizIndex() {
                 {quiz.questions.length} questions
               </p>
               <p className="text-sm text-gray-500">
-                Created on {new Date(quiz.createdAt).toLocaleDateString()}
+                Créé le {new Date(quiz.createdAt).toLocaleDateString()}
               </p>
             </CardContent>
             <CardFooter className="justify-end">
               <Button asChild>
                 <Link to={`/quizzes/${quiz.id}`}>
-                  Take Quiz <ArrowRight className="ml-2 h-4 w-4" />
+                  Passer le Quiz <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </CardFooter>
@@ -134,19 +141,19 @@ export default function QuizIndex() {
         {quizResults.map((result: any) => {
           const quiz = quizzes?.find((q: any) => q.id === result.quizId);
           return (
-            <Card key={result.id}>
+            <Card key={result.id} className="overflow-hidden">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <BarChart className="h-5 w-5 mr-2 text-primary-500" />
-                  {quiz
-                    ? `Quiz sur ${getNoteTitle(quiz.noteId)}`
-                    : "Résultat du Quiz"}
+                  {quiz?.note?.title
+                    ? `Quiz sur : ${quiz.note.title}`
+                    : "Quiz sur une note supprimée"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-center mb-4">
-                  <div className="relative">
-                    <svg className="w-24 h-24">
+                <div className="text-center mb-4">
+                  <div className="relative inline-block">
+                    <svg className="w-24 h-24 transform -rotate-90">
                       <circle
                         className="text-gray-200"
                         strokeWidth="5"
@@ -178,7 +185,46 @@ export default function QuizIndex() {
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 text-center">
+
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="answers">
+                    <AccordionTrigger className="text-sm">
+                      Voir les réponses
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {quiz?.questions.map((question: any, index: number) => {
+                        const userAnswer = result.answers[question.id];
+                        const isCorrect = userAnswer === question.correctAnswer;
+                        return (
+                          <div key={question.id} className="mb-4 text-sm">
+                            <div className="flex items-start gap-2">
+                              {isCorrect ? (
+                                <CheckCircle className="h-4 w-4 text-green-500 mt-1 flex-shrink-0" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-500 mt-1 flex-shrink-0" />
+                              )}
+                              <div>
+                                <p className="font-medium">
+                                  Q{index + 1}: {question.question}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Votre réponse : {userAnswer}
+                                </p>
+                                {!isCorrect && (
+                                  <p className="text-sm text-green-600">
+                                    Réponse correcte : {question.correctAnswer}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+                <p className="text-sm text-gray-500 text-center mt-4">
                   Complété le{" "}
                   {new Date(result.completedAt).toLocaleDateString()}
                 </p>
@@ -204,12 +250,11 @@ export default function QuizIndex() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="available">Available Quizzes</TabsTrigger>
-            <TabsTrigger value="results">Your Results</TabsTrigger>
+            <TabsTrigger value="available">Quiz Disponibles</TabsTrigger>
+            <TabsTrigger value="results">Vos Résultats</TabsTrigger>
           </TabsList>
 
           <TabsContent value="available">{renderQuizzes()}</TabsContent>
-
           <TabsContent value="results">{renderResults()}</TabsContent>
         </Tabs>
       </div>

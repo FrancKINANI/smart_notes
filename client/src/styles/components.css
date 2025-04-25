@@ -1,11 +1,13 @@
 .subject-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.625rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
-  margin-right: 0.5rem;
+  margin-right: 0.75rem;
+  background-color: rgba(var(--subject-color), 0.1);
+  color: rgb(var(--subject-color));
 }
 
 /* Styles pour les badges de sujet avec des couleurs dynamiques */

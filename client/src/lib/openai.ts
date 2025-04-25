@@ -28,15 +28,42 @@ export interface FlashcardGeneration {
   count?: number;
 }
 
+interface FlashcardResponse {
+  id: number;
+  noteId: number;
+  userId: number;
+  front: string;
+  back: string;
+  nextReviewDate: string;
+  interval: number;
+  easeFactor: number;
+}
+
 export async function generateFlashcards(
   params: FlashcardGeneration
-): Promise<any> {
-  const response = await apiRequest(
-    "POST",
-    `/api/notes/${params.noteId}/generate-flashcards`,
-    { userId: params.userId, count: params.count || 5 }
-  );
-  return await response.json();
+): Promise<FlashcardResponse[]> {
+  try {
+    const response = await apiRequest(
+      "POST",
+      `/api/notes/${params.noteId}/generate-flashcards`,
+      {
+        userId: params.userId,
+        count: params.count || 5,
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(
+        error.message || "Erreur lors de la génération des flashcards"
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Erreur lors de la génération des flashcards:", error);
+    throw error;
+  }
 }
 
 export interface TtsRequest {
@@ -45,5 +72,4 @@ export interface TtsRequest {
 
 export async function textToSpeech(params: TtsRequest): Promise<void> {
   await apiRequest("POST", "/api/tts", params);
-  // In a real implementation, this would return audio data or a URL
 }

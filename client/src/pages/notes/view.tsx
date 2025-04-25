@@ -19,18 +19,23 @@ import {
   FileQuestion,
   Trash2,
   ArrowLeft,
+  RefreshCw,
+  MessageSquare,
 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useModal } from "@/hooks/use-modal";
 import { useState, useEffect } from "react";
 import { Note, Subject } from "@shared/schema";
 import { Link } from "wouter";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function ViewNote() {
   const params = useParams<{ id: string }>();
   const [_, navigate] = useLocation();
   const { toast } = useToast();
+  const { openAssistantModal } = useModal();
   const noteId = parseInt(params.id);
   const userId = 1; // Default user ID for demo
 
@@ -101,15 +106,17 @@ export default function ViewNote() {
     mutationFn: () => generateFlashcards({ noteId, userId }),
     onSuccess: () => {
       toast({
-        title: "Flashcards generated",
-        description: "New flashcards have been created based on your note.",
+        title: "Cartes générées",
+        description:
+          "De nouvelles cartes de révision ont été créées à partir de votre note.",
       });
       navigate("/flashcards");
     },
     onError: () => {
       toast({
-        title: "Flashcard generation failed",
-        description: "Failed to generate flashcards. Please try again.",
+        title: "Échec de la génération",
+        description:
+          "Impossible de générer les cartes de révision. Veuillez réessayer.",
         variant: "destructive",
       });
     },
@@ -160,6 +167,14 @@ export default function ViewNote() {
     }
   };
 
+  const handleDiscussWithAI = () => {
+    if (note?.content) {
+      openAssistantModal(
+        `Discutons de cette note sur : ${note.title}\n\n${note.content}`
+      );
+    }
+  };
+
   // Clean up speech on unmount
   useEffect(() => {
     return () => {
@@ -190,148 +205,157 @@ export default function ViewNote() {
     );
   }
 
-  function renderEnhancedContent(content: any) {
-    if (!content) return null;
+  function convertJSONToMarkdown(content: any): string {
+    if (!content) return "";
 
-    return (
-      <div className="prose prose-lg max-w-none">
-        {content.title && <h1>{content.title}</h1>}
-        {content.introduction && (
-          <section>
-            <h2>Introduction</h2>
-            <p>{content.introduction.definition}</p>
-          </section>
-        )}
-        {content.fundamentalConcepts && (
-          <section>
-            <h2>Concepts Fondamentaux</h2>
-            {content.fundamentalConcepts.vectorsAndVectorSpaces && (
-              <div>
-                <h3>Vecteurs et Espaces Vectoriels</h3>
-                <p>
-                  {
-                    content.fundamentalConcepts.vectorsAndVectorSpaces
-                      .vectorDefinition
-                  }
-                </p>
-                <p>
-                  {
-                    content.fundamentalConcepts.vectorsAndVectorSpaces
-                      .vectorSpaceDefinition
-                  }
-                </p>
-                <ul>
-                  {content.fundamentalConcepts.vectorsAndVectorSpaces.properties.map(
-                    (prop: string, i: number) => (
-                      <li key={i}>{prop}</li>
-                    )
-                  )}
-                </ul>
-              </div>
-            )}
-            {content.fundamentalConcepts.linearTransformations && (
-              <div>
-                <h3>Transformations Linéaires</h3>
-                <p>
-                  {content.fundamentalConcepts.linearTransformations.definition}
-                </p>
-                <p>
-                  {
-                    content.fundamentalConcepts.linearTransformations
-                      .matrixRepresentation
-                  }
-                </p>
-                <ul>
-                  {content.fundamentalConcepts.linearTransformations.examples.map(
-                    (example: string, i: number) => (
-                      <li key={i}>{example}</li>
-                    )
-                  )}
-                </ul>
-              </div>
-            )}
-            {content.fundamentalConcepts.systemsOfLinearEquations && (
-              <div>
-                <h3>Systèmes d'Équations Linéaires</h3>
-                <p>
-                  {
-                    content.fundamentalConcepts.systemsOfLinearEquations
-                      .definition
-                  }
-                </p>
-                <p>
-                  {
-                    content.fundamentalConcepts.systemsOfLinearEquations
-                      .importance
-                  }
-                </p>
-                <ul>
-                  {content.fundamentalConcepts.systemsOfLinearEquations.methodsOfSolution.map(
-                    (method: string, i: number) => (
-                      <li key={i}>{method}</li>
-                    )
-                  )}
-                </ul>
-              </div>
-            )}
-          </section>
-        )}
-        {content.applications && (
-          <section>
-            <h2>Applications</h2>
-            <ul>
-              {content.applications.fields.map((field: string, i: number) => (
-                <li key={i}>{field}</li>
-              ))}
-            </ul>
-            <p>{content.applications.role}</p>
-          </section>
-        )}
-      </div>
-    );
-  }
+    // Si le contenu est une chaîne, c'est déjà du markdown ou du texte brut
+    if (typeof content === "string") return content;
 
-  function renderEnhancedContentFromJSON(jsonContent: any) {
-    if (!jsonContent || typeof jsonContent !== "object") {
-      return <p className="text-red-500">Invalid content format</p>;
+    // Si le contenu est un objet avec enhancedContent
+    if (content.enhancedContent) {
+      try {
+        const parsed =
+          typeof content.enhancedContent === "string"
+            ? JSON.parse(content.enhancedContent)
+            : content.enhancedContent;
+        return convertJSONToMarkdown(parsed);
+      } catch (error) {
+        console.error("Erreur lors du parsing du contenu amélioré:", error);
+        return content.enhancedContent?.toString() || "";
+      }
     }
 
-    const renderObject = (obj: any) => {
-      return Object.entries(obj).map(([key, value], index) => {
-        if (typeof value === "string") {
+    let markdown = "";
+
+    // Fonction utilitaire pour convertir un array en liste markdown
+    const arrayToList = (items: any[]): string => {
+      if (!Array.isArray(items)) return "";
+      return items
+        .filter((item) => item !== null && item !== undefined)
+        .map((item) => `- ${item}\n`)
+        .join("");
+    };
+
+    // Traiter chaque section du contenu amélioré
+    if (content.Introduction) {
+      markdown += "# Introduction\n\n";
+      markdown += `${content.Introduction}\n\n`;
+    }
+
+    if (content["Concepts Fondamentaux"]) {
+      markdown += "# Concepts Fondamentaux\n\n";
+      const concepts = content["Concepts Fondamentaux"];
+
+      if (concepts.Définitions?.length) {
+        markdown += "## Définitions\n\n";
+        markdown += arrayToList(concepts.Définitions);
+        markdown += "\n";
+      }
+
+      if (concepts.Principes?.length) {
+        markdown += "## Principes\n\n";
+        markdown += arrayToList(concepts.Principes);
+        markdown += "\n";
+      }
+
+      if (concepts.Exemples?.length) {
+        markdown += "## Exemples\n\n";
+        markdown += arrayToList(concepts.Exemples);
+        markdown += "\n";
+      }
+    }
+
+    if (content["Points Clés"]?.length) {
+      markdown += "# Points Clés\n\n";
+      markdown += arrayToList(content["Points Clés"]);
+      markdown += "\n";
+    }
+
+    if (content.Applications?.length) {
+      markdown += "# Applications\n\n";
+      markdown += arrayToList(content.Applications);
+      markdown += "\n";
+    }
+
+    if (content["Pour Aller Plus Loin"]) {
+      markdown += "# Pour Aller Plus Loin\n\n";
+      markdown += `${content["Pour Aller Plus Loin"]}\n\n`;
+    }
+
+    return markdown;
+  }
+
+  function renderEnhancedContent(content: any) {
+    if (!content) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-gray-500">
+            Aucun contenu amélioré disponible. Cliquez sur "Améliorer avec l'IA"
+            pour le générer.
+          </p>
+        </div>
+      );
+    }
+
+    try {
+      let contentToConvert = content;
+
+      if (typeof content === "string") {
+        try {
+          contentToConvert = JSON.parse(content);
+        } catch {
           return (
-            <p key={index}>
-              <strong>{key}:</strong> {value}
-            </p>
-          );
-        } else if (Array.isArray(value)) {
-          return (
-            <div key={index}>
-              <h3>{key}</h3>
-              <ul>
-                {value.map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          );
-        } else if (typeof value === "object") {
-          return (
-            <div key={index}>
-              <h3>{key}</h3>
-              {renderObject(value)}
+            <div className="prose max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {content}
+              </ReactMarkdown>
             </div>
           );
         }
-        return null;
-      });
-    };
+      }
 
-    return (
-      <div className="prose prose-lg max-w-none">
-        {renderObject(jsonContent)}
-      </div>
-    );
+      const markdownContent = convertJSONToMarkdown(contentToConvert);
+
+      if (!markdownContent.trim()) {
+        return (
+          <div className="text-center py-12">
+            <p className="text-gray-500">
+              Le contenu amélioré semble être vide. Essayez de régénérer le
+              contenu.
+            </p>
+          </div>
+        );
+      }
+
+      return (
+        <div className="prose max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {markdownContent}
+          </ReactMarkdown>
+        </div>
+      );
+    } catch (error) {
+      console.error("Erreur lors du rendu du contenu amélioré:", error);
+      return (
+        <div className="text-red-500 p-4 rounded-lg border border-red-200 bg-red-50">
+          <p className="mb-2">
+            Une erreur est survenue lors de l'affichage du contenu amélioré.
+          </p>
+          <p className="text-sm">
+            Détail de l'erreur :{" "}
+            {error instanceof Error ? error.message : "Erreur inconnue"}
+          </p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => enhanceMutation.mutate()}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Réessayer l'amélioration
+          </Button>
+        </div>
+      );
+    }
   }
 
   console.log("Note data:", note);
@@ -402,11 +426,14 @@ export default function ViewNote() {
             <div className="flex items-center mb-6">
               {subject && (
                 <span
-                  className={`subject-badge`}
-                  style={{
-                    backgroundColor: `${subject.color}20`,
-                    color: subject.color,
-                  }}
+                  className="subject-badge"
+                  style={
+                    {
+                      "--subject-bg-color": `${subject.color}20`,
+                      "--subject-text-color": subject.color,
+                    } as React.CSSProperties
+                  }
+                  data-color
                 >
                   {subject.name}
                 </span>
@@ -433,21 +460,47 @@ export default function ViewNote() {
             <Button
               variant="secondary"
               onClick={() => quizMutation.mutate()}
-              disabled={quizMutation.isPending}
+              disabled={quizMutation.isPending || !note?.content}
+              title={
+                !note?.content
+                  ? "La note doit avoir du contenu pour générer un quiz"
+                  : ""
+              }
             >
               <FileQuestion className="mr-2 h-4 w-4" />
-              {quizMutation.isPending ? "Generating..." : "Generate Quiz"}
+              {quizMutation.isPending
+                ? "Génération en cours..."
+                : "Générer un Quiz à partir de cette Note"}
             </Button>
 
             <Button
               variant="secondary"
               onClick={() => flashcardsMutation.mutate()}
-              disabled={flashcardsMutation.isPending}
+              disabled={flashcardsMutation.isPending || !note?.content}
+              title={
+                !note?.content
+                  ? "La note doit avoir du contenu pour générer des cartes"
+                  : ""
+              }
             >
               <FileQuestion className="mr-2 h-4 w-4" />
               {flashcardsMutation.isPending
-                ? "Generating..."
-                : "Generate Flashcards"}
+                ? "Génération en cours..."
+                : "Générer des Cartes de Révision"}
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={handleDiscussWithAI}
+              disabled={!note?.content}
+              title={
+                !note?.content
+                  ? "La note doit avoir du contenu pour discuter avec l'IA"
+                  : ""
+              }
+            >
+              <MessageSquare className="mr-2 h-4 w-4" />
+              En discuter
             </Button>
           </div>
         </div>
@@ -475,58 +528,20 @@ export default function ViewNote() {
               </>
             ) : (
               <div className="prose max-w-none">
-                {note?.content
-                  .split("\n")
-                  .map((paragraph: string, i: number) => (
-                    <p key={i}>{paragraph}</p>
-                  ))}
+                <ReactMarkdown>{note?.content || ""}</ReactMarkdown>
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="enhanced">
-            {note?.enhancedContent ? (
-              (() => {
-                try {
-                  let parsedContent = note.enhancedContent;
-
-                  // Si c'est une chaîne de caractères, essayer de la parser comme JSON
-                  if (typeof note.enhancedContent === "string") {
-                    try {
-                      parsedContent = JSON.parse(note.enhancedContent);
-                    } catch {
-                      // Si le parsing échoue, afficher le contenu tel quel
-                      return (
-                        <div className="prose max-w-none">
-                          {note.enhancedContent
-                            .split("\n")
-                            .map((line: string, index: number) => (
-                              <p key={index}>{line}</p>
-                            ))}
-                        </div>
-                      );
-                    }
-                  }
-
-                  return renderEnhancedContentFromJSON(parsedContent);
-                } catch (error: unknown) {
-                  console.error("Error displaying enhanced content:", error);
-                  return (
-                    <div className="text-red-500">
-                      <p>
-                        Une erreur s'est produite lors de l'affichage du contenu
-                        amélioré.
-                      </p>
-                      <p>
-                        Message d'erreur :{" "}
-                        {error instanceof Error
-                          ? error.message
-                          : "Erreur inconnue"}
-                      </p>
-                    </div>
-                  );
-                }
-              })()
+            {isLoadingNote ? (
+              <>
+                <Skeleton className="h-5 w-full mb-2" />
+                <Skeleton className="h-5 w-full mb-2" />
+                <Skeleton className="h-5 w-3/4 mb-2" />
+              </>
+            ) : note?.enhancedContent ? (
+              renderEnhancedContent(note.enhancedContent)
             ) : (
               <div className="text-center py-12">
                 <p className="text-gray-500">

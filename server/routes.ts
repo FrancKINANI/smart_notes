@@ -19,7 +19,7 @@ import {
 // Helper function to call Mistral AI API
 async function callMistralAPI(
   messages: Array<{ role: string; content: string }>
-) {
+): Promise<string> {
   try {
     const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
@@ -199,15 +199,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Note not found" });
       }
 
-      let enhancedContent = note.content;
-      let summary = "";
-
       try {
         const response = await callMistralAPI([
           {
             role: "system",
-            content:
-              "You are an expert educational assistant. Enhance the following note by adding structure, clarifying concepts, and providing examples where appropriate. Also provide a brief summary. Return your response in JSON format with 'enhancedContent' and 'summary' fields.",
+            content: `You are an expert educational assistant. Analyze and enhance the following educational note.
+            Return your response in this exact JSON structure:
+            {
+              "enhancedContent": {
+                "Introduction": "A clear, concise introduction to the topic",
+                "Concepts Fondamentaux": {
+                  "Définitions": ["List of key definitions"],
+                  "Principes": ["List of main principles"],
+                  "Exemples": ["Relevant examples"]
+                },
+                "Points Clés": ["List of key points"],
+                "Applications": ["Practical applications"],
+                "Pour Aller Plus Loin": "Additional insights and advanced concepts"
+              },
+              "summary": "A concise summary of the main points"
+            }`,
           },
           {
             role: "user",
@@ -215,29 +226,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         ]);
 
-        console.log("Raw response from Mistral API:", response); // Log de la réponse brute
+        console.log("Raw response from Mistral API:", response);
 
         try {
           const result = JSON.parse(response);
-          enhancedContent = result.enhancedContent || note.content;
-          summary = result.summary || "";
+
+          // Update the note with the enhanced content
+          const updatedNote = await storage.updateNote(id, {
+            ...note,
+            enhancedContent: result.enhancedContent,
+            summary: result.summary || "",
+          });
+
+          res.json(updatedNote);
         } catch (parseError) {
           console.error("Failed to parse Mistral response:", parseError);
-          enhancedContent = response;
-          summary = "";
+          res.status(500).json({
+            message: "Failed to process the enhanced content",
+            error:
+              parseError instanceof Error
+                ? parseError.message
+                : "Unknown parsing error",
+          });
         }
-      } catch (error) {
-        console.error("Mistral API error:", error);
+      } catch (mistralError) {
+        console.error("Mistral API error:", mistralError);
+        res.status(500).json({
+          message: "Failed to enhance the note",
+          error:
+            mistralError instanceof Error
+              ? mistralError.message
+              : "Unknown API error",
+        });
       }
-
-      const updatedNote = await storage.updateNote(id, {
-        ...note,
-        enhancedContent,
-        summary,
-      });
-
-      res.json(updatedNote);
     } catch (error) {
+      console.error("Note enhancement error:", error);
       res.status(500).json({ message: "Failed to enhance note" });
     }
   });
@@ -258,13 +281,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Note not found" });
       }
 
-      const questions: QuizQuestion[] = [];
+      if (!note.content.trim()) {
+        return res.status(400).json({
+          message: "La note doit contenir du contenu pour générer un quiz",
+        });
+      }
 
       try {
         const response = await callMistralAPI([
           {
             role: "system",
-            content: `Generate ${questionCount} multiple-choice quiz questions based on the following note content. Include 4 options for each question with one correct answer. Format as a JSON array of objects with fields: id (string), question (string), options (array of strings), correctAnswer (string), and type (string, set to "multiple-choice").`,
+            content: `Tu es un expert en éducation chargé de créer un quiz basé sur le contenu suivant : ${note.title}.
+            Génère ${questionCount} questions à choix multiples qui :
+            1. Testent la compréhension réelle du sujet traité dans la note
+            2. Ont chacune une seule bonne réponse et 3 mauvaises réponses plausibles
+            3. Sont clairement formulées et sans ambiguïté
+            4. Couvrent les points importants du contenu de la note
+
+            FORMAT REQUIS (exemple) :
+            {
+              "questions": [
+                {
+                  "id": "q1",
+                  "question": "Quelle est la définition d'un espace vectoriel ?",
+                  "options": [
+                    "Un ensemble muni d'opérations vérifiant certains axiomes",
+                    "Une liste de nombres",
+                    "Un graphique en deux dimensions",
+                    "Un tableau de valeurs"
+                  ],
+                  "correctAnswer": "Un ensemble muni d'opérations vérifiant certains axiomes",
+                  "type": "multiple-choice"
+                }
+              ]
+            }`,
           },
           {
             role: "user",
@@ -273,156 +323,331 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]);
 
         try {
-          // Nettoyer la réponse pour supprimer les blocs de code Markdown, les espaces inutiles et les caractères inattendus
+          // Nettoyer et parser la réponse
           const cleanedResponse = response
-            .replace(/```[a-zA-Z]*\n?|```/g, "") // Supprime les blocs de code Markdown
-            .replace(/\n/g, " ") // Remplace les retours à la ligne par des espaces
-            .replace(/\s+/g, " ") // Réduit les espaces multiples à un seul espace
-            .replace(/\u0000/g, "") // Supprime les caractères null
-            .trim(); // Supprime les espaces en début et fin de chaîne
+            .replace(/```json\n?|```/g, "")
+            .trim();
 
-          console.log("Raw response:", response); // Log de la réponse brute
-          console.log("Cleaned response:", cleanedResponse); // Log de la réponse nettoyée
-
-          const result = JSON.parse(cleanedResponse);
-          if (Array.isArray(result.questions)) {
-            questions.push(...result.questions);
+          interface QuizResponse {
+            questions: Array<{
+              id?: string;
+              question: string;
+              options: string[];
+              correctAnswer: string;
+              type: "multiple-choice";
+            }>;
           }
-        } catch (parseError) {
-          console.error("Failed to parse Mistral response:", parseError);
-          console.error("Raw response:", response); // Log de la réponse brute pour débogage
-        }
-      } catch (error) {
-        console.error("Mistral API error:", error);
-      }
 
-      if (questions.length === 0) {
-        for (let i = 1; i <= questionCount; i++) {
-          questions.push({
-            id: `q${i}`,
-            question: `Sample Question ${i} about ${note.title}?`,
-            options: ["Option A", "Option B", "Option C", "Option D"],
-            correctAnswer: "Option A",
-            type: "multiple-choice" as const,
+          const parsedResponse = JSON.parse(cleanedResponse) as QuizResponse;
+
+          if (
+            !Array.isArray(parsedResponse.questions) ||
+            parsedResponse.questions.length === 0
+          ) {
+            throw new Error("Format de réponse invalide");
+          }
+
+          // Valider chaque question
+          const questions = parsedResponse.questions.map((q, index) => {
+            if (
+              !q.question ||
+              !Array.isArray(q.options) ||
+              q.options.length !== 4 ||
+              !q.correctAnswer
+            ) {
+              throw new Error(`Question ${index + 1} est invalide`);
+            }
+            if (!q.options.includes(q.correctAnswer)) {
+              throw new Error(
+                `La réponse correcte de la question ${
+                  index + 1
+                } n'est pas dans les options`
+              );
+            }
+            return {
+              id: q.id || `q${index + 1}`,
+              question: q.question,
+              options: q.options,
+              correctAnswer: q.correctAnswer,
+              type: "multiple-choice" as const,
+            };
+          });
+
+          // Créer le quiz avec les questions validées et les informations de la note
+          const quiz = await storage.createQuiz({
+            noteId: noteId,
+            userId: userId,
+            questions: questions,
+          });
+
+          // Retourner le quiz avec les informations de la note
+          res.status(201).json({
+            ...quiz,
+            note: {
+              id: note.id,
+              title: note.title,
+            },
+          });
+        } catch (parseError) {
+          console.error(
+            "Failed to parse or validate Mistral response:",
+            parseError
+          );
+          console.error("Raw response:", response);
+          res.status(500).json({
+            message:
+              "La génération du quiz a échoué. Les questions générées ne sont pas valides.",
           });
         }
+      } catch (mistralError) {
+        console.error("Mistral API error:", mistralError);
+        res.status(500).json({
+          message:
+            "Erreur lors de la génération des questions. Veuillez réessayer.",
+        });
       }
-
-      const quiz = await storage.createQuiz({
-        noteId,
-        userId,
-        questions,
-      });
-
-      res.status(201).json(quiz);
     } catch (error) {
+      console.error("Quiz generation error:", error);
       res.status(500).json({ message: "Failed to generate quiz" });
     }
   });
 
   // Quiz results submission
-  app.post("/api/quizzes/:id/submit", async (req: Request, res: Response) => {
-    try {
-      const quizId = parseInt(req.params.id);
-      const { userId, answers, score } = req.body;
+  app.post(
+    "/api/quizzes/:id/submit",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const quizId = parseInt(req.params.id);
+        const { answers, score } = req.body;
+        const userId = req.user!.id;
 
-      if (!userId || !answers || typeof score !== "number") {
-        return res
-          .status(400)
-          .json({ message: "userId, answers, and score are required" });
-      }
+        if (!answers || typeof score !== "number") {
+          return res
+            .status(400)
+            .json({ message: "Les réponses et le score sont requis" });
+        }
 
-      const quiz = await storage.getQuiz(quizId);
-      if (!quiz) {
-        return res.status(404).json({ message: "Quiz not found" });
-      }
+        const quiz = await storage.getQuiz(quizId);
+        if (!quiz) {
+          return res.status(404).json({ message: "Quiz introuvable" });
+        }
 
-      // Save the quiz result
-      const quizResult = await storage.createQuizResult({
-        quizId,
-        userId,
-        answers,
-        score,
-      });
+        // Vérifier que l'utilisateur a accès au quiz
+        if (quiz.userId !== userId) {
+          return res.status(403).json({
+            message:
+              "Vous n'avez pas la permission de soumettre des résultats pour ce quiz",
+          });
+        }
 
-      // Update the revision item for the associated note
-      const revisionItems = await storage.getRevisionItemsByNote(quiz.noteId);
-      if (revisionItems.length > 0) {
-        const item = revisionItems[0];
-        const masteryLevel = Math.min(
-          100,
-          item.masteryLevel + Math.floor(score * 10)
+        const questions = quiz.questions as QuizQuestion[];
+
+        // Vérifier que les réponses correspondent aux questions du quiz
+        const allQuestionsAnswered = questions.every(
+          (question) => answers[question.id] !== undefined
         );
 
-        // Calculate next review date based on spaced repetition
-        const daysToAdd = masteryLevel < 50 ? 1 : masteryLevel < 75 ? 3 : 7;
-        const nextReviewDate = new Date();
-        nextReviewDate.setDate(nextReviewDate.getDate() + daysToAdd);
+        if (!allQuestionsAnswered) {
+          return res.status(400).json({
+            message: "Toutes les questions doivent avoir une réponse",
+          });
+        }
 
-        await storage.updateRevisionItem(item.id, {
-          masteryLevel,
-          nextReviewDate,
+        // Recalculer le score côté serveur pour validation
+        let correctAnswers = 0;
+        questions.forEach((question) => {
+          if (answers[question.id] === question.correctAnswer) {
+            correctAnswers++;
+          }
         });
-      }
 
-      res.status(201).json(quizResult);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to submit quiz result" });
+        const calculatedScore = Math.round(
+          (correctAnswers / questions.length) * 100
+        );
+
+        // Si le score envoyé ne correspond pas au score calculé, il y a un problème
+        if (calculatedScore !== score) {
+          return res.status(400).json({ message: "Score invalide" });
+        }
+
+        // Sauvegarder le résultat
+        const quizResult = await storage.createQuizResult({
+          quizId,
+          userId,
+          answers,
+          score: calculatedScore,
+        });
+
+        // Mettre à jour l'item de révision pour la note associée
+        const revisionItems = await storage.getRevisionItemsByNote(quiz.noteId);
+        if (revisionItems.length > 0) {
+          const item = revisionItems[0];
+          const currentMasteryLevel = item.masteryLevel || 0;
+          const masteryLevel = Math.min(
+            100,
+            currentMasteryLevel + Math.floor(calculatedScore * 0.1)
+          );
+
+          // Calculer la prochaine date de révision basée sur la répétition espacée
+          const daysToAdd = masteryLevel < 50 ? 1 : masteryLevel < 75 ? 3 : 7;
+          const nextReviewDate = new Date();
+          nextReviewDate.setDate(nextReviewDate.getDate() + daysToAdd);
+
+          await storage.updateRevisionItem(item.id, {
+            masteryLevel,
+            nextReviewDate,
+          });
+        }
+
+        res.status(201).json({
+          ...quizResult,
+          masteryLevel: revisionItems[0]?.masteryLevel || 0,
+        });
+      } catch (error) {
+        console.error("Erreur lors de la soumission du quiz:", error);
+        res
+          .status(500)
+          .json({ message: "Erreur lors de la sauvegarde des résultats" });
+      }
     }
-  });
+  );
 
   // Quiz routes
-  app.get("/api/quizzes/:id", async (req: Request, res: Response) => {
-    try {
-      const quizId = parseInt(req.params.id);
-      const userId = parseInt(req.query.userId as string);
+  app.get(
+    "/api/quizzes",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const userId = req.user!.id;
+        const quizzes = await storage.getQuizzesByUser(userId);
 
-      if (isNaN(quizId) || isNaN(userId)) {
-        return res.status(400).json({ message: "Invalid quiz ID or user ID" });
-      }
+        // Récupérer les notes associées pour chaque quiz
+        const quizzesWithNotes = await Promise.all(
+          quizzes.map(async (quiz) => {
+            const note = await storage.getNote(quiz.noteId);
+            return {
+              ...quiz,
+              note: note ? { id: note.id, title: note.title } : null,
+            };
+          })
+        );
 
-      const quiz = await storage.getQuiz(quizId);
-
-      if (!quiz) {
-        return res.status(404).json({
-          message: "Le quiz demandé n'existe plus.",
-          code: "QUIZ_NOT_FOUND",
+        res.json(quizzesWithNotes);
+      } catch (error) {
+        console.error("Error fetching quizzes:", error);
+        res.status(500).json({
+          message: "Une erreur est survenue lors du chargement des quiz",
+          code: "INTERNAL_ERROR",
         });
       }
-
-      // Vérifier si l'utilisateur a accès au quiz
-      if (quiz.userId !== userId) {
-        return res.status(403).json({
-          message: "Vous n'avez pas la permission d'accéder à ce quiz.",
-          code: "QUIZ_ACCESS_DENIED",
-        });
-      }
-
-      // Vérifier si la note associée existe toujours
-      const note = await storage.getNote(quiz.noteId);
-      if (!note) {
-        return res.status(404).json({
-          message: "La note associée à ce quiz n'existe plus.",
-          code: "NOTE_NOT_FOUND",
-        });
-      }
-
-      // Retourner le quiz avec les informations de la note
-      res.json({
-        ...quiz,
-        note: {
-          id: note.id,
-          title: note.title,
-        },
-      });
-    } catch (error) {
-      console.error("Error fetching quiz:", error);
-      res.status(500).json({
-        message: "Une erreur est survenue lors du chargement du quiz.",
-        code: "INTERNAL_ERROR",
-      });
     }
-  });
+  );
+
+  // Quiz results route
+  app.get(
+    "/api/quizzes/results",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const userId = req.user!.id;
+        const results = await storage.getQuizResultsByUser(userId);
+
+        // Enrichir les résultats avec les détails des quiz et des notes
+        const enrichedResults = await Promise.all(
+          results.map(async (result) => {
+            const quiz = await storage.getQuiz(result.quizId);
+            if (!quiz) {
+              return {
+                ...result,
+                quiz: null,
+                note: null,
+              };
+            }
+
+            const note = await storage.getNote(quiz.noteId);
+            return {
+              ...result,
+              quiz: {
+                ...quiz,
+                note: note ? { id: note.id, title: note.title } : null,
+              },
+            };
+          })
+        );
+
+        res.json(enrichedResults);
+      } catch (error) {
+        console.error("Error fetching quiz results:", error);
+        res.status(500).json({
+          message:
+            "Une erreur est survenue lors de la récupération des résultats",
+          code: "INTERNAL_ERROR",
+        });
+      }
+    }
+  );
+
+  // Individual quiz route
+  app.get(
+    "/api/quizzes/:id",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const quizId = parseInt(req.params.id);
+        const userId = req.user?.id;
+
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        if (isNaN(quizId)) {
+          return res.status(400).json({ message: "Invalid quiz ID" });
+        }
+
+        const quiz = await storage.getQuiz(quizId);
+
+        if (!quiz) {
+          return res.status(404).json({
+            message: "Le quiz demandé n'existe plus.",
+            code: "QUIZ_NOT_FOUND",
+          });
+        }
+
+        // Vérifier si l'utilisateur a accès au quiz
+        if (quiz.userId !== userId) {
+          return res.status(403).json({
+            message: "Vous n'avez pas la permission d'accéder à ce quiz.",
+            code: "QUIZ_ACCESS_DENIED",
+          });
+        }
+
+        // Vérifier si la note associée existe toujours
+        const note = await storage.getNote(quiz.noteId);
+        if (!note) {
+          return res.status(404).json({
+            message: "La note associée à ce quiz n'existe plus.",
+            code: "NOTE_NOT_FOUND",
+          });
+        }
+
+        // Retourner le quiz avec les informations de la note
+        res.json({
+          ...quiz,
+          note: {
+            id: note.id,
+            title: note.title,
+          },
+        });
+      } catch (error) {
+        console.error("Error fetching quiz:", error);
+        res.status(500).json({
+          message: "Une erreur est survenue lors du chargement du quiz.",
+          code: "INTERNAL_ERROR",
+        });
+      }
+    }
+  );
 
   // Endpoint pour récupérer les résultats des quiz
   app.get("/api/quizzes/results", async (req: Request, res: Response) => {
@@ -500,21 +725,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { userId, count = 5 } = req.body;
 
         if (!userId) {
-          return res.status(400).json({ message: "userId is required" });
+          return res.status(400).json({ message: "userId est requis" });
         }
 
         const note = await storage.getNote(noteId);
         if (!note) {
-          return res.status(404).json({ message: "Note not found" });
+          return res.status(404).json({ message: "Note non trouvée" });
         }
 
-        const flashcards = [];
+        // Vérifier que la note a suffisamment de contenu
+        if (!note.content || note.content.trim().length < 50) {
+          return res.status(400).json({
+            message:
+              "La note ne contient pas assez de contenu pour générer des flashcards",
+            code: "INSUFFICIENT_CONTENT",
+          });
+        }
 
         try {
           const fullResponse = await callMistralAPI([
             {
               role: "system",
-              content: `Generate ${count} flashcards based on the following note content. Each flashcard should have a front (question or term) and back (answer or definition). Format as a JSON array of objects with fields: front and back.`,
+              content: `Tu es un expert en pédagogie chargé de créer des cartes de révision (flashcards) efficaces.
+              Analyse attentivement le contenu de la note suivante et génère ${count} flashcards pertinentes.
+              
+              DIRECTIVES IMPORTANTES :
+              1. Chaque flashcard doit être basée sur un concept clé unique et spécifique de la note
+              2. Le recto (front) doit poser une question claire et précise
+              3. Le verso (back) doit donner une réponse concise mais complète
+              4. Évite les questions vagues - préfère des formulations spécifiques
+              5. La réponse doit être directe et ne pas dépasser 2-3 phrases
+              6. Utilise une variété de types de questions :
+                 - Définitions de concepts clés
+                 - Applications pratiques
+                 - Relations entre les concepts
+                 - Exemples concrets
+                 - Questions de compréhension
+              
+              Format JSON requis :
+              {
+                "flashcards": [
+                  {
+                    "front": "Question spécifique ou concept à définir",
+                    "back": "Réponse précise et complète"
+                  }
+                ]
+              }
+
+              IMPORTANT : Si tu ne trouves pas assez de contenu pertinent pour générer ${count} flashcards de qualité, génère-en moins plutôt que de créer des cartes non pertinentes.`,
             },
             {
               role: "user",
@@ -522,47 +780,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
             },
           ]);
 
-          try {
-            const result = JSON.parse(fullResponse);
-            if (Array.isArray(result.flashcards)) {
-              for (const card of result.flashcards) {
-                const newFlashcard = await storage.createFlashcard({
-                  noteId,
-                  userId,
-                  front: card.front,
-                  back: card.back,
-                  nextReviewDate: new Date(),
-                  interval: 1,
-                  easeFactor: 250,
-                });
-                flashcards.push(newFlashcard);
-              }
-            }
-          } catch (parseError) {
-            console.error("Failed to parse Mistral response:", parseError);
-          }
-        } catch (error) {
-          console.error("Mistral API error:", error);
-        }
+          // Extraction robuste du JSON depuis la réponse IA
+          let jsonString = "";
+          const markdownMatch =
+            fullResponse.match(/```json\s*([\s\S]*?)```/i) ||
+            fullResponse.match(/```\s*([\s\S]*?)```/i);
 
-        if (flashcards.length === 0) {
-          for (let i = 1; i <= count; i++) {
-            const newFlashcard = await storage.createFlashcard({
-              noteId,
-              userId,
-              front: `Sample Term ${i}`,
-              back: `Sample Definition ${i}`,
-              nextReviewDate: new Date(),
-              interval: 1,
-              easeFactor: 250,
+          if (markdownMatch) {
+            jsonString = markdownMatch[1].trim();
+          } else {
+            const jsonStart = fullResponse.indexOf("{");
+            if (jsonStart === -1)
+              throw new Error(
+                "Format de réponse invalide : aucune structure JSON trouvée"
+              );
+            jsonString = fullResponse
+              .slice(jsonStart)
+              .replace(/```json|```/g, "")
+              .trim();
+          }
+
+          const result = JSON.parse(jsonString);
+
+          if (
+            !result.flashcards ||
+            !Array.isArray(result.flashcards) ||
+            result.flashcards.length === 0
+          ) {
+            return res.status(500).json({
+              message:
+                "Impossible de générer des flashcards pertinentes à partir de cette note",
+              code: "NO_FLASHCARDS_GENERATED",
             });
-            flashcards.push(newFlashcard);
           }
-        }
 
-        res.status(201).json(flashcards);
+          // Valider chaque flashcard
+          for (const card of result.flashcards) {
+            if (
+              !card.front ||
+              !card.back ||
+              typeof card.front !== "string" ||
+              typeof card.back !== "string" ||
+              card.front.trim().length === 0 ||
+              card.back.trim().length === 0
+            ) {
+              throw new Error("Format de flashcard invalide");
+            }
+          }
+
+          // Créer les flashcards en base de données
+          const flashcards = await Promise.all(
+            result.flashcards.map((card: { front: string; back: string }) =>
+              storage.createFlashcard({
+                noteId,
+                userId,
+                front: card.front,
+                back: card.back,
+                nextReviewDate: new Date(),
+                interval: 1,
+                easeFactor: 250,
+              })
+            )
+          );
+
+          res.status(201).json(flashcards);
+        } catch (error) {
+          console.error("Erreur lors de la génération des flashcards:", error);
+          res.status(500).json({
+            message:
+              error instanceof Error
+                ? error.message
+                : "Erreur inconnue lors de la génération des flashcards",
+            code: "GENERATION_FAILED",
+          });
+        }
       } catch (error) {
-        res.status(500).json({ message: "Failed to generate flashcards" });
+        console.error("Erreur lors du traitement de la requête:", error);
+        res.status(500).json({
+          message:
+            "Une erreur est survenue lors de la génération des flashcards",
+          code: "INTERNAL_ERROR",
+          error: error instanceof Error ? error.message : "Erreur inconnue",
+        });
       }
     }
   );
@@ -646,11 +945,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated,
     async (req: Request, res: Response) => {
       try {
-        const groupData = insertStudyGroupSchema.parse({
-          ...req.body,
-          creatorId: req.user!.id,
-        });
-
+        const groupData = insertStudyGroupSchema.parse(req.body);
         const group = await storage.createStudyGroup(groupData);
         res.status(201).json(group);
       } catch (error) {

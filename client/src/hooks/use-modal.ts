@@ -1,19 +1,35 @@
 import { useState, useCallback } from "react";
 
+interface ModalState {
+  isOpen: boolean;
+  content?: string;
+}
+
 export function useModal(initialState = false) {
-  const [isOpen, setIsOpen] = useState(initialState);
+  const [state, setState] = useState<ModalState>({ isOpen: initialState });
 
   const open = useCallback(() => {
-    setIsOpen(true);
+    setState((prev) => ({ ...prev, isOpen: true }));
   }, []);
 
   const close = useCallback(() => {
-    setIsOpen(false);
+    setState((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
   const toggle = useCallback(() => {
-    setIsOpen(prev => !prev);
+    setState((prev) => ({ ...prev, isOpen: !prev.isOpen }));
   }, []);
 
-  return { isOpen, open, close, toggle };
+  const openAssistantModal = useCallback((initialContent?: string) => {
+    setState({ isOpen: true, content: initialContent });
+  }, []);
+
+  return {
+    isOpen: state.isOpen,
+    content: state.content,
+    open,
+    close,
+    toggle,
+    openAssistantModal,
+  };
 }

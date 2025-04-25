@@ -33,6 +33,7 @@ function Router() {
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/notes" component={Notes} />
       <ProtectedRoute path="/notes/create" component={CreateNote} />
+      <ProtectedRoute path="/notes/edit/:id" component={CreateNote} />
       <ProtectedRoute path="/notes/:id" component={ViewNote} />
       <ProtectedRoute path="/flashcards" component={Flashcards} />
       <ProtectedRoute path="/quizzes" component={QuizIndex} />
@@ -60,7 +61,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-screen flex overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      
+
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
         <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
         <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none">
