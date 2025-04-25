@@ -12,6 +12,8 @@ import {
   sharedNotes,
   comments,
   userSubjects,
+  aiConversations,
+  conversationSchema,
   type User,
   type InsertUser,
   type Subject,
@@ -36,6 +38,10 @@ import {
   type InsertSharedNote,
   type Comment,
   type InsertComment,
+  type AiConversation,
+  type InsertAiConversation,
+  type Conversation,
+  type InsertConversation,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, lte, gte, or, sql } from "drizzle-orm";
@@ -142,6 +148,19 @@ export interface IStorage {
   getSharedNotes(groupId: number): Promise<SharedNote[]>;
   addComment(comment: InsertComment): Promise<Comment>;
   getNoteComments(noteId: number): Promise<Comment[]>;
+
+  // AI Conversation operations
+  getUserConversations(userId: number): Promise<AiConversation[]>;
+  getNoteConversations(noteId: number): Promise<AiConversation[]>;
+  createConversation(
+    conversation: InsertAiConversation
+  ): Promise<AiConversation>;
+  deleteConversation(id: number): Promise<boolean>;
+
+  // Conversation operations
+  createConversation(data: InsertConversation): Promise<Conversation>;
+  getConversationsByNote(noteId: number): Promise<Conversation[]>;
+  deleteConversation(id: number): Promise<boolean>;
 
   // Session store
   sessionStore: session.SessionStore;
@@ -807,6 +826,83 @@ export class DatabaseStorage implements IStorage {
       .from(comments)
       .where(eq(comments.noteId, noteId))
       .orderBy(desc(comments.createdAt));
+  }
+
+  // AI Conversation methods
+  async getUserConversations(userId: number): Promise<AiConversation[]> {
+    return db
+      .select()
+      .from(aiConversations)
+      .where(eq(aiConversations.userId, userId))
+      .orderBy(desc(aiConversations.createdAt));
+  }
+
+  async getNoteConversations(noteId: number): Promise<AiConversation[]> {
+    return db
+      .select()
+      .from(aiConversations)
+      .where(eq(aiConversations.noteId, noteId))
+      .orderBy(desc(aiConversations.createdAt));
+  }
+
+  async createConversation(
+    conversation: InsertAiConversation
+  ): Promise<AiConversation> {
+    const result = await db.insert(aiConversations).values({
+      ...conversation,
+      createdAt: new Date(),
+    });
+    const insertId = result.insertId || (result[0] && result[0].insertId);
+    if (!insertId)
+      throw new Error(
+        "Erreur lors de la création de la conversation (insertId manquant)"
+      );
+
+    const [newConversation] = await db
+      .select()
+      .from(aiConversations)
+      .where(eq(aiConversations.id, insertId));
+    if (!newConversation)
+      throw new Error("Conversation non trouvée après insertion");
+
+    return newConversation;
+  }
+
+  async deleteConversation(id: number): Promise<boolean> {
+    const result = await db
+      .delete(aiConversations)
+      .where(eq(aiConversations.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Conversation methods
+  async createConversation(data: InsertConversation): Promise<Conversation> {
+    const [result] = await db.execute(
+      `INSERT INTO conversations (noteId, userMessage, aiResponse, createdAt) 
+       VALUES (?, ?, ?, ?)`,
+      [data.noteId, data.userMessage, data.aiResponse, data.createdAt]
+    );
+
+    return {
+      id: (result as any).insertId,
+      ...data,
+    };
+  }
+
+  async getConversationsByNote(noteId: number): Promise<Conversation[]> {
+    const [rows] = await db.execute(
+      "SELECT * FROM conversations WHERE noteId = ? ORDER BY createdAt ASC",
+      [noteId]
+    );
+    return rows as Conversation[];
+  }
+
+  async deleteConversation(id: number): Promise<boolean> {
+    const [result] = await db.execute(
+      "DELETE FROM conversations WHERE id = ?",
+      [id]
+    );
+    return (result as any).affectedRows > 0;
   }
 
   // Utility methods

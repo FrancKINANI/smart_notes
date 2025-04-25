@@ -139,6 +139,15 @@ export const userSubjects = mysqlTable("user_subjects", {
   addedAt: timestamp("added_at").defaultNow().notNull(),
 });
 
+export const aiConversations = mysqlTable("ai_conversations", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  noteId: int("note_id"),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   notes: many(notes),
@@ -285,6 +294,20 @@ export const commentRelations = relations(comments, ({ one }) => ({
   }),
 }));
 
+export const aiConversationRelations = relations(
+  aiConversations,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [aiConversations.userId],
+      references: [users.id],
+    }),
+    note: one(notes, {
+      fields: [aiConversations.noteId],
+      references: [notes.id],
+    }),
+  })
+);
+
 // Mettez à jour le schéma d'insertion pour l'utilisateur pour inclure les nouveaux champs
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -372,6 +395,28 @@ export const insertCommentSchema = createInsertSchema(comments).pick({
   content: true,
 });
 
+export const insertAiConversationSchema = createInsertSchema(
+  aiConversations
+).pick({
+  userId: true,
+  noteId: true,
+  question: true,
+  answer: true,
+});
+
+export const conversationSchema = z.object({
+  id: z.number(),
+  noteId: z.number().nullable(),
+  userMessage: z.string(),
+  aiResponse: z.string(),
+  createdAt: z.string(),
+});
+
+export const insertConversationSchema = conversationSchema.omit({ id: true });
+
+export type Conversation = z.infer<typeof conversationSchema>;
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -408,6 +453,9 @@ export type SharedNote = typeof sharedNotes.$inferSelect;
 
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type Comment = typeof comments.$inferSelect;
+
+export type InsertAiConversation = z.infer<typeof insertAiConversationSchema>;
+export type AiConversation = typeof aiConversations.$inferSelect;
 
 // Question type for quiz
 export type QuizQuestion = {

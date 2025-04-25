@@ -73,3 +73,25 @@ export interface TtsRequest {
 export async function textToSpeech(params: TtsRequest): Promise<void> {
   await apiRequest("POST", "/api/tts", params);
 }
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export async function sendChatMessage(
+  message: string,
+  history: ChatMessage[] = []
+): Promise<string> {
+  const response = await apiRequest("POST", "/api/chat", {
+    message,
+    history,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to get AI response");
+  }
+
+  const data = await response.json();
+  return data.response;
+}

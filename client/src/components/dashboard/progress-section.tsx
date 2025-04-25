@@ -1,23 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, CheckCircle, Clock, Trophy } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
-interface ProgressSectionProps {
-  userId: number;
-}
+export default function ProgressSection() {
+  const { user } = useAuth();
 
-export default function ProgressSection({ userId }: ProgressSectionProps) {
   // Fetch user progress stats
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["/api/user/stats", { userId }],
-    // In a real implementation, this would fetch from the API
-    // For now, we'll simulate the API response
-    queryFn: () => Promise.resolve({
-      notesCount: 24,
-      quizzesCompleted: 12,
-      studyTimeMinutes: 525, // 8h 45m
-      averageScore: 87
-    })
+    queryKey: ["/api/user/stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/stats", {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error("Erreur lors de la récupération des statistiques");
+      }
+      return res.json();
+    },
+    enabled: !!user, // Only fetch if user is logged in
   });
 
   // Format study time
@@ -45,26 +46,26 @@ export default function ProgressSection({ userId }: ProgressSectionProps) {
       title: "Notes prises",
       value: stats?.notesCount || 0,
       icon: <BookOpen className="text-xl text-primary-600" />,
-      bgColor: "bg-primary-100"
+      bgColor: "bg-primary-100",
     },
     {
       title: "Quiz complétés",
       value: stats?.quizzesCompleted || 0,
       icon: <CheckCircle className="text-xl text-green-600" />,
-      bgColor: "bg-green-100"
+      bgColor: "bg-green-100",
     },
     {
       title: "Temps d'étude",
       value: formatStudyTime(stats?.studyTimeMinutes || 0),
       icon: <Clock className="text-xl text-amber-600" />,
-      bgColor: "bg-amber-100"
+      bgColor: "bg-amber-100",
     },
     {
       title: "Score moyen",
       value: `${stats?.averageScore || 0}%`,
       icon: <Trophy className="text-xl text-purple-600" />,
-      bgColor: "bg-purple-100"
-    }
+      bgColor: "bg-purple-100",
+    },
   ];
 
   return (
@@ -80,9 +81,13 @@ export default function ProgressSection({ userId }: ProgressSectionProps) {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">{card.title}</dt>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      {card.title}
+                    </dt>
                     <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">{card.value}</div>
+                      <div className="text-2xl font-semibold text-gray-900">
+                        {card.value}
+                      </div>
                     </dd>
                   </dl>
                 </div>

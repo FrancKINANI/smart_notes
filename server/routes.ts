@@ -15,6 +15,8 @@ import {
   insertCommentSchema,
   QuizQuestion,
 } from "@shared/schema";
+import express from "express";
+import { db } from "./db";
 
 // Helper function to call Mistral AI API
 async function callMistralAPI(
@@ -228,19 +230,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log("Raw response from Mistral API:", response);
 
+        // Nettoyer la réponse de tout formatage Markdown
+        const cleanedResponse = response
+          .replace(/^```json\s*|\s*```$/g, "") // Supprime les délimiteurs ```json au début et ``` à la fin
+          .replace(/```/g, "") // Supprime tous les autres délimiteurs ```
+          .trim();
+
         try {
-          const result = JSON.parse(response);
+          const result = JSON.parse(cleanedResponse);
 
           // Update the note with the enhanced content
           const updatedNote = await storage.updateNote(id, {
             ...note,
-            enhancedContent: result.enhancedContent,
+            enhancedContent: JSON.stringify(result.enhancedContent),
             summary: result.summary || "",
           });
 
           res.json(updatedNote);
         } catch (parseError) {
           console.error("Failed to parse Mistral response:", parseError);
+          console.error("Cleaned response was:", cleanedResponse);
           res.status(500).json({
             message: "Failed to process the enhanced content",
             error:
@@ -918,6 +927,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Chat endpoint
+  app.post("/api/chat", async (req: Request, res: Response) => {
+    try {
+      const { message, history } = req.body;
+
+      if (!message) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      // Format messages for Mistral API
+      const apiMessages = [
+        ...history.map((msg: { role: string; content: string }) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        { role: "user", content: message },
+      ];
+
+      // Call Mistral API
+      const response = await callMistralAPI(apiMessages);
+
+      res.json({ response });
+    } catch (error) {
+      console.error("Chat error:", error);
+      res.status(500).json({ message: "Failed to get AI response" });
+    }
+  });
+
   // === Routes pour les fonctionnalités collaboratives ===
   // Groupes d'étude
   app.get(
@@ -1293,6 +1330,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Stats utilisateur
+  app.get(
+    "/api/user/stats",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const userId = req.user!.id;
+
+        // Récupérer le nombre de notes
+        const notes = await storage.getNotesByUser(userId);
+        const notesCount = notes.length;
+
+        // Récupérer le nombre de quiz complétés et le score moyen
+        const quizResults = await storage.getQuizResultsByUser(userId);
+        const quizzesCompleted = quizResults.length;
+        const averageScore =
+          quizzesCompleted > 0
+            ? Math.round(
+                quizResults.reduce((acc, result) => acc + result.score, 0) /
+                  quizzesCompleted
+              )
+            : 0;
+
+        // Calculer le temps d'étude total (à implémenter plus tard avec un vrai suivi du temps)
+        const studyTimeMinutes = quizResults.length * 15; // Pour l'instant, on estime 15 minutes par quiz
+
+        res.json({
+          notesCount,
+          quizzesCompleted,
+          studyTimeMinutes,
+          averageScore,
+        });
+      } catch (error) {
+        console.error(
+          "Erreur lors de la récupération des statistiques:",
+          error
+        );
+        res.status(500).json({
+          message: "Erreur lors de la récupération des statistiques",
+          code: "STATS_FETCH_ERROR",
+        });
+      }
+    }
+  );
+
+  // AI Conversation routes
+  app.post("/api/ai/chat", isAuthenticated, async (req, res) => {
+    try {
+      const { question, noteId } = req.body;
+      const userId = req.user!.id;
+
+      // Get the note if noteId is provided
+      let noteContent = null;
+      if (noteId) {
+        const note = await storage.getNote(noteId);
+        if (!note) {
+          return res.status(404).json({ error: "Note not found" });
+        }
+        if (note.userId !== userId) {
+          return res
+            .status(403)
+            .json({ error: "Not authorized to access this note" });
+        }
+        noteContent = note.content;
+      }
+
+      // Get user's notes for context if no specific note is provided
+      const userNotes = !noteId ? await storage.getNotesByUser(userId) : null;
+
+      // Generate AI response based on the context
+      const context = noteId
+        ? `Based on the note content: ${noteContent}\n\nUser question: ${question}`
+        : `Based on the user's ${
+            userNotes?.length || 0
+          } notes.\n\nUser question: ${question}`;
+
+      // TODO: Implement actual AI response generation here
+      const answer =
+        "This is a placeholder AI response. Implement real AI integration.";
+
+      // Save the conversation
+      const conversation = await storage.createConversation({
+        userId,
+        noteId: noteId || null,
+        question,
+        answer,
+      });
+
+      res.json(conversation);
+    } catch (error) {
+      console.error("Error in AI chat:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/ai/conversations", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const conversations = await storage.getUserConversations(userId);
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get(
+    "/api/ai/conversations/note/:noteId",
+    isAuthenticated,
+    async (req, res) => {
+      try {
+        const userId = req.user!.id;
+        const noteId = parseInt(req.params.noteId);
+
+        // Verify note ownership
+        const note = await storage.getNote(noteId);
+        if (!note) {
+          return res.status(404).json({ error: "Note not found" });
+        }
+        if (note.userId !== userId) {
+          return res
+            .status(403)
+            .json({ error: "Not authorized to access this note" });
+        }
+
+        const conversations = await storage.getNoteConversations(noteId);
+        res.json(conversations);
+      } catch (error) {
+        console.error("Error fetching note conversations:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    }
+  );
+
+  app.delete("/api/ai/conversations/:id", isAuthenticated, async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const deleted = await storage.deleteConversation(conversationId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
+
+export const router = express.Router();
+
+// Get conversation history for a note
+router.get("/conversations/:noteId", async (req, res) => {
+  try {
+    const { noteId } = req.params;
+    const conversations = await db.query.conversations.findMany({
+      where: (conversations, { eq }) =>
+        eq(conversations.noteId, parseInt(noteId)),
+      orderBy: (conversations, { asc }) => [asc(conversations.createdAt)],
+    });
+    res.json(conversations);
+  } catch (error) {
+    console.error("Error fetching conversations:", error);
+    res.status(500).json({ error: "Failed to fetch conversations" });
+  }
+});
+
+// Add a message to a conversation
+router.post("/conversations/:noteId", async (req, res) => {
+  try {
+    const { noteId } = req.params;
+    const { message } = req.body;
+
+    // Get the note content for context
+    const note = await db.query.notes.findFirst({
+      where: (notes, { eq }) => eq(notes.id, parseInt(noteId)),
+    });
+
+    if (!note) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+
+    // Generate AI response
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful AI assistant helping a student understand their notes. 
+            Here is the note content for context: ${note.content}`,
+        },
+        { role: "user", content: message },
+      ],
+    });
+
+    const reply =
+      aiResponse.choices[0]?.message?.content ||
+      "Sorry, I couldn't generate a response";
+
+    // Save the conversation
+    await db.insert(conversations).values({
+      noteId: parseInt(noteId),
+      userMessage: message,
+      aiResponse: reply,
+      createdAt: new Date().toISOString(),
+    });
+
+    res.json({ reply });
+  } catch (error) {
+    console.error("Error handling conversation:", error);
+    res.status(500).json({ error: "Failed to process conversation" });
+  }
+});

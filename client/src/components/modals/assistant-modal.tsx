@@ -8,9 +8,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Mic, Send, Image, Paperclip, X, User, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sendChatMessage, ChatMessage } from "@/lib/openai";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -32,13 +34,15 @@ export default function AssistantModal({
 }: AssistantModalProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   // Initialize messages with initial content
   useEffect(() => {
-    if (isOpen && initialContent) {
-      setMessages([
+    if (isOpen) {
+      const initialMessages: Message[] = [
         {
           id: "1",
           content:
@@ -46,35 +50,23 @@ export default function AssistantModal({
           sender: "assistant",
           timestamp: new Date(),
         },
-        {
+      ];
+
+      if (initialContent) {
+        initialMessages.push({
           id: "2",
           content: initialContent,
           sender: "user",
           timestamp: new Date(),
-        },
-      ]);
+        });
+      }
 
-      // Simulate assistant response to initial content
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: "3",
-          content:
-            "J'ai bien reçu votre note. Je suis prêt à répondre à vos questions à ce sujet. Que souhaitez-vous savoir ?",
-          sender: "assistant",
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-      }, 1000);
-    } else if (isOpen) {
-      setMessages([
-        {
-          id: "1",
-          content:
-            "Bonjour ! Je suis votre assistant d'étude. Comment puis-je vous aider aujourd'hui ?",
-          sender: "assistant",
-          timestamp: new Date(),
-        },
-      ]);
+      setMessages(initialMessages);
+
+      if (initialContent) {
+        // Respond to initial content
+        handleAIResponse(initialContent, initialMessages);
+      }
     }
   }, [isOpen, initialContent]);
 
@@ -92,51 +84,67 @@ export default function AssistantModal({
     }
   }, [isOpen]);
 
-  // Send message
-  const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
+  // Convert messages to chat history format
+  const getChatHistory = (): ChatMessage[] => {
+    return messages.map((msg) => ({
+      role: msg.sender === "user" ? "user" : "assistant",
+      content: msg.content,
+    }));
+  };
 
-    // Add user message
+  // Handle AI response
+  const handleAIResponse = async (
+    userMessage: string,
+    currentMessages: Message[]
+  ) => {
+    try {
+      setIsLoading(true);
+      const history = getChatHistory();
+      const response = await sendChatMessage(userMessage, history);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          content: response,
+          sender: "assistant",
+          timestamp: new Date(),
+        },
+      ]);
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+      toast({
+        title: "Erreur",
+        description:
+          "Impossible d'obtenir une réponse de l'assistant. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Send message
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isLoading) return;
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue,
       sender: "user",
       timestamp: new Date(),
     };
+
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
 
-    // Simulate assistant response
+    // Scroll to bottom after user message
     setTimeout(() => {
-      // In a real application, this would make an API call to get a response
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: getAssistantResponse(inputValue),
-        sender: "assistant",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    }, 1000);
-  };
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
 
-  // Simple assistant response logic (would be replaced with API call)
-  const getAssistantResponse = (query: string): string => {
-    const lowerQuery = query.toLowerCase();
-
-    if (lowerQuery.includes("bonjour") || lowerQuery.includes("salut")) {
-      return "Bonjour ! Comment puis-je vous aider avec vos études aujourd'hui ?";
-    } else if (lowerQuery.includes("intégration par parties")) {
-      return "L'intégration par parties est une technique utilisée pour calculer des intégrales en transformant un produit de fonctions.\n\nLa formule est : ∫u(x)v'(x)dx = u(x)v(x) - ∫v(x)u'(x)dx\n\nCette méthode est particulièrement utile lorsqu'on a un produit de fonctions où l'une serait facile à intégrer et l'autre facile à dériver.\n\nVoulez-vous un exemple concret d'application ?";
-    } else if (lowerQuery.includes("merci")) {
-      return "De rien ! N'hésitez pas si vous avez d'autres questions.";
-    } else {
-      return "Je ne suis pas sûr de comprendre votre question. Pourriez-vous la reformuler ou me donner plus de détails ?";
-    }
-  };
-
-  // Format timestamp
-  const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    // Get AI response
+    await handleAIResponse(inputValue, [...messages, userMessage]);
   };
 
   // Handle keyboard submit
@@ -188,8 +196,8 @@ export default function AssistantModal({
                       className={cn(
                         "rounded-lg p-3 text-sm",
                         message.sender === "user"
-                          ? "bg-primary-600 text-white rounded-tr-none"
-                          : "bg-primary-50 text-gray-900 rounded-tl-none"
+                          ? "bg-blue-600 text-white rounded-tr-none"
+                          : "bg-gray-100 text-gray-900 rounded-tl-none"
                       )}
                     >
                       {message.content.split("\n").map((line, i) => (
@@ -204,7 +212,10 @@ export default function AssistantModal({
                         message.sender === "user" ? "text-right" : ""
                       )}
                     >
-                      {formatTime(message.timestamp)}
+                      {message.timestamp.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
 
@@ -231,21 +242,27 @@ export default function AssistantModal({
               onKeyDown={handleKeyDown}
               placeholder="Tapez votre message..."
               className="flex-1"
+              disabled={isLoading}
             />
-            <Button onClick={handleSendMessage} disabled={!inputValue.trim()}>
+            <Button
+              onClick={handleSendMessage}
+              disabled={!inputValue.trim() || isLoading}
+            >
               <Send className="h-4 w-4 mr-1" />
-              <span className="sr-only md:not-sr-only md:ml-1">Envoyer</span>
+              <span className="sr-only md:not-sr-only md:ml-1">
+                {isLoading ? "Envoi..." : "Envoyer"}
+              </span>
             </Button>
           </div>
 
           <div className="mt-2 flex space-x-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled>
               <Mic className="h-4 w-4 mr-1" /> Audio
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled>
               <Image className="h-4 w-4 mr-1" /> Image
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled>
               <Paperclip className="h-4 w-4 mr-1" /> Fichier
             </Button>
           </div>

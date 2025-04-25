@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useState } from "react";
+import AssistantModal from "@/components/modals/assistant-modal";
+import { useModal } from "@/hooks/use-modal";
 
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
@@ -73,6 +75,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const { isAssistantOpen, closeAssistant, assistantContent } = useModal();
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -80,6 +83,11 @@ function App() {
           <Router />
         </MainLayout>
         <Toaster />
+        <AssistantModal
+          isOpen={isAssistantOpen}
+          onClose={closeAssistant}
+          initialContent={assistantContent}
+        />
       </TooltipProvider>
     </QueryClientProvider>
   );

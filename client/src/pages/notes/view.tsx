@@ -30,6 +30,7 @@ import { Note, Subject } from "@shared/schema";
 import { Link } from "wouter";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { AIChat } from "@/components/ai/ai-chat";
 
 export default function ViewNote() {
   const params = useParams<{ id: string }>();
@@ -488,87 +489,93 @@ export default function ViewNote() {
                 ? "Génération en cours..."
                 : "Générer des Cartes de Révision"}
             </Button>
-
-            <Button
-              variant="secondary"
-              onClick={handleDiscussWithAI}
-              disabled={!note?.content}
-              title={
-                !note?.content
-                  ? "La note doit avoir du contenu pour discuter avec l'IA"
-                  : ""
-              }
-            >
-              <MessageSquare className="mr-2 h-4 w-4" />
-              En discuter
-            </Button>
           </div>
         </div>
 
-        {/* Note content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="original">Original Note</TabsTrigger>
-            <TabsTrigger value="enhanced" disabled={!note?.enhancedContent}>
-              Enhanced Version
-            </TabsTrigger>
-            {note?.summary && (
-              <TabsTrigger value="summary">Summary</TabsTrigger>
-            )}
-          </TabsList>
+        {/* Note content with AI Chat */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Note content column */}
+          <div className="lg:col-span-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="original">Original Note</TabsTrigger>
+                <TabsTrigger value="enhanced" disabled={!note?.enhancedContent}>
+                  Enhanced Version
+                </TabsTrigger>
+                {note?.summary && (
+                  <TabsTrigger value="summary">Summary</TabsTrigger>
+                )}
+              </TabsList>
 
-          <TabsContent value="original">
-            {isLoadingNote ? (
-              <>
-                <Skeleton className="h-5 w-full mb-2" />
-                <Skeleton className="h-5 w-full mb-2" />
-                <Skeleton className="h-5 w-3/4 mb-2" />
-                <Skeleton className="h-5 w-full mb-2" />
-                <Skeleton className="h-5 w-5/6 mb-2" />
-              </>
-            ) : (
-              <div className="prose max-w-none">
-                <ReactMarkdown>{note?.content || ""}</ReactMarkdown>
-              </div>
-            )}
-          </TabsContent>
+              <TabsContent value="original">
+                {isLoadingNote ? (
+                  <>
+                    <Skeleton className="h-5 w-full mb-2" />
+                    <Skeleton className="h-5 w-full mb-2" />
+                    <Skeleton className="h-5 w-3/4 mb-2" />
+                    <Skeleton className="h-5 w-full mb-2" />
+                    <Skeleton className="h-5 w-5/6 mb-2" />
+                  </>
+                ) : (
+                  <div className="prose max-w-none">
+                    <ReactMarkdown>{note?.content || ""}</ReactMarkdown>
+                  </div>
+                )}
+              </TabsContent>
 
-          <TabsContent value="enhanced">
-            {isLoadingNote ? (
-              <>
-                <Skeleton className="h-5 w-full mb-2" />
-                <Skeleton className="h-5 w-full mb-2" />
-                <Skeleton className="h-5 w-3/4 mb-2" />
-              </>
-            ) : note?.enhancedContent ? (
-              renderEnhancedContent(note.enhancedContent)
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500">
-                  Aucun contenu amélioré disponible. Cliquez sur "Améliorer avec
-                  l'IA" pour le générer.
+              <TabsContent value="enhanced">
+                {isLoadingNote ? (
+                  <>
+                    <Skeleton className="h-5 w-full mb-2" />
+                    <Skeleton className="h-5 w-full mb-2" />
+                    <Skeleton className="h-5 w-3/4 mb-2" />
+                  </>
+                ) : note?.enhancedContent ? (
+                  renderEnhancedContent(note.enhancedContent)
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">
+                      Aucun contenu amélioré disponible. Cliquez sur "Améliorer
+                      avec l'IA" pour le générer.
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="summary">
+                {note?.summary ? (
+                  <div className="prose max-w-none">
+                    <h3>Summary</h3>
+                    {note.summary
+                      .split("\n")
+                      .map((paragraph: string, i: number) => (
+                        <p key={i}>{paragraph}</p>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">No summary available yet.</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* AI Chat column */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-4 border-b">
+                <h3 className="text-lg font-medium">Discuter avec l'IA</h3>
+                <p className="text-sm text-muted-foreground">
+                  Posez des questions sur cette note à l'IA
                 </p>
               </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="summary">
-            {note?.summary ? (
-              <div className="prose max-w-none">
-                <h3>Summary</h3>
-                {note.summary
-                  .split("\n")
-                  .map((paragraph: string, i: number) => (
-                    <p key={i}>{paragraph}</p>
-                  ))}
+              <div className="h-[600px]">
+                <AIChat noteId={noteId} />
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500">No summary available yet.</p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

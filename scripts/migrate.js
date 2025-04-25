@@ -1,6 +1,8 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { migrate } from "drizzle-orm/mysql2/migrator";
 import mysql from "mysql2/promise";
+import { db } from "../server/db.js";
+import fs from "fs/promises";
+import path from "path";
 
 const poolConnection = mysql.createPool({
   host: "localhost",
@@ -11,18 +13,28 @@ const poolConnection = mysql.createPool({
 
 const db = drizzle(poolConnection);
 
-async function main() {
-  console.log("Running migrations...");
-
+async function migrate() {
   try {
-    await migrate(db, { migrationsFolder: "./migrations" });
+    // Read all SQL files from migrations directory
+    const migrationFiles = await fs.readdir("./migrations");
+    const sqlFiles = migrationFiles
+      .filter((file) => file.endsWith(".sql"))
+      .sort();
+
+    // Execute each migration file
+    for (const file of sqlFiles) {
+      console.log(`Running migration: ${file}`);
+      const sql = await fs.readFile(path.join("./migrations", file), "utf-8");
+      await db.execute(sql);
+    }
+
     console.log("Migrations completed successfully");
   } catch (error) {
-    console.error("Error running migrations:", error);
+    console.error("Migration failed:", error);
     process.exit(1);
   } finally {
     await poolConnection.end();
   }
 }
 
-main();
+migrate();

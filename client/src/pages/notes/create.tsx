@@ -71,6 +71,7 @@ export default function CreateNote() {
       subjectId: "",
       content: "",
     },
+    mode: "onSubmit", // Empêche la synchro/sauvegarde à chaque onChange
   });
 
   // Update form values when editing an existing note
@@ -101,7 +102,7 @@ export default function CreateNote() {
       });
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data) => { 
       toast({
         title: isEditMode ? "Note updated" : "Note created",
         description: isEditMode
