@@ -1,4 +1,3 @@
-```markdown
 # SmartNotes
 
 SmartNotes est une application innovante qui transforme vos notes manuscrites ou numériques en un outil d’apprentissage intelligent. Grâce à ses fonctionnalités avancées, SmartNotes réorganise vos cours, génère des quiz personnalisés, crée des podcasts et visuels éducatifs, et vous aide à réviser efficacement avec des rappels adaptés.
