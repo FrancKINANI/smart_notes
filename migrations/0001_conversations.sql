@@ -1,8 +1,9 @@
 CREATE TABLE conversations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    noteId INTEGER,
-    userMessage TEXT NOT NULL,
-    aiResponse TEXT NOT NULL,
-    createdAt TEXT NOT NULL,
+    id int AUTO_INCREMENT NOT NULL,
+    noteId int,
+    userMessage text NOT NULL,
+    aiResponse text NOT NULL,
+    createdAt timestamp NOT NULL DEFAULT (now()),
+    PRIMARY KEY (id),
     FOREIGN KEY (noteId) REFERENCES notes(id) ON DELETE CASCADE
 );

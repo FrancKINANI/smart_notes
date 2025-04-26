@@ -1,6 +1,7 @@
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api-client";
+import { queryClient } from "@/lib/queryClient";
+import { useQuery, useMutation } from "@tanstack/react-query";
 
 interface User {
   id: number;
@@ -33,49 +34,43 @@ interface RegisterData {
 export function useAuth() {
   const { toast } = useToast();
 
-  // Requête pour obtenir l'utilisateur actuel
   const {
     data: user,
     isLoading,
     error,
     refetch,
   } = useQuery<User | null>({
-    queryKey: ['/api/auth/user'],
+    queryKey: ["auth", "user"],
     queryFn: async () => {
       try {
-        const res = await apiRequest('GET', '/api/auth/user');
-        if (res.status === 401) {
+        return await api.get("/api/auth/user");
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("401")) {
           return null;
         }
-        return await res.json();
-      } catch (err) {
-        return null;
+        throw err;
       }
     },
+    retry: false,
   });
 
   // Mutation pour l'inscription
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterData) => {
-      const res = await apiRequest('POST', '/api/auth/register', data);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Erreur lors de l\'inscription');
-      }
-      return res.json();
+      return api.post("/api/auth/register", data);
     },
     onSuccess: (data: User) => {
-      queryClient.setQueryData(['/api/auth/user'], data);
+      queryClient.setQueryData(["auth", "user"], data);
       toast({
-        title: 'Inscription réussie',
-        description: 'Bienvenue sur l\'application !',
+        title: "Inscription réussie",
+        description: "Bienvenue sur l'application !",
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Erreur d\'inscription',
+        title: "Erreur d'inscription",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
@@ -83,25 +78,20 @@ export function useAuth() {
   // Mutation pour la connexion
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
-      const res = await apiRequest('POST', '/api/auth/login', credentials);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Identifiants invalides');
-      }
-      return res.json();
+      return api.post("/api/auth/login", credentials);
     },
     onSuccess: (data: User) => {
-      queryClient.setQueryData(['/api/auth/user'], data);
+      queryClient.setQueryData(["auth", "user"], data);
       toast({
-        title: 'Connexion réussie',
+        title: "Connexion réussie",
         description: `Bon retour, ${data.displayName || data.username}!`,
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Erreur de connexion',
+        title: "Erreur de connexion",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
@@ -109,26 +99,21 @@ export function useAuth() {
   // Mutation pour la déconnexion
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/auth/logout');
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Erreur lors de la déconnexion');
-      }
-      return res.json();
+      return api.post("/api/auth/logout", {});
     },
     onSuccess: () => {
-      queryClient.setQueryData(['/api/auth/user'], null);
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.setQueryData(["auth", "user"], null);
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
       toast({
-        title: 'Déconnexion réussie',
-        description: 'À bientôt !',
+        title: "Déconnexion réussie",
+        description: "À bientôt !",
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Erreur de déconnexion',
+        title: "Erreur de déconnexion",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });

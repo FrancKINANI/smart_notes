@@ -17,6 +17,16 @@ import {
 } from "@shared/schema";
 import express from "express";
 import { db } from "./db";
+import { Router } from "express";
+import {
+  cachePresets,
+  etagMiddleware,
+  lastModifiedMiddleware,
+} from "./middleware/cache-control";
+import { validateParams } from "./middleware/security";
+import { withCache, invalidateCache } from "./cache";
+import { logger } from "./utils/monitoring";
+import { validationSchemas } from "@shared/validation";
 
 // Helper function to call Mistral AI API
 async function callMistralAPI(
@@ -1545,4 +1555,120 @@ router.post("/conversations/:noteId", async (req, res) => {
     console.error("Error handling conversation:", error);
     res.status(500).json({ error: "Failed to process conversation" });
   }
+});
+
+// Middleware global pour les ETags
+router.use(etagMiddleware);
+
+// Routes pour les notes
+router.get("/notes", cachePresets.userContent, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Non authentifié" });
+    }
+
+    const notes = await withCache(
+      "user-notes",
+      { userId },
+      () => storage.getNotesByUser(userId),
+      { ttl: 300 } // 5 minutes
+    );
+
+    res.json(notes);
+  } catch (error) {
+    logger.error("Erreur lors de la récupération des notes:", error);
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la récupération des notes" });
+  }
+});
+
+// Route pour les sujets (données plus stables)
+router.get("/subjects", cachePresets.dynamicContent, async (req, res) => {
+  try {
+    const subjects = await withCache(
+      "subjects",
+      {},
+      () => storage.getSubjects(),
+      { ttl: 3600 } // 1 heure
+    );
+    res.json(subjects);
+  } catch (error) {
+    logger.error("Erreur lors de la récupération des sujets:", error);
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la récupération des sujets" });
+  }
+});
+
+// Route pour les flashcards avec validation de paramètres
+router.post(
+  "/flashcards",
+  validateParams(validationSchemas.flashcard),
+  async (req, res) => {
+    try {
+      const flashcard = await storage.createFlashcard(req.body);
+      // Invalider le cache des flashcards de l'utilisateur
+      invalidateCache(`user-flashcards:${req.user?.id}`);
+      res.status(201).json(flashcard);
+    } catch (error) {
+      logger.error("Erreur lors de la création de la flashcard:", error);
+      res
+        .status(500)
+        .json({ message: "Erreur lors de la création de la flashcard" });
+    }
+  }
+);
+
+// Route pour les statistiques avec mise en cache agressive
+router.get(
+  "/statistics/:userId",
+  cachePresets.dynamicContent,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const cacheKey = `user-statistics:${userId}`;
+
+      const stats = await withCache(
+        cacheKey,
+        { userId },
+        async () => {
+          const [quizResults, flashcards, notes] = await Promise.all([
+            storage.getQuizResultsByUser(parseInt(userId)),
+            storage.getFlashcardsByUser(parseInt(userId)),
+            storage.getNotesByUser(parseInt(userId)),
+          ]);
+
+          return {
+            quizCount: quizResults.length,
+            averageScore:
+              quizResults.reduce((acc, curr) => acc + curr.score, 0) /
+              quizResults.length,
+            flashcardCount: flashcards.length,
+            noteCount: notes.length,
+            lastUpdated: new Date().toISOString(),
+          };
+        },
+        { ttl: 1800 } // 30 minutes
+      );
+
+      res.json(stats);
+    } catch (error) {
+      logger.error("Erreur lors de la récupération des statistiques:", error);
+      res
+        .status(500)
+        .json({ message: "Erreur lors de la récupération des statistiques" });
+    }
+  }
+);
+
+// Route pour les ressources statiques
+router.get("/static/*", cachePresets.staticAssets, (req, res, next) => {
+  next();
+});
+
+// Route pour les données en temps réel (pas de cache)
+router.get("/realtime-data", cachePresets.noCache, (req, res) => {
+  // ...existing code...
 });

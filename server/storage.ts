@@ -49,8 +49,21 @@ import session from "express-session";
 import MySQLStore from "express-mysql-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { MySqlRawQueryResult } from "drizzle-orm/mysql2";
 
 const scryptAsync = promisify(scrypt);
+
+// Déclaration du module pour éviter l'erreur de typage
+declare module "express-mysql-session" {
+  interface SessionData extends session.SessionData {
+    [key: string]: any;
+  }
+}
+
+interface MySQLResult extends MySqlRawQueryResult {
+  insertId?: number;
+  affectedRows?: number;
+}
 
 export interface IStorage {
   // User operations
@@ -152,10 +165,10 @@ export interface IStorage {
   // AI Conversation operations
   getUserConversations(userId: number): Promise<AiConversation[]>;
   getNoteConversations(noteId: number): Promise<AiConversation[]>;
-  createConversation(
+  createAiConversation(
     conversation: InsertAiConversation
   ): Promise<AiConversation>;
-  deleteConversation(id: number): Promise<boolean>;
+  deleteAiConversation(id: number): Promise<boolean>;
 
   // Conversation operations
   createConversation(data: InsertConversation): Promise<Conversation>;
@@ -163,24 +176,37 @@ export interface IStorage {
   deleteConversation(id: number): Promise<boolean>;
 
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Changé de session.SessionStore à any pour éviter l'erreur
 }
 
 export class DatabaseStorage implements IStorage {
-  private sessionStore: any;
+  public sessionStore: any; // Changé en public et type any
 
   constructor() {
-    // Configure MySQL session store
+    // Configuration MySQL session store avec les variables d'environnement
     const options = {
-      host: "localhost",
-      port: 3306,
-      user: "root",
-      password: "Justine@2227",
-      database: "smart_notes",
+      host: process.env.DB_HOST || "localhost",
+      port: parseInt(process.env.DB_PORT || "3306"),
+      user: process.env.DB_USER || "root",
+      password: process.env.DB_PASSWORD || "",
+      database: process.env.DB_NAME || "smart_notes",
     };
 
     const SessionStore = MySQLStore(session);
     this.sessionStore = new SessionStore(options);
+  }
+
+  // Méthodes pour gérer les résultats MySQL
+  private getInsertId(result: MySQLResult): number {
+    const insertId = result.insertId || (result[0] as any)?.insertId;
+    if (!insertId) {
+      throw new Error("ID d'insertion manquant");
+    }
+    return insertId;
+  }
+
+  private getAffectedRows(result: MySQLResult): number {
+    return result.affectedRows || (result[0] as any)?.affectedRows || 0;
   }
 
   // User methods
@@ -206,19 +232,14 @@ export class DatabaseStorage implements IStorage {
     // Hash the password before saving
     const hashedPassword = await this.hashPassword(insertUser.password);
 
-    const result = await db.insert(users).values({
+    const result = (await db.insert(users).values({
       ...insertUser,
       password: hashedPassword,
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    })) as MySQLResult;
     // MySQL: récupérer l'id inséré
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId) {
-      throw new Error(
-        "Erreur lors de la création de l'utilisateur (insertId manquant)"
-      );
-    }
+    const insertId = this.getInsertId(result);
     // Récupérer l'utilisateur inséré
     const [user] = await db.select().from(users).where(eq(users.id, insertId));
     if (!user) {
@@ -287,17 +308,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserProfile(profile: InsertUserProfile): Promise<UserProfile> {
-    const result = await db.insert(userProfiles).values({
+    const result = (await db.insert(userProfiles).values({
       ...profile,
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId) {
-      throw new Error(
-        "Erreur lors de la création du profil utilisateur (insertId manquant)"
-      );
-    }
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [userProfile] = await db
       .select()
       .from(userProfiles)
@@ -360,12 +376,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSubject(insertSubject: InsertSubject): Promise<Subject> {
-    const result = await db.insert(subjects).values(insertSubject);
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error(
-        "Erreur lors de la création du sujet (insertId manquant)"
-      );
+    const result = (await db
+      .insert(subjects)
+      .values(insertSubject)) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [subject] = await db
       .select()
       .from(subjects)
@@ -430,15 +444,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createNote(insertNote: InsertNote): Promise<Note> {
-    const result = await db.insert(notes).values({
+    const result = (await db.insert(notes).values({
       ...insertNote,
       createdAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error(
-        "Erreur lors de la création de la note (insertId manquant)"
-      );
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [note] = await db.select().from(notes).where(eq(notes.id, insertId));
     if (!note) throw new Error("Note non trouvée après insertion");
     return note;
@@ -473,13 +483,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createQuiz(insertQuiz: InsertQuiz): Promise<Quiz> {
-    const result = await db.insert(quizzes).values({
+    const result = (await db.insert(quizzes).values({
       ...insertQuiz,
       createdAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error("Erreur lors de la création du quiz (insertId manquant)");
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [quiz] = await db
       .select()
       .from(quizzes)
@@ -520,15 +528,11 @@ export class DatabaseStorage implements IStorage {
   async createQuizResult(
     insertQuizResult: InsertQuizResult
   ): Promise<QuizResult> {
-    const result = await db.insert(quizResults).values({
+    const result = (await db.insert(quizResults).values({
       ...insertQuizResult,
       completedAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error(
-        "Erreur lors de la création du résultat de quiz (insertId manquant)"
-      );
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [quizResult] = await db
       .select()
       .from(quizResults)
@@ -572,15 +576,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFlashcard(insertFlashcard: InsertFlashcard): Promise<Flashcard> {
-    const result = await db.insert(flashcards).values({
+    const result = (await db.insert(flashcards).values({
       ...insertFlashcard,
       createdAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error(
-        "Erreur lors de la création de la flashcard (insertId manquant)"
-      );
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [flashcard] = await db
       .select()
       .from(flashcards)
@@ -646,15 +646,11 @@ export class DatabaseStorage implements IStorage {
   async createRevisionItem(
     insertRevisionItem: InsertRevisionItem
   ): Promise<RevisionItem> {
-    const result = await db.insert(revisionItems).values({
+    const result = (await db.insert(revisionItems).values({
       ...insertRevisionItem,
       createdAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error(
-        "Erreur lors de la création de l'item de révision (insertId manquant)"
-      );
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [item] = await db
       .select()
       .from(revisionItems)
@@ -680,17 +676,13 @@ export class DatabaseStorage implements IStorage {
 
   // Collaborative features
   async createStudyGroup(group: InsertStudyGroup): Promise<StudyGroup> {
-    const result = await db.insert(studyGroups).values({
+    const result = (await db.insert(studyGroups).values({
       ...group,
       inviteCode: this.generateInviteCode(),
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error(
-        "Erreur lors de la création du groupe (insertId manquant)"
-      );
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [studyGroup] = await db
       .select()
       .from(studyGroups)
@@ -748,13 +740,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addGroupMember(member: InsertGroupMember): Promise<GroupMember> {
-    const result = await db.insert(groupMembers).values({
+    const result = (await db.insert(groupMembers).values({
       ...member,
       joinedAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error("Erreur lors de l'ajout du membre (insertId manquant)");
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [groupMember] = await db
       .select()
       .from(groupMembers)
@@ -778,13 +768,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async shareNote(shared: InsertSharedNote): Promise<SharedNote> {
-    const result = await db.insert(sharedNotes).values({
+    const result = (await db.insert(sharedNotes).values({
       ...shared,
       sharedAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error("Erreur lors du partage de la note (insertId manquant)");
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [sharedNote] = await db
       .select()
       .from(sharedNotes)
@@ -802,16 +790,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addComment(comment: InsertComment): Promise<Comment> {
-    const result = await db.insert(comments).values({
+    const result = (await db.insert(comments).values({
       ...comment,
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error(
-        "Erreur lors de l'ajout du commentaire (insertId manquant)"
-      );
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [newComment] = await db
       .select()
       .from(comments)
@@ -845,46 +829,42 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(aiConversations.createdAt));
   }
 
-  async createConversation(
+  async createAiConversation(
     conversation: InsertAiConversation
   ): Promise<AiConversation> {
-    const result = await db.insert(aiConversations).values({
+    const result = (await db.insert(aiConversations).values({
       ...conversation,
       createdAt: new Date(),
-    });
-    const insertId = result.insertId || (result[0] && result[0].insertId);
-    if (!insertId)
-      throw new Error(
-        "Erreur lors de la création de la conversation (insertId manquant)"
-      );
-
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     const [newConversation] = await db
       .select()
       .from(aiConversations)
       .where(eq(aiConversations.id, insertId));
     if (!newConversation)
       throw new Error("Conversation non trouvée après insertion");
-
     return newConversation;
   }
 
-  async deleteConversation(id: number): Promise<boolean> {
-    const result = await db
+  async deleteAiConversation(id: number): Promise<boolean> {
+    const result = (await db
       .delete(aiConversations)
-      .where(eq(aiConversations.id, id));
-    return result.rowCount > 0;
+      .where(eq(aiConversations.id, id))) as MySQLResult;
+    return this.getAffectedRows(result) > 0;
   }
 
   // Conversation methods
   async createConversation(data: InsertConversation): Promise<Conversation> {
-    const [result] = await db.execute(
-      `INSERT INTO conversations (noteId, userMessage, aiResponse, createdAt) 
-       VALUES (?, ?, ?, ?)`,
-      [data.noteId, data.userMessage, data.aiResponse, data.createdAt]
-    );
-
+    const result = (await db.insert(aiConversations).values({
+      userId: data.userId,
+      noteId: data.noteId,
+      question: data.userMessage,
+      answer: data.aiResponse,
+      createdAt: new Date(),
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
     return {
-      id: (result as any).insertId,
+      id: insertId,
       ...data,
     };
   }

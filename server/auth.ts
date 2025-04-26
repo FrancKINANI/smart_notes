@@ -5,6 +5,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { storage } from "./storage";
 import { User, registerSchema, loginSchema } from "@shared/schema";
 import { z } from "zod";
+import rateLimit from "express-rate-limit";
 
 // Définir un type pour Express.User qui correspond à notre type User
 declare global {
@@ -23,8 +24,29 @@ declare global {
   }
 }
 
+const PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+const registerSchema = z
+  .object({
+    username: z.string().min(3).max(50),
+    email: z.string().email(),
+    password: z.string().regex(PASSWORD_REGEX, {
+      message:
+        "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial",
+    }),
+    confirmPassword: z.string(),
+    displayName: z.string().optional(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Les mots de passe ne correspondent pas",
+    path: ["confirmPassword"],
+  });
+
 export function setupAuth(app: Express) {
-  // Configuration de la session
+  // Configuration de la session avec sécurité renforcée
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "dev-secret-key",
@@ -33,8 +55,15 @@ export function setupAuth(app: Express) {
       store: storage.sessionStore,
       cookie: {
         secure: process.env.NODE_ENV === "production",
+        httpOnly: true, // Protection XSS
         maxAge: 24 * 60 * 60 * 1000, // 1 jour
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // Protection CSRF
+        domain:
+          process.env.NODE_ENV === "production"
+            ? process.env.COOKIE_DOMAIN
+            : "localhost",
       },
+      name: "sid", // Change default connect.sid name
     })
   );
 
@@ -86,49 +115,66 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Routes d'authentification
-  // Inscription
+  // Rate limiting pour la protection contre les attaques par force brute
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 tentatives
+    message: "Trop de tentatives de connexion, veuillez réessayer plus tard",
+  });
+
+  // Routes d'authentification sécurisées
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      // Valider les données d'inscription
       const validatedData = registerSchema.parse(req.body);
 
-      // Vérifier si l'email existe déjà
-      const existingUserByEmail = await storage.getUserByEmail(
-        validatedData.email
-      );
-      if (existingUserByEmail) {
-        return res.status(400).json({ message: "Cet email est déjà utilisé" });
+      // Vérification asynchrone de l'email et du nom d'utilisateur
+      const [existingEmail, existingUsername] = await Promise.all([
+        storage.getUserByEmail(validatedData.email),
+        storage.getUserByUsername(validatedData.username),
+      ]);
+
+      if (existingEmail) {
+        return res.status(400).json({
+          message: "Cet email est déjà utilisé",
+          field: "email",
+        });
       }
 
-      // Vérifier si le nom d'utilisateur existe déjà
-      const existingUserByUsername = await storage.getUserByUsername(
-        validatedData.username
-      );
-      if (existingUserByUsername) {
-        return res
-          .status(400)
-          .json({ message: "Ce nom d'utilisateur est déjà utilisé" });
+      if (existingUsername) {
+        return res.status(400).json({
+          message: "Ce nom d'utilisateur est déjà utilisé",
+          field: "username",
+        });
       }
 
-      // Créer l'utilisateur
       const { confirmPassword, ...userData } = validatedData;
       const user = await storage.createUser(userData);
 
-      // Créer un profil utilisateur
-      await storage.createUserProfile({
-        userId: user.id,
-        studyPreferences: {},
-        notificationSettings: {},
-      });
+      // Création du profil utilisateur avec validation
+      try {
+        await storage.createUserProfile({
+          userId: user.id,
+          studyPreferences: {},
+          notificationSettings: {},
+        });
+      } catch (profileError) {
+        // Si la création du profil échoue, supprimer l'utilisateur
+        await storage.deleteUser(user.id);
+        throw profileError;
+      }
 
-      // Connexion automatique après inscription
-      req.login(user, (err) => {
-        if (err) {
-          return res
-            .status(500)
-            .json({ message: "Erreur lors de la connexion automatique" });
+      // Connexion automatique après inscription avec gestion d'erreur
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          return res.status(500).json({
+            message: "Erreur lors de la connexion automatique",
+            error:
+              process.env.NODE_ENV === "development"
+                ? loginErr.message
+                : undefined,
+          });
         }
+
         return res.status(201).json({
           id: user.id,
           username: user.username,
@@ -137,38 +183,53 @@ export function setupAuth(app: Express) {
         });
       });
     } catch (error) {
-      console.error("Erreur lors de l'inscription:", error); // Ajout du log détaillé
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           message: "Données d'inscription invalides",
           errors: error.errors,
         });
       }
-      res.status(500).json({ message: "Erreur lors de l'inscription" });
+
+      console.error("Erreur lors de l'inscription:", error);
+      res.status(500).json({
+        message: "Erreur lors de l'inscription",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
     }
   });
 
-  // Connexion
   app.post(
     "/api/auth/login",
-    (req: Request, res: Response, next: NextFunction) => {
+    loginLimiter,
+    async (req: Request, res: Response, next: NextFunction) => {
       try {
-        // Valider les données de connexion
-        loginSchema.parse(req.body);
+        await loginSchema.parseAsync(req.body);
 
         passport.authenticate("local", (err, user, info) => {
           if (err) {
             return next(err);
           }
+
           if (!user) {
-            return res
-              .status(401)
-              .json({ message: info.message || "Identifiants invalides" });
+            return res.status(401).json({
+              message: info.message || "Identifiants invalides",
+              field: info.field,
+            });
           }
+
           req.login(user, (loginErr) => {
             if (loginErr) {
               return next(loginErr);
             }
+
+            // Mise à jour du dernier accès
+            storage
+              .updateUserProfile(user.id, {
+                lastActive: new Date(),
+              })
+              .catch(console.error);
+
             return res.json({
               id: user.id,
               username: user.username,
@@ -184,20 +245,41 @@ export function setupAuth(app: Express) {
             errors: error.errors,
           });
         }
-        res.status(500).json({ message: "Erreur lors de la connexion" });
+        res.status(500).json({
+          message: "Erreur lors de la connexion",
+          error:
+            process.env.NODE_ENV === "development" ? error.message : undefined,
+        });
       }
     }
   );
 
-  // Déconnexion
   app.post("/api/auth/logout", (req: Request, res: Response) => {
+    const wasAuthenticated = req.isAuthenticated();
+
     req.logout((err) => {
       if (err) {
-        return res
-          .status(500)
-          .json({ message: "Erreur lors de la déconnexion" });
+        return res.status(500).json({
+          message: "Erreur lors de la déconnexion",
+          error:
+            process.env.NODE_ENV === "development" ? err.message : undefined,
+        });
       }
-      res.json({ message: "Déconnecté avec succès" });
+
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          console.error(
+            "Erreur lors de la destruction de la session:",
+            sessionErr
+          );
+        }
+
+        if (!wasAuthenticated) {
+          return res.status(401).json({ message: "Aucune session active" });
+        }
+
+        res.json({ message: "Déconnexion réussie" });
+      });
     });
   });
 
