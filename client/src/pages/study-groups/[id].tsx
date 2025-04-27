@@ -3,18 +3,50 @@ import { useRoute, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api-client";
+import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Users, Share, Copy, UserPlus, BookOpen, MessageSquare, ArrowLeft, Clipboard, CheckCircle2 } from "lucide-react";
+import {
+  Users,
+  Share,
+  Copy,
+  UserPlus,
+  BookOpen,
+  MessageSquare,
+  ArrowLeft,
+  Clipboard,
+  CheckCircle2,
+} from "lucide-react";
 
 interface StudyGroup {
   id: number;
@@ -67,7 +99,7 @@ export default function StudyGroupDetailsPage() {
   const { toast } = useToast();
   const [, params] = useRoute("/study-groups/:id");
   const groupId = params ? parseInt(params.id) : 0;
-  
+
   const [inviteDialog, setInviteDialog] = useState(false);
   const [shareNoteDialog, setShareNoteDialog] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -78,7 +110,7 @@ export default function StudyGroupDetailsPage() {
   const { data: group, isLoading: groupLoading } = useQuery<StudyGroup>({
     queryKey: [`/api/study-groups/${groupId}`],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/study-groups/${groupId}`);
+      const res = await apiRequest(`/api/study-groups/${groupId}`);
       if (!res.ok) {
         throw new Error("Impossible de récupérer les détails du groupe");
       }
@@ -90,7 +122,7 @@ export default function StudyGroupDetailsPage() {
   const { data: members, isLoading: membersLoading } = useQuery<Member[]>({
     queryKey: [`/api/study-groups/${groupId}/members`],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/study-groups/${groupId}/members`);
+      const res = await apiRequest(`/api/study-groups/${groupId}/members`);
       if (!res.ok) {
         throw new Error("Impossible de récupérer les membres du groupe");
       }
@@ -99,22 +131,26 @@ export default function StudyGroupDetailsPage() {
   });
 
   // Récupérer les notes partagées
-  const { data: sharedNotes, isLoading: notesLoading } = useQuery<SharedNote[]>({
-    queryKey: [`/api/study-groups/${groupId}/shared-notes`],
-    queryFn: async () => {
-      const res = await apiRequest("GET", `/api/study-groups/${groupId}/shared-notes`);
-      if (!res.ok) {
-        throw new Error("Impossible de récupérer les notes partagées");
-      }
-      return res.json();
-    },
-  });
+  const { data: sharedNotes, isLoading: notesLoading } = useQuery<SharedNote[]>(
+    {
+      queryKey: [`/api/study-groups/${groupId}/shared-notes`],
+      queryFn: async () => {
+        const res = await apiRequest(
+          `/api/study-groups/${groupId}/shared-notes`
+        );
+        if (!res.ok) {
+          throw new Error("Impossible de récupérer les notes partagées");
+        }
+        return res.json();
+      },
+    }
+  );
 
   // Récupérer les notes de l'utilisateur pour le partage
   const { data: userNotes } = useQuery({
     queryKey: ["/api/notes", user?.id],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/notes?userId=${user?.id}`);
+      const res = await apiRequest(`/api/notes?userId=${user?.id}`);
       if (!res.ok) {
         throw new Error("Impossible de récupérer vos notes");
       }
@@ -129,28 +165,36 @@ export default function StudyGroupDetailsPage() {
       if (!selectedNote) {
         throw new Error("Veuillez sélectionner une note à partager");
       }
-      
-      const res = await apiRequest("POST", `/api/study-groups/${groupId}/shared-notes`, {
-        noteId: selectedNote,
-        permissions: selectedPermission
-      });
-      
+
+      const res = await apiRequest(
+        `/api/study-groups/${groupId}/shared-notes`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            noteId: selectedNote,
+            permissions: selectedPermission,
+          }),
+        }
+      );
+
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Erreur lors du partage de la note");
       }
-      
+
       return res.json();
     },
     onSuccess: () => {
       // Actualiser la liste des notes partagées
-      queryClient.invalidateQueries({ queryKey: [`/api/study-groups/${groupId}/shared-notes`] });
-      
+      queryClient.invalidateQueries({
+        queryKey: [`/api/study-groups/${groupId}/shared-notes`],
+      });
+
       toast({
         title: "Note partagée",
         description: "Votre note a été partagée avec succès",
       });
-      
+
       setShareNoteDialog(false);
       setSelectedNote(null);
       setSelectedPermission("read");
@@ -175,7 +219,9 @@ export default function StudyGroupDetailsPage() {
 
   // Déterminer si l'utilisateur est l'administrateur du groupe
   const isAdmin = members?.some(
-    member => member.userId === user?.id && (member.role === "admin" || member.userId === group?.creatorId)
+    (member) =>
+      member.userId === user?.id &&
+      (member.role === "admin" || member.userId === group?.creatorId)
   );
 
   if (groupLoading || membersLoading || notesLoading) {
@@ -192,7 +238,8 @@ export default function StudyGroupDetailsPage() {
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold">Groupe non trouvé</h2>
           <p className="text-muted-foreground mt-2">
-            Le groupe d'étude que vous recherchez n'existe pas ou vous n'avez pas les permissions nécessaires.
+            Le groupe d'étude que vous recherchez n'existe pas ou vous n'avez
+            pas les permissions nécessaires.
           </p>
           <Link href="/study-groups">
             <Button className="mt-4">
@@ -248,12 +295,15 @@ export default function StudyGroupDetailsPage() {
                 <DialogHeader>
                   <DialogTitle>Inviter des membres</DialogTitle>
                   <DialogDescription>
-                    Partagez ce code d'invitation pour permettre à d'autres personnes de rejoindre votre groupe d'étude.
+                    Partagez ce code d'invitation pour permettre à d'autres
+                    personnes de rejoindre votre groupe d'étude.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
                   <div className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
-                    <code className="text-sm font-mono">{group.inviteCode}</code>
+                    <code className="text-sm font-mono">
+                      {group.inviteCode}
+                    </code>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -288,7 +338,8 @@ export default function StudyGroupDetailsPage() {
               <DialogHeader>
                 <DialogTitle>Partager une note</DialogTitle>
                 <DialogDescription>
-                  Partagez l'une de vos notes avec les membres de ce groupe d'étude.
+                  Partagez l'une de vos notes avec les membres de ce groupe
+                  d'étude.
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4 space-y-4">
@@ -321,8 +372,12 @@ export default function StudyGroupDetailsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="read">Lecture seule</SelectItem>
-                      <SelectItem value="comment">Lecture + Commentaires</SelectItem>
-                      <SelectItem value="edit">Lecture + Commentaires + Édition</SelectItem>
+                      <SelectItem value="comment">
+                        Lecture + Commentaires
+                      </SelectItem>
+                      <SelectItem value="edit">
+                        Lecture + Commentaires + Édition
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -354,7 +409,7 @@ export default function StudyGroupDetailsPage() {
             Membres
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="notes" className="mt-6">
           {sharedNotes && sharedNotes.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -362,10 +417,14 @@ export default function StudyGroupDetailsPage() {
                 <Link href={`/notes/${shared.noteId}`} key={shared.id}>
                   <Card className="h-full hover:border-primary transition-colors cursor-pointer">
                     <CardHeader>
-                      <CardTitle className="line-clamp-1">{shared.note.title}</CardTitle>
+                      <CardTitle className="line-clamp-1">
+                        {shared.note.title}
+                      </CardTitle>
                       <CardDescription className="flex items-center text-xs">
                         <span>
-                          Partagée par {shared.sharedByUser.displayName || shared.sharedByUser.username}
+                          Partagée par{" "}
+                          {shared.sharedByUser.displayName ||
+                            shared.sharedByUser.username}
                         </span>
                       </CardDescription>
                     </CardHeader>
@@ -376,7 +435,8 @@ export default function StudyGroupDetailsPage() {
                     </CardContent>
                     <CardFooter className="flex justify-between text-xs text-muted-foreground">
                       <span>
-                        Partagée le {new Date(shared.sharedAt).toLocaleDateString()}
+                        Partagée le{" "}
+                        {new Date(shared.sharedAt).toLocaleDateString()}
                       </span>
                       <div className="flex items-center">
                         <MessageSquare className="h-3.5 w-3.5 mr-1" />
@@ -400,7 +460,7 @@ export default function StudyGroupDetailsPage() {
             </div>
           )}
         </TabsContent>
-        
+
         <TabsContent value="members" className="mt-6">
           <div className="space-y-6">
             {isAdmin && (
@@ -411,15 +471,20 @@ export default function StudyGroupDetailsPage() {
                 </Button>
               </div>
             )}
-            
+
             <div className="space-y-4">
               {members?.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
                   <div className="flex items-center space-x-4">
                     <Avatar>
                       <AvatarImage src={member.user.avatar || ""} />
                       <AvatarFallback>
-                        {(member.user.displayName || member.user.username).substring(0, 2).toUpperCase()}
+                        {(member.user.displayName || member.user.username)
+                          .substring(0, 2)
+                          .toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>

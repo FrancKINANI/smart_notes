@@ -1,4 +1,4 @@
-import { apiRequest } from "./queryClient";
+import { apiRequest } from "./api-client";
 
 export interface OcrRequest {
   image: string; // Base64 encoded image
@@ -18,7 +18,12 @@ export interface OcrResponse {
   ocrText: string;
 }
 
-export async function processImageOCR(params: OcrRequest): Promise<OcrResponse> {
-  const response = await apiRequest("POST", "/api/notes/ocr", params);
-  return await response.json();
+export async function processImageOCR(
+  params: OcrRequest
+): Promise<OcrResponse> {
+  const response = await apiRequest("/api/notes/ocr", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  return response;
 }

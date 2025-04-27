@@ -1,4 +1,4 @@
-import { apiRequest } from "./queryClient";
+import { apiRequest } from "./api-client";
 
 export interface EnhanceNoteResult {
   id: number;
@@ -7,8 +7,10 @@ export interface EnhanceNoteResult {
 }
 
 export async function enhanceNote(noteId: number): Promise<EnhanceNoteResult> {
-  const response = await apiRequest("POST", `/api/notes/${noteId}/enhance`, {});
-  return await response.json();
+  const response = await apiRequest(`/api/notes/${noteId}/enhance`, {
+    method: "POST",
+  });
+  return response;
 }
 
 export interface QuizGeneration {
@@ -18,8 +20,11 @@ export interface QuizGeneration {
 }
 
 export async function generateQuiz(params: QuizGeneration): Promise<any> {
-  const response = await apiRequest("POST", `/api/quizzes/generate`, params);
-  return await response.json();
+  const response = await apiRequest(`/api/quizzes/generate`, {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  return response;
 }
 
 export interface FlashcardGeneration {
@@ -44,22 +49,16 @@ export async function generateFlashcards(
 ): Promise<FlashcardResponse[]> {
   try {
     const response = await apiRequest(
-      "POST",
       `/api/notes/${params.noteId}/generate-flashcards`,
       {
-        userId: params.userId,
-        count: params.count || 5,
+        method: "POST",
+        body: JSON.stringify({
+          userId: params.userId,
+          count: params.count || 5,
+        }),
       }
     );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        error.message || "Erreur lors de la génération des flashcards"
-      );
-    }
-
-    return await response.json();
+    return response;
   } catch (error) {
     console.error("Erreur lors de la génération des flashcards:", error);
     throw error;
@@ -71,7 +70,10 @@ export interface TtsRequest {
 }
 
 export async function textToSpeech(params: TtsRequest): Promise<void> {
-  await apiRequest("POST", "/api/tts", params);
+  await apiRequest("/api/tts", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
 }
 
 export interface ChatMessage {
@@ -83,15 +85,9 @@ export async function sendChatMessage(
   message: string,
   history: ChatMessage[] = []
 ): Promise<string> {
-  const response = await apiRequest("POST", "/api/chat", {
-    message,
-    history,
+  const response = await apiRequest("/api/chat", {
+    method: "POST",
+    body: JSON.stringify({ message, history }),
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to get AI response");
-  }
-
-  const data = await response.json();
-  return data.response;
+  return response.response;
 }

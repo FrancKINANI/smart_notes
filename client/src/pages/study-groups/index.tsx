@@ -2,13 +2,28 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api-client";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -32,14 +47,19 @@ export default function StudyGroupsPage() {
   const [newGroup, setNewGroup] = useState({
     name: "",
     description: "",
-    isPrivate: false
+    isPrivate: false,
   });
 
   // Récupérer les groupes d'étude de l'utilisateur
-  const { data: studyGroups, isLoading, error, refetch } = useQuery<StudyGroup[]>({
+  const {
+    data: studyGroups,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<StudyGroup[]>({
     queryKey: ["/api/study-groups"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/study-groups");
+      const res = await apiRequest("/api/study-groups");
       if (!res.ok) {
         throw new Error("Impossible de récupérer les groupes d'étude");
       }
@@ -49,7 +69,7 @@ export default function StudyGroupsPage() {
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newGroup.name) {
       toast({
         title: "Erreur",
@@ -58,19 +78,24 @@ export default function StudyGroupsPage() {
       });
       return;
     }
-    
+
     try {
-      const res = await apiRequest("POST", "/api/study-groups", newGroup);
+      const res = await apiRequest("/api/study-groups", {
+        method: "POST",
+        body: JSON.stringify(newGroup),
+      });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Erreur lors de la création du groupe");
+        throw new Error(
+          error.message || "Erreur lors de la création du groupe"
+        );
       }
-      
+
       toast({
         title: "Groupe créé",
         description: "Votre groupe d'étude a été créé avec succès",
       });
-      
+
       setNewGroupDialog(false);
       setNewGroup({ name: "", description: "", isPrivate: false });
       refetch(); // Actualiser la liste des groupes
@@ -89,7 +114,8 @@ export default function StudyGroupsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Groupes d'étude</h1>
           <p className="text-muted-foreground">
-            Collaborez avec d'autres étudiants pour améliorer votre apprentissage
+            Collaborez avec d'autres étudiants pour améliorer votre
+            apprentissage
           </p>
         </div>
         <Dialog open={newGroupDialog} onOpenChange={setNewGroupDialog}>
@@ -102,7 +128,8 @@ export default function StudyGroupsPage() {
             <DialogHeader>
               <DialogTitle>Créer un nouveau groupe d'étude</DialogTitle>
               <DialogDescription>
-                Créez un groupe pour partager vos notes et collaborer avec d'autres étudiants.
+                Créez un groupe pour partager vos notes et collaborer avec
+                d'autres étudiants.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateGroup}>
@@ -113,7 +140,9 @@ export default function StudyGroupsPage() {
                     id="name"
                     placeholder="Ex: Groupe de biologie avancée"
                     value={newGroup.name}
-                    onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
+                    onChange={(e) =>
+                      setNewGroup({ ...newGroup, name: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -123,20 +152,30 @@ export default function StudyGroupsPage() {
                     id="description"
                     placeholder="Décrivez le but de ce groupe d'étude"
                     value={newGroup.description}
-                    onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
+                    onChange={(e) =>
+                      setNewGroup({ ...newGroup, description: e.target.value })
+                    }
                   />
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="private"
                     checked={newGroup.isPrivate}
-                    onCheckedChange={(checked) => setNewGroup({ ...newGroup, isPrivate: checked })}
+                    onCheckedChange={(checked) =>
+                      setNewGroup({ ...newGroup, isPrivate: checked })
+                    }
                   />
-                  <Label htmlFor="private">Groupe privé (accès sur invitation uniquement)</Label>
+                  <Label htmlFor="private">
+                    Groupe privé (accès sur invitation uniquement)
+                  </Label>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setNewGroupDialog(false)}>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => setNewGroupDialog(false)}
+                >
                   Annuler
                 </Button>
                 <Button type="submit">Créer le groupe</Button>
@@ -159,7 +198,9 @@ export default function StudyGroupsPage() {
           ) : error ? (
             <Alert variant="destructive">
               <AlertTitle>Erreur</AlertTitle>
-              <AlertDescription>Impossible de charger vos groupes d'étude.</AlertDescription>
+              <AlertDescription>
+                Impossible de charger vos groupes d'étude.
+              </AlertDescription>
             </Alert>
           ) : studyGroups && studyGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -214,7 +255,8 @@ export default function StudyGroupsPage() {
             <UserPlus className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">Rejoindre un groupe</h3>
             <p className="text-muted-foreground mt-2 mb-6 max-w-md mx-auto">
-              Pour rejoindre un groupe privé, demandez le code d'invitation à un membre du groupe et entrez-le ci-dessous.
+              Pour rejoindre un groupe privé, demandez le code d'invitation à un
+              membre du groupe et entrez-le ci-dessous.
             </p>
             <div className="flex max-w-md mx-auto">
               <Input placeholder="Code d'invitation" className="mr-2" />

@@ -30,7 +30,7 @@ import NoteEditor from "@/components/notes/note-editor";
 import FileUpload from "@/components/dropzone/file-upload";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api-client";
 import { processImageOCR } from "@/lib/ocr";
 
 // Form schema for text notes
@@ -90,19 +90,21 @@ export default function CreateNote() {
     mutationFn: async (values: z.infer<typeof textNoteSchema>) => {
       const endpoint = isEditMode ? `/api/notes/${noteId}` : "/api/notes";
       const method = isEditMode ? "PUT" : "POST";
-
-      const response = await apiRequest(method, endpoint, {
-        userId,
-        subjectId: parseInt(values.subjectId),
-        title: values.title,
-        content: values.content,
-        summary: existingNote?.summary || "",
-        enhancedContent: existingNote?.enhancedContent || "",
-        sourceType: "text",
+      const response = await apiRequest(endpoint, {
+        method,
+        body: JSON.stringify({
+          userId,
+          subjectId: parseInt(values.subjectId),
+          title: values.title,
+          content: values.content,
+          summary: existingNote?.summary || "",
+          enhancedContent: existingNote?.enhancedContent || "",
+          sourceType: "text",
+        }),
       });
-      return response.json();
+      return response;
     },
-    onSuccess: (data) => { 
+    onSuccess: (data) => {
       toast({
         title: isEditMode ? "Note updated" : "Note created",
         description: isEditMode
@@ -331,7 +333,10 @@ function FormFields({
           <FormItem>
             <FormLabel>Content</FormLabel>
             <FormControl>
-              <NoteEditor value={field.value} onChange={field.onChange} />
+              <NoteEditor
+                content={field.value}
+                onContentChange={field.onChange}
+              />
             </FormControl>
             <FormDescription>
               Write your note content here. You can format text using the

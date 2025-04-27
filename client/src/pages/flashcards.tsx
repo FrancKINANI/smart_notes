@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { processResponse, ResponseQuality } from "@/lib/spaced-repetition";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api-client";
 import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 

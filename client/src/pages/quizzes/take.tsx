@@ -11,7 +11,7 @@ import { useState } from "react";
 import { ArrowLeft, ArrowRight, Check, HelpCircle, X } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api-client";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -102,15 +102,14 @@ export default function TakeQuiz() {
       answers: Record<string, string>;
       score: number;
     }) => {
-      const response = await apiRequest(
-        "POST",
-        `/api/quizzes/${quizId}/submit`,
-        {
+      const response = await apiRequest(`/api/quizzes/${quizId}/submit`, {
+        method: "POST",
+        body: JSON.stringify({
           userId: user.id,
           answers: data.answers,
           score: data.score,
-        }
-      );
+        }),
+      });
       if (!response.ok) {
         throw new Error("Erreur lors de l'enregistrement des résultats");
       }

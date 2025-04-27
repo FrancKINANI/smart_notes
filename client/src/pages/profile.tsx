@@ -1,9 +1,17 @@
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api-client";
+import { queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +19,22 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { User, Key, Mail, UserCircle, FileEdit, Save, Loader2, ChevronLeft } from "lucide-react";
+import {
+  User,
+  Key,
+  Mail,
+  UserCircle,
+  FileEdit,
+  Save,
+  Loader2,
+  ChevronLeft,
+} from "lucide-react";
 import { Link } from "wouter";
 
 export default function ProfilePage() {
   const { user, refetchUser } = useAuth();
   const { toast } = useToast();
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     displayName: user?.displayName || "",
@@ -25,7 +42,7 @@ export default function ProfilePage() {
     lastName: user?.lastName || "",
     bio: user?.bio || "",
   });
-  
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -35,12 +52,17 @@ export default function ProfilePage() {
   // Mutation pour mettre à jour le profil
   const updateProfileMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const res = await apiRequest("PUT", `/api/users/${user?.id}`, data);
+      const res = await apiRequest(`/api/users/${user?.id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || "Erreur lors de la mise à jour du profil");
+        throw new Error(
+          errorData.message || "Erreur lors de la mise à jour du profil"
+        );
       }
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       toast({
@@ -62,12 +84,17 @@ export default function ProfilePage() {
   // Mutation pour changer le mot de passe
   const changePasswordMutation = useMutation({
     mutationFn: async (data: typeof passwordData) => {
-      const res = await apiRequest("PUT", `/api/users/${user?.id}/password`, data);
+      const res = await apiRequest(`/api/users/${user?.id}/password`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || "Erreur lors du changement de mot de passe");
+        throw new Error(
+          errorData.message || "Erreur lors du changement de mot de passe"
+        );
       }
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       toast({
@@ -93,10 +120,10 @@ export default function ProfilePage() {
     e.preventDefault();
     updateProfileMutation.mutate(formData);
   };
-  
+
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
         title: "Erreur",
@@ -105,7 +132,7 @@ export default function ProfilePage() {
       });
       return;
     }
-    
+
     changePasswordMutation.mutate(passwordData);
   };
 
@@ -142,16 +169,16 @@ export default function ProfilePage() {
                 <Avatar className="h-24 w-24">
                   <AvatarImage src={user.avatar || ""} />
                   <AvatarFallback className="text-2xl">
-                    {(user.displayName || user.username).substring(0, 2).toUpperCase()}
+                    {(user.displayName || user.username)
+                      .substring(0, 2)
+                      .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-center">
                   <h2 className="text-xl font-semibold">
                     {user.displayName || user.username}
                   </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {user.email}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
                 </div>
                 {!isEditing && (
                   <Button
@@ -164,9 +191,9 @@ export default function ProfilePage() {
                   </Button>
                 )}
               </div>
-              
+
               <Separator className="my-6" />
-              
+
               <div className="space-y-4">
                 <div className="flex items-center">
                   <User className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -181,7 +208,8 @@ export default function ProfilePage() {
                 <div className="flex items-center">
                   <UserCircle className="h-4 w-4 mr-2 text-muted-foreground" />
                   <span className="text-sm">
-                    Rôle: {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                    Rôle:{" "}
+                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </span>
                 </div>
               </div>
@@ -209,7 +237,10 @@ export default function ProfilePage() {
                   <CardTitle className="flex items-center justify-between">
                     <span>Informations personnelles</span>
                     {isEditing && (
-                      <Button variant="ghost" onClick={() => setIsEditing(false)}>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setIsEditing(false)}
+                      >
                         Annuler
                       </Button>
                     )}
@@ -228,7 +259,10 @@ export default function ProfilePage() {
                             id="displayName"
                             value={formData.displayName}
                             onChange={(e) =>
-                              setFormData({ ...formData, displayName: e.target.value })
+                              setFormData({
+                                ...formData,
+                                displayName: e.target.value,
+                              })
                             }
                           />
                         </div>
@@ -242,7 +276,10 @@ export default function ProfilePage() {
                             id="firstName"
                             value={formData.firstName}
                             onChange={(e) =>
-                              setFormData({ ...formData, firstName: e.target.value })
+                              setFormData({
+                                ...formData,
+                                firstName: e.target.value,
+                              })
                             }
                           />
                         </div>
@@ -252,7 +289,10 @@ export default function ProfilePage() {
                             id="lastName"
                             value={formData.lastName}
                             onChange={(e) =>
-                              setFormData({ ...formData, lastName: e.target.value })
+                              setFormData({
+                                ...formData,
+                                lastName: e.target.value,
+                              })
                             }
                           />
                         </div>
@@ -352,7 +392,9 @@ export default function ProfilePage() {
                 <CardContent>
                   <form onSubmit={handlePasswordSubmit} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+                      <Label htmlFor="currentPassword">
+                        Mot de passe actuel
+                      </Label>
                       <Input
                         id="currentPassword"
                         type="password"
