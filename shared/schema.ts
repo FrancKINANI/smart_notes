@@ -74,6 +74,10 @@ export const flashcards = mysqlTable("flashcards", {
   nextReviewDate: timestamp("next_review_date"),
   interval: int("interval").default(1),
   easeFactor: int("ease_factor").default(250),
+  consecutiveCorrect: int("consecutive_correct").default(0),
+  totalReviews: int("total_reviews").default(0),
+  lastResponseQuality: int("last_response_quality").default(0),
+  difficulty: int("difficulty").default(50), // 0-100 scale
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

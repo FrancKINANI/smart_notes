@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
+import { Area, Bar, CartesianGrid, Line, Pie, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts";
 
 import { cn } from "@/lib/utils"
 
@@ -362,4 +363,128 @@ export {
   ChartLegend,
   ChartLegendContent,
   ChartStyle,
+}
+
+interface ChartProps {
+  type: "line" | "bar" | "pie";
+  data: any[];
+  index: string;
+  categories: string[];
+  colors?: string[];
+  valueFormatter?: (value: number) => string;
+  startEndOnly?: boolean;
+}
+
+export function Chart({
+  type,
+  data,
+  index,
+  categories,
+  colors = ["primary"],
+  valueFormatter = (value) => `${value}`,
+  startEndOnly = false,
+}: ChartProps) {
+  const chartColors = colors.map((color) => `var(--chart-${color})`);
+
+  const config = categories.reduce(
+    (acc, category, i) => ({
+      ...acc,
+      [category]: {
+        theme: {
+          light: chartColors[i % chartColors.length],
+          dark: chartColors[i % chartColors.length],
+        },
+      },
+    }),
+    {}
+  );
+
+  return (
+    <ChartContainer className="aspect-[4/3]" config={config}>
+      {type === "line" && (
+        <>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis
+            dataKey={index}
+            tick={{ fontSize: 12 }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value) => value.toString()}
+            ticks={
+              startEndOnly
+                ? [data[0]?.[index], data[data.length - 1]?.[index]]
+                : undefined
+            }
+          />
+          <YAxis
+            tick={{ fontSize: 12 }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value) => valueFormatter(value)}
+          />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          {categories.map((category, i) => (
+            <Line
+              key={category}
+              type="monotone"
+              dataKey={category}
+              stroke={chartColors[i % chartColors.length]}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 0 }}
+            />
+          ))}
+        </>
+      )}
+
+      {type === "bar" && (
+        <>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis
+            dataKey={index}
+            tick={{ fontSize: 12 }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            tick={{ fontSize: 12 }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value) => valueFormatter(value)}
+          />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          {categories.map((category, i) => (
+            <Bar
+              key={category}
+              dataKey={category}
+              fill={chartColors[i % chartColors.length]}
+              radius={[4, 4, 0, 0]}
+            />
+          ))}
+        </>
+      )}
+
+      {type === "pie" && (
+        <>
+          <Pie
+            data={data}
+            dataKey={categories[0]}
+            nameKey={index}
+            cx="50%"
+            cy="50%"
+            outerRadius="80%"
+            innerRadius="60%"
+            paddingAngle={2}
+            strokeWidth={2}
+            stroke="var(--background)"
+          >
+            {data.map((_, i) => (
+              <Cell key={`cell-${i}`} fill={chartColors[i % chartColors.length]} />
+            ))}
+          </Pie>
+          <ChartTooltip content={<ChartTooltipContent />} />
+        </>
+      )}
+    </ChartContainer>
+  );
 }

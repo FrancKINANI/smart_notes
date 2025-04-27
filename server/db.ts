@@ -1,6 +1,20 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import * as schema from "@shared/schema";
+import {
+  users,
+  notes,
+  subjects,
+  quizzes,
+  quizResults,
+  flashcards,
+  revisionItems,
+  userProfiles,
+  studyGroups,
+  groupMembers,
+  sharedNotes,
+  comments,
+  aiConversations,
+} from "@shared/schema";
 import "dotenv/config";
 
 // Configuration optimisée du pool de connexions
@@ -60,10 +74,26 @@ poolConnection.on("enqueue", (err) => {
 
 // Configuration de Drizzle avec le pool
 export const db = drizzle(poolConnection, {
-  schema,
+  schema: {
+    users,
+    notes,
+    subjects,
+    quizzes,
+    quizResults,
+    flashcards,
+    revisionItems,
+    userProfiles,
+    studyGroups,
+    groupMembers,
+    sharedNotes,
+    comments,
+    aiConversations,
+  },
   mode: "default",
   logger: process.env.NODE_ENV === "development",
 });
+
+export type DB = typeof db;
 
 // Fonction pour vérifier la santé de la base de données
 export const checkDatabaseHealth = async () => {
