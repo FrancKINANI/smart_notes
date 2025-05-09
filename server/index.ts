@@ -8,9 +8,11 @@ import { compressionWithMonitoring } from "./middleware/compression";
 import { registerRoutes } from "./routes";
 import { setupAuth } from "./auth";
 import { setupVite, serveStatic, log } from "./vite";
-import { db, checkDatabaseHealth, closeDatabase } from "./db";
+import { db, checkDatabaseHealth, closeDatabase, setupDatabase } from "./db";
 import { monitorRequest, getMetrics, logger } from "./utils/monitoring";
 import { checkPermissions } from "./middleware/security";
+import { Router } from "express";
+import learningStatsRouter from "./routes/learning-stats";
 
 const app = express();
 
@@ -46,17 +48,9 @@ app.use(
               frameSrc: ["'self'"],
             },
           },
-    crossOriginEmbedderPolicy: true,
-    crossOriginOpenerPolicy: true,
-    crossOriginResourcePolicy: true,
-    dnsPrefetchControl: true,
-    frameguard: true,
-    hidePoweredBy: true,
-    hsts: true,
-    ieNoOpen: true,
-    noSniff: true,
-    referrerPolicy: true,
-    xssFilter: true,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false,
   })
 );
 
@@ -78,7 +72,7 @@ app.use(
       "X-CSRF-Token",
     ],
     exposedHeaders: ["Content-Range", "X-Content-Range"],
-    maxAge: 600, // 10 minutes
+    maxAge: 600,
   })
 );
 
@@ -114,15 +108,6 @@ app.use(
   express.json({
     limit: process.env.MAX_REQUEST_SIZE || "10mb",
     strict: true,
-    type: "application/json",
-    verify: (req, res, buf) => {
-      try {
-        JSON.parse(buf.toString());
-      } catch (e) {
-        res.status(400).json({ message: "Invalid JSON" });
-        throw new Error("Invalid JSON");
-      }
-    },
   })
 );
 
@@ -136,35 +121,13 @@ app.use(
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
 
-// Middleware de timeout pour les requêtes
-app.use((req, res, next) => {
-  const timeout = parseInt(process.env.REQUEST_TIMEOUT || "30000");
-  req.setTimeout(timeout, () => {
-    res.status(408).json({ message: "Request Timeout" });
-  });
-  next();
-});
-
-// Logging des requêtes en développement
-if (process.env.NODE_ENV !== "production") {
-  app.use((req, res, next) => {
-    const start = Date.now();
-    res.on("finish", () => {
-      const duration = Date.now() - start;
-      let logLine = `${req.method} ${req.url} ${res.statusCode} ${duration}ms`;
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      console.log(logLine);
-    });
-    next();
-  });
-}
-
 // Configuration de l'authentification
 setupAuth(app);
+
+// Configuration des routes API
+const apiRouter = Router();
+apiRouter.use("/learning-stats", learningStatsRouter);
+app.use("/api", apiRouter);
 
 // Endpoint pour les métriques avec cache
 let cachedMetrics: any = null;
@@ -269,23 +232,39 @@ const gracefulShutdown = async (signal: string) => {
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
+// Démarrage du serveur
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    // Initialiser la base de données en premier
+    await setupDatabase();
+    console.log("Base de données initialisée avec succès");
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    // Configurer l'authentification après la base de données
+    setupAuth(app);
+    console.log("Configuration de l'authentification terminée");
+
+    // Configuration des routes API en utilisant le routeur
+    const apiRouter = Router();
+    apiRouter.use("/learning-stats", learningStatsRouter);
+    app.use("/api", apiRouter);
+    console.log("Routes API configurées");
+
+    // Register other routes
+    const server = await registerRoutes(app);
+
+    // Setup Vite or static serving last
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+
+    const port = 5000;
+    server.listen(port, "localhost", () => {
+      log(`Serveur démarré sur http://localhost:${port}`);
+    });
+  } catch (error) {
+    console.error("Erreur critique lors du démarrage du serveur:", error);
+    process.exit(1);
   }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen(port, "localhost", () => {
-    log(`serving on port ${port}`);
-  });
 })();

@@ -401,90 +401,92 @@ export function Chart({
 
   return (
     <ChartContainer className="aspect-[4/3]" config={config}>
-      {type === "line" && (
-        <>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis
-            dataKey={index}
-            tick={{ fontSize: 12 }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(value) => value.toString()}
-            ticks={
-              startEndOnly
-                ? [data[0]?.[index], data[data.length - 1]?.[index]]
-                : undefined
-            }
-          />
-          <YAxis
-            tick={{ fontSize: 12 }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(value) => valueFormatter(value)}
-          />
-          <ChartTooltip content={<ChartTooltipContent />} />
-          {categories.map((category, i) => (
-            <Line
-              key={category}
-              type="monotone"
-              dataKey={category}
-              stroke={chartColors[i % chartColors.length]}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, strokeWidth: 0 }}
+      <ResponsiveContainer width="100%" height="100%">
+        {type === "line" && (
+          <>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey={index}
+              tick={{ fontSize: 12 }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => value.toString()}
+              ticks={
+                startEndOnly
+                  ? [data[0]?.[index], data[data.length - 1]?.[index]]
+                  : undefined
+              }
             />
-          ))}
-        </>
-      )}
-
-      {type === "bar" && (
-        <>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis
-            dataKey={index}
-            tick={{ fontSize: 12 }}
-            tickLine={false}
-            axisLine={false}
-          />
-          <YAxis
-            tick={{ fontSize: 12 }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(value) => valueFormatter(value)}
-          />
-          <ChartTooltip content={<ChartTooltipContent />} />
-          {categories.map((category, i) => (
-            <Bar
-              key={category}
-              dataKey={category}
-              fill={chartColors[i % chartColors.length]}
-              radius={[4, 4, 0, 0]}
+            <YAxis
+              tick={{ fontSize: 12 }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => valueFormatter(value)}
             />
-          ))}
-        </>
-      )}
-
-      {type === "pie" && (
-        <>
-          <Pie
-            data={data}
-            dataKey={categories[0]}
-            nameKey={index}
-            cx="50%"
-            cy="50%"
-            outerRadius="80%"
-            innerRadius="60%"
-            paddingAngle={2}
-            strokeWidth={2}
-            stroke="var(--background)"
-          >
-            {data.map((_, i) => (
-              <Cell key={`cell-${i}`} fill={chartColors[i % chartColors.length]} />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            {categories.map((category, i) => (
+              <Line
+                key={category}
+                type="monotone"
+                dataKey={category}
+                stroke={chartColors[i % chartColors.length]}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 0 }}
+              />
             ))}
-          </Pie>
-          <ChartTooltip content={<ChartTooltipContent />} />
-        </>
-      )}
+          </>
+        )}
+
+        {type === "bar" && (
+          <>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey={index}
+              tick={{ fontSize: 12 }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 12 }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => valueFormatter(value)}
+            />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            {categories.map((category, i) => (
+              <Bar
+                key={category}
+                dataKey={category}
+                fill={chartColors[i % chartColors.length]}
+                radius={[4, 4, 0, 0]}
+              />
+            ))}
+          </>
+        )}
+
+        {type === "pie" && (
+          <>
+            <Pie
+              data={data}
+              dataKey={categories[0]}
+              nameKey={index}
+              cx="50%"
+              cy="50%"
+              outerRadius="80%"
+              innerRadius="60%"
+              paddingAngle={2}
+              strokeWidth={2}
+              stroke="var(--background)"
+            >
+              {data.map((_, i) => (
+                <Cell key={`cell-${i}`} fill={chartColors[i % chartColors.length]} />
+              ))}
+            </Pie>
+            <ChartTooltip content={<ChartTooltipContent />} />
+          </>
+        )}
+      </ResponsiveContainer>
     </ChartContainer>
   );
 }

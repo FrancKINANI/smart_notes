@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -11,12 +11,19 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { processResponse, ResponseQuality } from "@/lib/spaced-repetition";
+import { 
+  processResponse, 
+  ResponseQuality, 
+  getLearningStats,
+  generateOptimalReviewSchedule, 
+  predictConceptDifficulty 
+} from "@/lib/spaced-repetition";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api-client";
-import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Clock, BarChart4, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LearningStatsCard } from "@/components/learning-stats";
 
 export default function Flashcards() {
   const { toast } = useToast();
@@ -24,6 +31,8 @@ export default function Flashcards() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [showStats, setShowStats] = useState(false);
+  const [answerStartTime, setAnswerStartTime] = useState<number | null>(null);
 
   const userId = 1; // Default user ID for demo
 
@@ -58,6 +67,15 @@ export default function Flashcards() {
       fetch(`/api/notes?userId=${userId}`).then((res) => res.json()),
   });
 
+  // Démarrer le chronomètre lorsque la carte est retournée
+  useEffect(() => {
+    if (isFlipped) {
+      setAnswerStartTime(Date.now());
+    } else {
+      setAnswerStartTime(null);
+    }
+  }, [isFlipped]);
+
   // Update flashcard mutation
   const updateFlashcardMutation = useMutation({
     mutationFn: async ({
@@ -69,11 +87,21 @@ export default function Flashcards() {
     }) => {
       const flashcard = flashcards.find((card: any) => card.id === id);
       if (!flashcard) throw new Error("Flashcard not found");
-      const updated = processResponse(flashcard, quality);
+      
+      // Calcul du temps de réponse en secondes
+      const timeToAnswer = answerStartTime 
+        ? Math.round((Date.now() - answerStartTime) / 1000) 
+        : undefined;
+        
+      const updated = processResponse(flashcard, quality, timeToAnswer);
       const response = await apiRequest("PUT", `/api/flashcards/${id}`, {
         interval: updated.interval,
         easeFactor: updated.easeFactor,
         nextReviewDate: updated.nextReviewDate,
+        responseHistory: updated.responseHistory,
+        reviewDates: updated.reviewDates,
+        timeToAnswer: updated.timeToAnswer,
+        difficulty: updated.difficulty,
       });
       return response.json();
     },
@@ -139,6 +167,36 @@ export default function Flashcards() {
     const currentCard = currentFlashcards[currentIndex];
     updateFlashcardMutation.mutate({ id: currentCard.id, quality });
   };
+  
+  // Calculer les statistiques de la carte courante
+  const getCurrentCardStats = () => {
+    if (!currentFlashcards || currentFlashcards.length === 0) return null;
+    
+    const currentCard = currentFlashcards[currentIndex];
+    if (!currentCard) return null;
+    
+    return getLearningStats(currentCard);
+  };
+  
+  // Prédire la difficulté du concept
+  const getConceptDifficulty = () => {
+    if (!currentFlashcards || currentFlashcards.length === 0) return "Inconnue";
+    
+    const currentCard = currentFlashcards[currentIndex];
+    const difficulty = predictConceptDifficulty(
+      currentCard.front + " " + currentCard.back, 
+      flashcards
+    );
+    
+    if (difficulty < 0.3) return "Facile";
+    if (difficulty < 0.7) return "Moyenne";
+    return "Difficile";
+  };
+
+  // Toggle statistics view
+  const toggleStats = () => {
+    setShowStats(!showStats);
+  };
 
   // Render flashcard content
   const renderFlashcard = () => {
@@ -155,9 +213,23 @@ export default function Flashcards() {
     }
 
     const currentCard = currentFlashcards[currentIndex];
+    const stats = getCurrentCardStats();
+    const conceptDifficulty = getConceptDifficulty();
 
     return (
       <div className="flex flex-col items-center">
+        {/* Badge de difficulté estimée */}
+        <div className="self-end mb-2">
+          <span className={cn(
+            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", 
+            conceptDifficulty === "Facile" ? "bg-green-100 text-green-800" :
+            conceptDifficulty === "Moyenne" ? "bg-yellow-100 text-yellow-800" :
+            "bg-red-100 text-red-800"
+          )}>
+            {conceptDifficulty}
+          </span>
+        </div>
+        
         <Card
           className={cn(
             "w-full max-w-md h-64 cursor-pointer select-none",
@@ -248,90 +320,120 @@ export default function Flashcards() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
+        
+        {/* Chronomètre pendant la révision */}
+        {isFlipped && answerStartTime && (
+          <div className="mt-2 flex items-center text-sm text-gray-500">
+            <Clock className="h-4 w-4 mr-1" />
+            <span id="timer">
+              {Math.round((Date.now() - answerStartTime) / 1000)}s
+            </span>
+          </div>
+        )}
+        
+        {/* Affichage des statistiques */}
+        {showStats && stats && (
+          <div className="mt-8 w-full max-w-md">
+            <LearningStatsCard stats={stats} title="Statistiques de cette carte" />
+          </div>
+        )}
       </div>
     );
   };
 
   return (
     <div className="py-6">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Cartes de révision
-          </h1>
-          <Button
-            onClick={() => setIsFlipped(false)}
-            variant="outline"
-            size="sm"
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Réinitialiser
-          </Button>
+          <h1 className="text-2xl font-semibold text-gray-900">Flashcards</h1>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={toggleStats}
+              className={cn(showStats && "bg-primary-50")}
+            >
+              <BarChart4 className="h-4 w-4 mr-2" />
+              {showStats ? "Masquer stats" : "Voir stats"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Réinitialiser l'état
+                setCurrentIndex(0);
+                setIsFlipped(false);
+              }}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Recommencer
+            </Button>
+          </div>
         </div>
 
-        <Tabs
-          value={activeTab}
-          onValueChange={(value) => {
-            setActiveTab(value);
-            setCurrentIndex(0);
-            setIsFlipped(false);
-          }}
-          className="mb-6"
-        >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="all">Toutes les cartes</TabsTrigger>
-            <TabsTrigger value="review">À réviser</TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => {
+              setActiveTab(value);
+              setCurrentIndex(0);
+              setIsFlipped(false);
+            }}
+          >
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <TabsList>
+                <TabsTrigger value="all">Toutes les cartes</TabsTrigger>
+                <TabsTrigger value="review">À réviser</TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="all">
-            <div className="mb-6">
-              <Select
-                value={selectedNoteId}
-                onValueChange={(value) => {
-                  setSelectedNoteId(value);
-                  setCurrentIndex(0);
-                  setIsFlipped(false);
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-[300px]">
-                  <SelectValue placeholder="Filtrer par note" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes les notes</SelectItem>
-                  {isLoadingNotes ? (
-                    <SelectItem value="loading" disabled>
-                      Chargement des notes...
-                    </SelectItem>
-                  ) : (
-                    notes?.map((note: any) => (
-                      <SelectItem key={note.id} value={note.id.toString()}>
-                        {note.title}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              {activeTab === "all" && (
+                <div className="w-full sm:w-auto">
+                  <Select
+                    value={selectedNoteId}
+                    onValueChange={(value) => {
+                      setSelectedNoteId(value);
+                      setCurrentIndex(0);
+                      setIsFlipped(false);
+                    }}
+                  >
+                    <SelectTrigger className="w-full sm:w-[200px]">
+                      <SelectValue placeholder="Filtrer par note" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes les notes</SelectItem>
+                      {!isLoadingNotes &&
+                        notes?.map((note: any) => (
+                          <SelectItem key={note.id} value={note.id.toString()}>
+                            {note.title}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
-            {isLoadingFlashcards ? (
-              <div className="flex justify-center">
-                <Skeleton className="w-full max-w-md h-64" />
-              </div>
-            ) : (
-              renderFlashcard()
-            )}
-          </TabsContent>
+            <TabsContent value="all">
+              {isLoadingFlashcards ? (
+                <div className="w-full max-w-md mx-auto">
+                  <Skeleton className="h-64 w-full rounded-lg" />
+                </div>
+              ) : (
+                renderFlashcard()
+              )}
+            </TabsContent>
 
-          <TabsContent value="review">
-            {isLoadingReview ? (
-              <div className="flex justify-center">
-                <Skeleton className="w-full max-w-md h-64" />
-              </div>
-            ) : (
-              renderFlashcard()
-            )}
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="review">
+              {isLoadingReview ? (
+                <div className="w-full max-w-md mx-auto">
+                  <Skeleton className="h-64 w-full rounded-lg" />
+                </div>
+              ) : (
+                renderFlashcard()
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );

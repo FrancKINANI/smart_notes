@@ -25,19 +25,18 @@ const poolConfig = {
   password: process.env.DB_PASSWORD || "Justine@2227",
   database: process.env.DB_NAME || "smart_notes",
   waitForConnections: true,
-  connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || "10"),
-  queueLimit: parseInt(process.env.DB_QUEUE_LIMIT || "0"),
+  connectionLimit: 20, // Augmenté pour plus de connexions simultanées
+  queueLimit: 10,
   enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
+  keepAliveInitialDelay: 10000,
   multipleStatements: true,
   timezone: "+00:00",
   dateStrings: true,
-  connectTimeout: 10000,
-  maxIdle: 10,
+  connectTimeout: 20000,
+  maxIdle: 20,
   idleTimeout: 60000,
   debug: process.env.NODE_ENV === "development",
-  trace: false,
-  // Ajout des options spécifiques pour MySQL 9.2
+  trace: process.env.NODE_ENV === "development",
   ssl:
     process.env.DB_SSL === "true"
       ? {
@@ -50,53 +49,75 @@ const poolConfig = {
 };
 
 // Création du pool avec gestion des erreurs
-const poolConnection = mysql.createPool(poolConfig);
+let poolConnection: mysql.Pool;
 
-// Gestion des événements du pool
-poolConnection.on("connection", (connection) => {
-  console.log("Nouvelle connexion établie");
+export const initializeDatabase = async () => {
+  try {
+    poolConnection = mysql.createPool(poolConfig);
 
-  connection.on("error", (err) => {
-    console.error("Erreur de connexion MySQL:", err);
-    if (err.code === "PROTOCOL_CONNECTION_LOST") {
-      console.error("Connexion à la base de données perdue");
-    }
-  });
-});
+    // Test initial de la connexion
+    await poolConnection.query("SELECT 1");
+    console.log("Connexion à la base de données établie avec succès");
 
-// Remplace l'écouteur d'événements incorrect
-poolConnection.on("enqueue", (err) => {
-  console.error("Erreur du pool MySQL:", err);
-  if (err?.code === "POOL_ENQUEUELIMIT") {
-    console.error("Limite de la file d'attente du pool atteinte");
+    // Configuration des écouteurs d'événements
+    poolConnection.on("connection", (connection) => {
+      console.log("Nouvelle connexion établie");
+
+      connection.on("error", (err) => {
+        console.error("Erreur de connexion MySQL:", err);
+        if (err.code === "PROTOCOL_CONNECTION_LOST") {
+          console.error(
+            "Connexion à la base de données perdue - Tentative de reconnexion..."
+          );
+          initializeDatabase().catch(console.error);
+        }
+      });
+    });
+
+    poolConnection.on("error", (err) => {
+      console.error("Erreur du pool MySQL:", err);
+      if (err.code === "POOL_ENQUEUELIMIT") {
+        console.error("Limite de la file d'attente du pool atteinte");
+      }
+    });
+
+    // Configuration de Drizzle avec le pool
+    const db = drizzle(poolConnection, {
+      schema: {
+        users,
+        notes,
+        subjects,
+        quizzes,
+        quizResults,
+        flashcards,
+        revisionItems,
+        userProfiles,
+        studyGroups,
+        groupMembers,
+        sharedNotes,
+        comments,
+        aiConversations,
+      },
+      mode: "default",
+      logger: process.env.NODE_ENV === "development",
+    });
+
+    return db;
+  } catch (error) {
+    console.error(
+      "Erreur lors de l'initialisation de la base de données:",
+      error
+    );
+    throw error;
   }
-});
-
-// Configuration de Drizzle avec le pool
-export const db = drizzle(poolConnection, {
-  schema: {
-    users,
-    notes,
-    subjects,
-    quizzes,
-    quizResults,
-    flashcards,
-    revisionItems,
-    userProfiles,
-    studyGroups,
-    groupMembers,
-    sharedNotes,
-    comments,
-    aiConversations,
-  },
-  mode: "default",
-  logger: process.env.NODE_ENV === "development",
-});
-
-export type DB = typeof db;
+};
 
 // Fonction pour vérifier la santé de la base de données
 export const checkDatabaseHealth = async () => {
+  if (!poolConnection) {
+    return false;
+  }
+
   try {
     await poolConnection.query("SELECT 1");
     return true;
@@ -111,6 +132,10 @@ export const checkDatabaseHealth = async () => {
 
 // Fonction pour fermer proprement le pool
 export const closeDatabase = async () => {
+  if (!poolConnection) {
+    return;
+  }
+
   try {
     await poolConnection.end();
     console.log("Connexion à la base de données fermée avec succès");
@@ -118,4 +143,12 @@ export const closeDatabase = async () => {
     console.error("Erreur lors de la fermeture de la base de données:", error);
     throw error;
   }
+};
+
+// Initialisation de la base de données et export de l'instance
+export let db: ReturnType<typeof drizzle>;
+
+export const setupDatabase = async () => {
+  db = await initializeDatabase();
+  return db;
 };

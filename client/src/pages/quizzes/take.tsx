@@ -7,13 +7,51 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight, Check, HelpCircle, X } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api-client";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
+import confetti from "canvas-confetti";
+
+// Types de questions
+enum QuestionType {
+  MULTIPLE_CHOICE = "multiple_choice",
+  TRUE_FALSE = "true_false",
+  SHORT_ANSWER = "short_answer",
+  MATCHING = "matching",
+  FILL_BLANK = "fill_blank",
+}
+
+// Niveaux de difficulté
+enum DifficultyLevel {
+  EASY = "easy",
+  MEDIUM = "medium",
+  HARD = "hard",
+}
+
+// Interface pour les questions de matching
+interface MatchingPair {
+  id: string;
+  left: string;
+  right: string;
+}
+
+// Type pour représenter toutes les questions possibles
+type Question = {
+  id: string;
+  question: string;
+  questionType: QuestionType;
+  difficulty: DifficultyLevel;
+  points: number;
+  correctAnswer?: string;
+  options?: string[];
+  matchingPairs?: MatchingPair[];
+  explanation?: string;
+};
 
 export default function TakeQuiz() {
   const params = useParams<{ id: string }>();
@@ -24,10 +62,24 @@ export default function TakeQuiz() {
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<
-    Record<string, string>
+    Record<string, any>
   >({});
-  const [isQuizCompleted, setIsQuizCompleted] = useState(false);
+  const [matchingSelections, setMatchingSelections] = useState<Record<string, string>>({});
+  const [timeSpent, setTimeSpent] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [hintUsed, setHintUsed] = useState<Record<string, boolean>>({});
+
+  // Timer pour le temps passé
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeSpent((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Si l'utilisateur n'est pas authentifié, rediriger vers la page de connexion
   if (!user) {
@@ -99,7 +151,7 @@ export default function TakeQuiz() {
   // Submit quiz results mutation
   const submitQuizMutation = useMutation({
     mutationFn: async (data: {
-      answers: Record<string, string>;
+      answers: Record<string, any>;
       score: number;
     }) => {
       const response = await apiRequest(`/api/quizzes/${quizId}/submit`, {
@@ -172,7 +224,7 @@ export default function TakeQuiz() {
       (correctAnswers / quiz.questions.length) * 100
     );
     setScore(calculatedScore);
-    setIsQuizCompleted(true);
+    setQuizCompleted(true);
 
     // Submit quiz results
     submitQuizMutation.mutate({
@@ -215,7 +267,7 @@ export default function TakeQuiz() {
   }
 
   // Quiz completed view
-  if (isQuizCompleted) {
+  if (quizCompleted) {
     return (
       <div className="py-6">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
