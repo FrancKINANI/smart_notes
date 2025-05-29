@@ -14,5 +14,7 @@
       "password": "Justine@2227",
       "database": "smart_notes"
     }
-  ]
+  ],
+  "IDX.aI.enableInlineCompletion": true,
+  "IDX.aI.enableCodebaseIndexing": true
 }
