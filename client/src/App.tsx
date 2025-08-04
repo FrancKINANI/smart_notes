@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "next-themes";
 import { useState, useEffect } from "react";
 import AssistantModal from "@/components/modals/assistant-modal";
 import { useModal } from "@/hooks/use-modal";
@@ -10,6 +11,7 @@ import { OfflineIndicator } from "./components/ui/offline-indicator";
 import { registerBackgroundSync } from "./lib/serviceWorkerRegistration";
 import { SyncStatus } from "./components/ui/sync-status";
 import { ErrorBoundary } from "react-error-boundary";
+import EnhancedMainLayout from "@/components/layout/enhanced-main-layout";
 
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
@@ -25,6 +27,8 @@ import AuthPage from "@/pages/auth-page";
 import StudyGroups from "@/pages/study-groups/index";
 import StudyGroupDetails from "@/pages/study-groups/[id]";
 import ProfilePage from "@/pages/profile";
+import StudySessionPage from "@/pages/study-session";
+import AIAssistantPage from "@/pages/ai-assistant";
 
 import Sidebar from "@/components/layout/sidebar";
 import MobileHeader from "@/components/layout/mobile-header";
@@ -57,40 +61,53 @@ function App() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <MainLayout>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <TooltipProvider>
             <Router>
               <Switch>
-                <ProtectedRoute path="/" component={Dashboard} />
-                <ProtectedRoute path="/notes" component={Notes} />
-                <ProtectedRoute path="/notes/create" component={CreateNote} />
-                <ProtectedRoute path="/notes/edit/:id" component={CreateNote} />
-                <ProtectedRoute path="/notes/:id" component={ViewNote} />
-                <ProtectedRoute path="/flashcards" component={Flashcards} />
-                <ProtectedRoute path="/quizzes" component={QuizIndex} />
-                <ProtectedRoute path="/quizzes/:id" component={TakeQuiz} />
-                <ProtectedRoute path="/schedule" component={Schedule} />
-                <ProtectedRoute path="/assistant" component={Assistant} />
-                <ProtectedRoute path="/study-groups" component={StudyGroups} />
-                <ProtectedRoute
-                  path="/study-groups/:id"
-                  component={StudyGroupDetails}
-                />
-                <ProtectedRoute path="/profile" component={ProfilePage} />
                 <Route path="/auth" component={AuthPage} />
-                <Route component={NotFound} />
+                <Route>
+                  <EnhancedMainLayout>
+                    <Switch>
+                      <ProtectedRoute path="/" component={Dashboard} />
+                      <ProtectedRoute path="/notes" component={Notes} />
+                      <ProtectedRoute path="/notes/create" component={CreateNote} />
+                      <ProtectedRoute path="/notes/edit/:id" component={CreateNote} />
+                      <ProtectedRoute path="/notes/:id" component={ViewNote} />
+                      <ProtectedRoute path="/flashcards" component={Flashcards} />
+                      <ProtectedRoute path="/quizzes" component={QuizIndex} />
+                      <ProtectedRoute path="/quizzes/:id" component={TakeQuiz} />
+                      <ProtectedRoute path="/schedule" component={Schedule} />
+                      <ProtectedRoute path="/assistant" component={Assistant} />
+                      <ProtectedRoute path="/ai-assistant" component={AIAssistantPage} />
+                      <ProtectedRoute path="/study-session" component={StudySessionPage} />
+                      <ProtectedRoute path="/study-groups" component={StudyGroups} />
+                      <ProtectedRoute
+                        path="/study-groups/:id"
+                        component={StudyGroupDetails}
+                      />
+                      <ProtectedRoute path="/profile" component={ProfilePage} />
+                      <Route component={NotFound} />
+                    </Switch>
+                    <OfflineIndicator />
+                    <SyncStatus />
+                  </EnhancedMainLayout>
+                </Route>
               </Switch>
-              <OfflineIndicator />
-              <SyncStatus />
             </Router>
-          </MainLayout>
-          <Toaster />
-          <AssistantModal
-            isOpen={isOpen}
-            onClose={close}
-            initialContent={content}
-          />
-        </TooltipProvider>
+            <Toaster />
+            <AssistantModal
+              isOpen={isOpen}
+              onClose={close}
+              initialContent={content}
+            />
+          </TooltipProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
