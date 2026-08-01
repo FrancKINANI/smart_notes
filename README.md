@@ -320,6 +320,25 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
+## 🤝 Contributing
+
+We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to SmartNotes.
+
+- [Report a bug](https://github.com/FrancKINANI/smart_notes/issues/new?template=bug_report.md)
+- [Request a feature](https://github.com/FrancKINANI/smart_notes/issues/new?template=feature_request.md)
+- [Submit a pull request](https://github.com/FrancKINANI/smart_notes/pulls)
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📚 Documentation
+
+- [CHANGELOG.md](CHANGELOG.md) - Version history and changes
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
+- [Deployment Guide](DEPLOYMENT_GUIDE.md) - Production deployment instructions
+- [Security Checklist](SECURITY_CHECKLIST.md) - Security best practices
+
 ## 🙏 Acknowledgments
 
 - **OpenAI** - For providing powerful AI capabilities
