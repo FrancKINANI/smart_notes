@@ -14,6 +14,7 @@ import {
   sharedNotes,
   comments,
   aiConversations,
+  llmSettings,
 } from "@shared/schema";
 import "dotenv/config";
 
@@ -97,6 +98,7 @@ export const initializeDatabase = async () => {
         sharedNotes,
         comments,
         aiConversations,
+        llmSettings,
       },
       mode: "default",
       logger: process.env.NODE_ENV === "development",

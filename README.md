@@ -54,8 +54,9 @@ SmartNotes is a comprehensive SaaS platform that transforms traditional note-tak
 - **Passport.js** - Authentication middleware
 
 ### **AI & ML**
-- **OpenAI API** - GPT-powered content generation and analysis
-- **Mistral AI** - Alternative AI model for diverse capabilities
+- **LLM Provider abstraction** - Interchangeable providers via `LLM_PROVIDER` env var
+- **Cloud (OpenAI-compatible)** - OpenAI, OpenRouter, Grok (xAI), DeepSeek, or any OpenAI-compatible endpoint
+- **QVAC (local/edge)** - Local inference via llama.cpp (`@qvac/sdk`, P2P model download)
 - **Speech Recognition API** - Voice-to-text functionality
 - **Text-to-Speech API** - Audio content generation
 
@@ -64,7 +65,7 @@ SmartNotes is a comprehensive SaaS platform that transforms traditional note-tak
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js ≥ 22.17 (required by `@qvac/sdk`; the rest of the stack runs on 18+, but the local LLM provider needs 22.17+)
 - MySQL 8.0+
 - npm or yarn package manager
 
@@ -82,23 +83,11 @@ SmartNotes is a comprehensive SaaS platform that transforms traditional note-tak
    ```
 
 3. **Environment Setup**
-   Create a `.env` file in the root directory:
-   ```env
-   # Database
-   DATABASE_URL="mysql://username:password@localhost:3306/smartnotes"
-   
-   # Authentication
-   SESSION_SECRET="your-session-secret"
-   COOKIE_SECRET="your-cookie-secret"
-   
-   # AI Services
-   OPENAI_API_KEY="your-openai-api-key"
-   MISTRAL_API_KEY="your-mistral-api-key"
-   
-   # Application
-   NODE_ENV="development"
-   PORT=5000
+   Copy the template (never commit the real `.env`):
+   ```bash
+   cp .env.example .env
    ```
+   Key variables: `LLM_PROVIDER`, `OPENROUTER_API_KEY` (or `OPENAI_API_KEY` / `XAI_API_KEY` / `DEEPSEEK_API_KEY`), and optionally `QVAC_MODEL_SRC` for local inference. See the [Local/Edge LLM](#-localedge-llm-qvac) section below.
 
 4. **Database Setup**
    ```bash
@@ -162,8 +151,122 @@ SmartNotes is a comprehensive SaaS platform that transforms traditional note-tak
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run check` - TypeScript type checking
+- `npm run benchmark:llm` - Run the LLM provider comparative benchmark
 - `npm run db:push` - Push database schema changes
 - `npm run migrate` - Run database migrations
+
+---
+
+## 🧠 LLM Providers (cloud & local)
+
+All LLM calls go through a single server-side abstraction: `server/services/llm-provider.ts`.
+The active provider is selected **at runtime, without restarting the server**:
+
+1. **Admin interface (recommended)** — an instance operator chooses the provider on the
+   `/admin` page (or via `GET/PUT /api/admin/llm-settings`). The choice is persisted in the
+   `llm_settings` table and applied **hot** (the running server picks it up on the next LLM call).
+2. **Env fallback (retro-compatible)** — if no config exists in the database, the server falls
+   back to the `LLM_PROVIDER` environment variable.
+
+Cloud API keys are **never stored in the database** — they are read only from environment
+variables (`OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `DEEPSEEK_API_KEY`, `LLM_API_KEY`).
+No client-side LLM calls — the REST API contract of `/api/chat` is unchanged:
+
+| `provider` (DB/admin or `LLM_PROVIDER`) | Backend | Key required | Notes |
+| --- | --- | --- | --- |
+| `openrouter` *(default)* | OpenRouter (OpenAI-compatible) | `OPENROUTER_API_KEY` | Hundreds of models via one key |
+| `openai` | OpenAI | `OPENAI_API_KEY` | |
+| `grok` | xAI (Grok) | `XAI_API_KEY` | |
+| `deepseek` | DeepSeek | `DEEPSEEK_API_KEY` | |
+| `openai-compatible` | Any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM…) | `LLM_API_KEY` (optional) | Configure `baseUrl` + `modelName` (admin) or `LLM_BASE_URL` + `LLM_MODEL` |
+| `qvac` | QVAC (local llama.cpp) | none | Local inference, P2P model download |
+
+> **Mistral (legacy)**: the dedicated Mistral preset was removed, but Mistral is
+> OpenAI-compatible and remains reachable via `openai-compatible`:
+> `provider=openai-compatible` with `baseUrl=https://api.mistral.ai/v1`, `modelName=mistral-medium`.
+
+Example:
+```bash
+# Cloud (default)
+LLM_PROVIDER=openrouter OPENROUTER_API_KEY=sk-... npm run dev
+
+# Local edge inference (fallback env, si aucune config admin en DB)
+LLM_PROVIDER=qvac npm run dev
+```
+
+---
+
+## 💻 Local/Edge LLM (QVAC)
+
+[QVAC](https://github.com/tetherto/qvac) runs the model **on the machine that hosts the server**
+(auto-hosting) via llama.cpp (`@qvac/sdk`, `qvac-fabric`), with no API key and no per-token cost.
+This is the target setup for an **edge/local deployment**, and can be switched to/from a cloud
+provider by changing `LLM_PROVIDER`.
+
+### Prerequisites
+- **Node.js ≥ 22.17** (required by `@qvac/sdk`)
+- **~5-10 GB free disk** for the model cache (LLM weights are downloaded on first start)
+- **Network access on first start** for the P2P model download (`~/.qvac/models`, never committed)
+- RAM: ≥ 2 GB free (≥ 4 GB recommended); on Linux, GPU acceleration needs Vulkan ≥ 1.4
+  (CPU fallback works automatically)
+
+> **Note on `b4a`**: the `b4a` package is a **direct dependency** in `package.json` as a
+> workaround for a missing transitive dependency of QVAC's P2P stack (`hyperdht` → `bogon`).
+> Do not remove it during dependency cleanup — QVAC's Bare worker fails to start without it.
+> The rationale is also documented as a code comment at the top of
+> `server/services/llm-provider.ts`.
+
+### Configuration (admin, sans redémarrage)
+
+Le mode Edge s'active à chaud depuis la page **`/admin`** (réservée aux comptes `admin`) :
+
+1. Choisir **Cloud** ou **Edge (QVAC local)** — la config est persistée en base (`llm_settings`).
+2. Cliquer **"Tester la connexion"** : un prompt de test est envoyé et la latence + un extrait
+   de la réponse sont affichés, pour valider **avant** de basculer.
+3. **"Enregistrer et appliquer"** : la bascule est immédiate (aucun redémarrage du serveur).
+
+> ⚠️ **Premier appel en mode Edge** : le premier appel peut prendre plusieurs dizaines de
+> secondes (chargement du modèle en RAM) voire échouer/lent si le téléchargement P2P initial
+> est en cours — l'interface affiche un message explicatif après 10 s, ne laissez pas un
+> spinner silencieux.
+
+```env
+# Fallback env (utilisé seulement si aucune config n'est enregistrée en base)
+LLM_PROVIDER=qvac
+# Optional: registry constant, or URL / local path to a .gguf
+QVAC_MODEL_SRC=LLAMA_3_2_1B_INST_Q4_0
+```
+
+### Dimensionnement (RAM / CPU)
+
+> ⚠️ **Le mode Edge exige que le serveur dispose de RAM/CPU en continu** : le modèle reste
+> chargé en mémoire entre deux appels. Ordre de grandeur mesuré : **~130 Mo RSS pour le
+> modèle 1B Q4** (`LLAMA_3_2_1B_INST_Q4_0`) — c'est un **minimum**, des modèles plus gros
+> (3B, 7B) demanderont proportionnellement plus (plusieurs Go). Sur une machine partagée,
+> prévoir de l'isolation (containeur/dédié) pour que l'inférence ne dégrade pas les autres
+> services. En CPU-only, la génération est lente : réservez le mode Edge aux cas où la
+> latence n'est pas critique (batch, hors-ligne).
+
+Known limitations:
+- **First-call latency**: the first `chat()` after a switch to Edge loads the model into RAM
+  (and downloads it on the very first run) — expect minutes, not seconds, on that first call.
+- **No strict offline guarantee on first start**: the initial model download needs network.
+  Once cached, inference works fully offline.
+- Smaller local models (1B-3B Q4) produce shorter/lower-quality answers than frontier cloud
+  models — run the benchmark before deciding to switch.
+- **Hot-switch is per-instance, not per-user**: the Cloud/Edge choice is an **administration**
+  action for the whole self-hosted instance; individual end users don't pick a provider.
+
+### Benchmark (decide before switching)
+```bash
+npm run benchmark:llm                # openrouter + qvac
+npm run benchmark:llm -- --providers=qvac
+npm run benchmark:llm -- --cases=5
+```
+The script sends realistic product prompts (student chat, quiz generation, note summaries) to each
+provider, measures latency / output length / estimated cost, and writes the **full raw outputs** to
+`scripts/benchmark-results/benchmark-*.json` for manual quality review. It does **not** pick a winner
+— the decision to switch remains yours.
 
 ---
 

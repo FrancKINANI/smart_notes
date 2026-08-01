@@ -152,6 +152,17 @@ export const aiConversations = mysqlTable("ai_conversations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Config LLM persistée (bascule cloud/edge à chaud via l'interface admin).
+// La clé API cloud reste UNIQUEMENT en variable d'environnement (jamais en DB).
+export const llmSettings = mysqlTable("llm_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  provider: varchar("provider", { length: 50 }).notNull().default("openrouter"),
+  baseUrl: varchar("base_url", { length: 500 }),
+  modelName: varchar("model_name", { length: 255 }),
+  qvacModelSrc: varchar("qvac_model_src", { length: 500 }),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   notes: many(notes),
@@ -312,6 +323,8 @@ export const aiConversationRelations = relations(
   })
 );
 
+export const llmSettingsRelations = relations(llmSettings, () => ({}));
+
 // Mettez à jour le schéma d'insertion pour l'utilisateur pour inclure les nouveaux champs
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -460,6 +473,8 @@ export type Comment = typeof comments.$inferSelect;
 
 export type InsertAiConversation = z.infer<typeof insertAiConversationSchema>;
 export type AiConversation = typeof aiConversations.$inferSelect;
+
+export type LlmSettings = typeof llmSettings.$inferSelect;
 
 // Question type for quiz
 export type QuizQuestion = {

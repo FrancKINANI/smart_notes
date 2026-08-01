@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Users,
   User,
+  Settings,
   LogOut
 } from "lucide-react";
 import { 
@@ -39,7 +40,10 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     { name: "Quiz", href: "/quizzes", icon: <HelpCircle className="mr-3 h-5 w-5" /> },
     { name: "Planning", href: "/schedule", icon: <Calendar className="mr-3 h-5 w-5" /> },
     { name: "Assistant", href: "/assistant", icon: <MessageSquare className="mr-3 h-5 w-5" /> },
-    { name: "Groupes d'étude", href: "/study-groups", icon: <Users className="mr-3 h-5 w-5" /> }
+    { name: "Groupes d'étude", href: "/study-groups", icon: <Users className="mr-3 h-5 w-5" /> },
+    ...(user?.role === "admin"
+      ? [{ name: "Administration", href: "/admin", icon: <Settings className="mr-3 h-5 w-5" /> }]
+      : [])
   ];
 
   // Close sidebar on mobile when clicking outside

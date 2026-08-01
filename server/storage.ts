@@ -13,6 +13,7 @@ import {
   comments,
   userSubjects,
   aiConversations,
+  llmSettings,
   conversationSchema,
   type User,
   type InsertUser,
@@ -40,11 +41,12 @@ import {
   type InsertComment,
   type AiConversation,
   type InsertAiConversation,
+  type LlmSettings,
   type Conversation,
   type InsertConversation,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, lte, gte, or, sql } from "drizzle-orm";
+import { eq, and, desc, asc, lte, gte, or, sql } from "drizzle-orm";
 import session from "express-session";
 import MySQLStore from "express-mysql-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -174,6 +176,17 @@ export interface IStorage {
   createConversation(data: InsertConversation): Promise<Conversation>;
   getConversationsByNote(noteId: number): Promise<Conversation[]>;
   deleteConversation(id: number): Promise<boolean>;
+
+  // LLM settings (bascule cloud/edge à chaud)
+  getLlmSettings(): Promise<LlmSettings | undefined>;
+  saveLlmSettings(
+    settings: {
+      provider: string;
+      baseUrl?: string | null;
+      modelName?: string | null;
+      qvacModelSrc?: string | null;
+    }
+  ): Promise<LlmSettings>;
 
   // Session store
   sessionStore: any; // Changé de session.SessionStore à any pour éviter l'erreur
@@ -883,6 +896,48 @@ export class DatabaseStorage implements IStorage {
       [id]
     );
     return (result as any).affectedRows > 0;
+  }
+
+  // LLM settings methods (config unique — ligne id=1, sinon env)
+  async getLlmSettings(): Promise<LlmSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(llmSettings)
+      .orderBy(asc(llmSettings.id))
+      .limit(1);
+    return settings;
+  }
+
+  async saveLlmSettings(settings: {
+    provider: string;
+    baseUrl?: string | null;
+    modelName?: string | null;
+    qvacModelSrc?: string | null;
+  }): Promise<LlmSettings> {
+    const existing = await this.getLlmSettings();
+    if (existing) {
+      await db
+        .update(llmSettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(llmSettings.id, existing.id));
+      const [updated] = await db
+        .select()
+        .from(llmSettings)
+        .where(eq(llmSettings.id, existing.id));
+      if (!updated) throw new Error("Config LLM non trouvée après mise à jour");
+      return updated;
+    }
+    const result = (await db.insert(llmSettings).values({
+      ...settings,
+      updatedAt: new Date(),
+    })) as MySQLResult;
+    const insertId = this.getInsertId(result);
+    const [created] = await db
+      .select()
+      .from(llmSettings)
+      .where(eq(llmSettings.id, insertId));
+    if (!created) throw new Error("Config LLM non trouvée après insertion");
+    return created;
   }
 
   // Utility methods

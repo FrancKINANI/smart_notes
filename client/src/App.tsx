@@ -29,6 +29,7 @@ import StudyGroupDetails from "@/pages/study-groups/[id]";
 import ProfilePage from "@/pages/profile";
 import StudySessionPage from "@/pages/study-session";
 import AIAssistantPage from "@/pages/ai-assistant";
+import AdminPage from "@/pages/admin";
 
 import Sidebar from "@/components/layout/sidebar";
 import MobileHeader from "@/components/layout/mobile-header";
@@ -92,6 +93,7 @@ function App() {
                         component={StudyGroupDetails}
                       />
                       <ProtectedRoute path="/profile" component={ProfilePage} />
+                      <ProtectedRoute path="/admin" component={AdminPage} />
                       <Route component={NotFound} />
                     </Switch>
                     <OfflineIndicator />
