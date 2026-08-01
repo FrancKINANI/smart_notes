@@ -26,14 +26,14 @@ interface LearningStatsCardProps {
 
 export function LearningStatsCard({
   stats,
-  title = "Statistiques d'apprentissage",
+  title = "Learning statistics",
 }: LearningStatsCardProps) {
-  // Déterminer le niveau de maîtrise pour l'affichage
+  // Determine the mastery level for display
   const getMasteryLevel = () => {
     if (stats.mastery.expert) return { label: "Expert", color: "text-green-600" };
-    if (stats.mastery.advanced) return { label: "Avancé", color: "text-blue-600" };
-    if (stats.mastery.intermediate) return { label: "Intermédiaire", color: "text-yellow-600" };
-    return { label: "Débutant", color: "text-gray-600" };
+    if (stats.mastery.advanced) return { label: "Advanced", color: "text-blue-600" };
+    if (stats.mastery.intermediate) return { label: "Intermediate", color: "text-yellow-600" };
+    return { label: "Beginner", color: "text-gray-600" };
   };
 
   const masteryInfo = getMasteryLevel();
@@ -46,17 +46,17 @@ export function LearningStatsCard({
       <CardContent>
         <Tabs defaultValue="overview">
           <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="overview">Aperçu</TabsTrigger>
-            <TabsTrigger value="details">Détails</TabsTrigger>
-            <TabsTrigger value="predictions">Prédictions</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="predictions">Predictions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            {/* Niveau de maîtrise */}
+            {/* Mastery level */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Medal className="h-5 w-5 text-primary-500" />
-                <span className="text-sm font-medium">Niveau de maîtrise</span>
+                <span className="text-sm font-medium">Mastery level</span>
               </div>
               <div className="flex items-center">
                 <span className={`text-sm font-semibold ${masteryInfo.color}`}>
@@ -69,29 +69,29 @@ export function LearningStatsCard({
               {stats.masteryLevel}%
             </div>
 
-            {/* Taux de rétention */}
+            {/* Retention rate */}
             <div className="flex items-center justify-between mt-4 mb-2">
               <div className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-primary-500" />
-                <span className="text-sm font-medium">Taux de rétention</span>
+                <span className="text-sm font-medium">Retention rate</span>
               </div>
               <span className="text-sm font-medium">
                 {Math.round(stats.retentionRate)}%
               </span>
             </div>
 
-            {/* Difficulté */}
+            {/* Difficulty */}
             <div className="flex items-center justify-between mt-4 mb-2">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-primary-500" />
-                <span className="text-sm font-medium">Difficulté estimée</span>
+                <span className="text-sm font-medium">Estimated difficulty</span>
               </div>
               <span className="text-sm font-medium">
                 {stats.predictedDifficulty < 0.3
-                  ? "Facile"
+                  ? "Easy"
                   : stats.predictedDifficulty < 0.7
-                  ? "Moyen"
-                  : "Difficile"}
+                  ? "Medium"
+                  : "Hard"}
               </span>
             </div>
             <Progress
@@ -102,12 +102,12 @@ export function LearningStatsCard({
 
           <TabsContent value="details" className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              {/* Efficacité d'apprentissage */}
+              {/* Learning efficiency */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Zap className="h-5 w-5 text-yellow-500" />
                   <span className="text-sm font-medium">
-                    Efficacité d'apprentissage
+                    Learning efficiency
                   </span>
                 </div>
                 <div className="text-lg font-bold">
@@ -115,7 +115,7 @@ export function LearningStatsCard({
                 </div>
               </div>
 
-              {/* Taux d'amélioration */}
+              {/* Improvement rate */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <TrendingUp
@@ -126,7 +126,7 @@ export function LearningStatsCard({
                     }`}
                   />
                   <span className="text-sm font-medium">
-                    Taux d'amélioration
+                    Improvement rate
                   </span>
                 </div>
                 <div
@@ -139,11 +139,11 @@ export function LearningStatsCard({
                 </div>
               </div>
 
-              {/* Indice d'oubli */}
+              {/* Forgetting index */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-blue-500" />
-                  <span className="text-sm font-medium">Indice d'oubli</span>
+                  <span className="text-sm font-medium">Forgetting index</span>
                 </div>
                 <div
                   className={`text-lg font-bold ${
@@ -158,11 +158,11 @@ export function LearningStatsCard({
                 </div>
               </div>
 
-              {/* Qualité moyenne */}
+              {/* Average quality */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Check className="h-5 w-5 text-green-500" />
-                  <span className="text-sm font-medium">Qualité moyenne</span>
+                  <span className="text-sm font-medium">Average quality</span>
                 </div>
                 <div className="text-lg font-bold">
                   {stats.averageResponseQuality.toFixed(1)}/5
@@ -172,30 +172,30 @@ export function LearningStatsCard({
           </TabsContent>
 
           <TabsContent value="predictions" className="space-y-4">
-            {/* Intervalle optimal */}
+            {/* Optimal interval */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary-500" />
                 <span className="text-sm font-medium">
-                  Intervalle optimal de révision
+                  Optimal review interval
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-lg font-bold">
-                  {stats.optimalReviewInterval} jours
+                  {stats.optimalReviewInterval} days
                 </span>
                 <span className="text-xs text-gray-500">
-                  Prochaine révision recommandée
+                  Recommended next review
                 </span>
               </div>
             </div>
 
-            {/* Prévision de réussite */}
+            {/* Success forecast */}
             <div className="mt-4 space-y-2">
               <div className="flex items-center gap-2">
                 <BarChart className="h-5 w-5 text-primary-500" />
                 <span className="text-sm font-medium">
-                  Probabilité de réussite future
+                  Future success probability
                 </span>
               </div>
               <Progress
@@ -209,29 +209,29 @@ export function LearningStatsCard({
               </div>
             </div>
 
-            {/* Recommandations */}
+            {/* Recommendations */}
             <div className="mt-4 p-3 bg-primary-50 rounded-md">
               <h4 className="text-sm font-medium text-primary-700 mb-2">
-                Recommandations
+                Recommendations
               </h4>
               <ul className="text-xs text-gray-700 space-y-2">
                 {stats.mastery.beginner && (
-                  <li>• Concentrez-vous sur les concepts fondamentaux</li>
+                  <li>• Focus on the fundamental concepts</li>
                 )}
                 {stats.mastery.intermediate && (
-                  <li>• Pratiquez plus fréquemment pour renforcer la mémoire</li>
+                  <li>• Practice more frequently to strengthen memory</li>
                 )}
                 {stats.mastery.advanced && (
-                  <li>• Essayez d'enseigner ce concept à quelqu'un d'autre</li>
+                  <li>• Try teaching this concept to someone else</li>
                 )}
                 {stats.mastery.expert && (
-                  <li>• Passez à des concepts plus avancés</li>
+                  <li>• Move on to more advanced concepts</li>
                 )}
                 {stats.forgettingIndex > 0.4 && (
-                  <li>• Révisez plus fréquemment pour réduire l'oubli</li>
+                  <li>• Review more often to reduce forgetting</li>
                 )}
                 {stats.improvementRate < 0 && (
-                  <li>• Essayez une nouvelle approche d'apprentissage</li>
+                  <li>• Try a new learning approach</li>
                 )}
               </ul>
             </div>

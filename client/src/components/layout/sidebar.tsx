@@ -35,12 +35,12 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   // Navigation items
   const navigationItems = [
     { name: "Dashboard", href: "/", icon: <Home className="mr-3 h-5 w-5" /> },
-    { name: "Mes Notes", href: "/notes", icon: <BookOpen className="mr-3 h-5 w-5" /> },
-    { name: "Cartes de révision", href: "/flashcards", icon: <Club className="mr-3 h-5 w-5" /> },
-    { name: "Quiz", href: "/quizzes", icon: <HelpCircle className="mr-3 h-5 w-5" /> },
-    { name: "Planning", href: "/schedule", icon: <Calendar className="mr-3 h-5 w-5" /> },
+    { name: "My Notes", href: "/notes", icon: <BookOpen className="mr-3 h-5 w-5" /> },
+    { name: "Flashcards", href: "/flashcards", icon: <Club className="mr-3 h-5 w-5" /> },
+    { name: "Quizzes", href: "/quizzes", icon: <HelpCircle className="mr-3 h-5 w-5" /> },
+    { name: "Schedule", href: "/schedule", icon: <Calendar className="mr-3 h-5 w-5" /> },
     { name: "Assistant", href: "/assistant", icon: <MessageSquare className="mr-3 h-5 w-5" /> },
-    { name: "Groupes d'étude", href: "/study-groups", icon: <Users className="mr-3 h-5 w-5" /> },
+    { name: "Study Groups", href: "/study-groups", icon: <Users className="mr-3 h-5 w-5" /> },
     ...(user?.role === "admin"
       ? [{ name: "Administration", href: "/admin", icon: <Settings className="mr-3 h-5 w-5" /> }]
       : [])
@@ -120,10 +120,10 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     </div>
                     <div className="ml-3 text-left">
                       <p className="text-sm font-medium text-gray-700">
-                        {user?.displayName || user?.username || 'Utilisateur'}
+                        {user?.displayName || user?.username || 'User'}
                       </p>
                       <p className="text-xs font-medium text-gray-500">
-                        {user?.role || 'Étudiant'}
+                        {user?.role || 'Student'}
                       </p>
                     </div>
                   </div>
@@ -136,7 +136,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   <Link href="/profile">
                     <DropdownMenuItem className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
-                      <span>Mon profil</span>
+                      <span>My profile</span>
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuSeparator />
@@ -146,7 +146,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     disabled={isLogoutLoading}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Déconnexion</span>
+                    <span>Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

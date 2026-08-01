@@ -16,7 +16,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Helper fetch avec timeout
+  // Helper fetch with timeout
   function fetchWithTimeout(
     resource: string,
     options: any = {},
@@ -26,7 +26,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
       fetch(resource, options),
       new Promise((_, reject) =>
         setTimeout(
-          () => reject(new Error("Timeout de la requête API")),
+          () => reject(new Error("API request timeout")),
           timeout
         )
       ),
@@ -53,26 +53,26 @@ export default function LearningStats({ userId }: LearningStatsProps) {
           if (!res.ok) {
             throw new Error(
               data.message ||
-                "Erreur lors de la récupération des statistiques d'apprentissage"
+                "Error fetching learning statistics"
             );
           }
           return data;
         } catch (jsonErr) {
-          // Affiche le HTML reçu si ce n'est pas du JSON
+          // Show the received HTML if it's not JSON
           throw new Error(
-            `Réponse inattendue de l'API :\n${text.substring(0, 200)}`
+            `Unexpected API response:\n${text.substring(0, 200)}`
           );
         }
       } catch (error) {
         console.error(
-          "Erreur lors de la récupération des statistiques:",
+          "Error fetching statistics:",
           error
         );
         toast({
           variant: "destructive",
-          title: "Erreur",
+          title: "Error",
           description:
-            error instanceof Error ? error.message : "Une erreur est survenue",
+            error instanceof Error ? error.message : "An error occurred",
         });
         throw error;
       }
@@ -92,7 +92,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
   if (error || !stats) {
     return (
       <div className="p-4 text-red-500 bg-red-50 rounded-lg">
-        Une erreur est survenue lors du chargement des statistiques.
+        An error occurred while loading the statistics.
         {process.env.NODE_ENV === "development" && error instanceof Error && (
           <p className="mt-2 text-sm">{error.message}</p>
         )}
@@ -100,7 +100,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
     );
   }
 
-  // S'assurer que stats existe et a les bonnes données par défaut
+  // Make sure stats exists and has the right default data
   const safeStats = {
     averageMastery: 0,
     subjectMastery: [],
@@ -112,7 +112,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
     ...stats,
   };
 
-  // Si nous n'avons aucune donnée à afficher, montrer un message approprié
+  // If we have no data to display, show an appropriate message
   if (!safeStats.subjectMastery.length && !safeStats.retentionHistory.length) {
     return (
       <Card>
@@ -120,11 +120,11 @@ export default function LearningStats({ userId }: LearningStatsProps) {
           <div className="text-center p-6">
             <Brain className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Pas encore de statistiques disponibles
+              No statistics available yet
             </h3>
             <p className="text-gray-500">
-              Commencez à étudier et à réviser pour voir vos statistiques
-              d'apprentissage apparaître ici.
+              Start studying and reviewing to see your learning
+              statistics appear here.
             </p>
           </div>
         </CardContent>
@@ -138,22 +138,22 @@ export default function LearningStats({ userId }: LearningStatsProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
-            Statistiques d'apprentissage détaillées
+            Detailed learning statistics
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="mastery">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="mastery">Maîtrise</TabsTrigger>
-              <TabsTrigger value="retention">Rétention</TabsTrigger>
-              <TabsTrigger value="difficulty">Difficulté</TabsTrigger>
+              <TabsTrigger value="mastery">Mastery</TabsTrigger>
+              <TabsTrigger value="retention">Retention</TabsTrigger>
+              <TabsTrigger value="difficulty">Difficulty</TabsTrigger>
             </TabsList>
 
             <TabsContent value="mastery" className="space-y-4">
               <div className="mt-6">
                 <div className="flex justify-between mb-2">
                   <span className="text-sm font-medium">
-                    Niveau de maîtrise global
+                    Overall mastery level
                   </span>
                   <span className="text-sm font-medium">
                     {safeStats.averageMastery}%
@@ -165,7 +165,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
               {safeStats.subjectMastery.length > 0 && (
                 <div className="mt-6">
                   <h4 className="text-sm font-medium mb-4">
-                    Progression par sujet
+                    Progress by subject
                   </h4>
                   <Chart
                     type="bar"
@@ -186,7 +186,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium">
-                          Taux de rétention moyen
+                          Average retention rate
                         </p>
                         <h3 className="text-2xl font-bold">
                           {safeStats.averageRetention}%
@@ -200,7 +200,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
                 {safeStats.retentionHistory.length > 0 && (
                   <div className="mt-6">
                     <h4 className="text-sm font-medium mb-4">
-                      Évolution de la rétention
+                      Retention over time
                     </h4>
                     <Chart
                       type="line"
@@ -223,7 +223,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium">
-                            Concepts maîtrisés
+                            Mastered concepts
                           </p>
                           <h3 className="text-2xl font-bold">
                             {safeStats.masteredConcepts}
@@ -238,7 +238,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium">À revoir</p>
+                          <p className="text-sm font-medium">To review</p>
                           <h3 className="text-2xl font-bold">
                             {safeStats.conceptsToReview}
                           </h3>
@@ -252,7 +252,7 @@ export default function LearningStats({ userId }: LearningStatsProps) {
                 {safeStats.difficultyDistribution.length > 0 && (
                   <div className="mt-6">
                     <h4 className="text-sm font-medium mb-4">
-                      Répartition par difficulté
+                      Distribution by difficulty
                     </h4>
                     <Chart
                       type="pie"

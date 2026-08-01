@@ -18,7 +18,7 @@ import {
 } from "@shared/schema";
 import "dotenv/config";
 
-// Configuration optimisée du pool de connexions
+// Optimized connection pool configuration
 const poolConfig = {
   host: process.env.DB_HOST || "localhost",
   port: parseInt(process.env.DB_PORT || "3306"),
@@ -26,7 +26,7 @@ const poolConfig = {
   password: process.env.DB_PASSWORD || "Justine@2227",
   database: process.env.DB_NAME || "smart_notes",
   waitForConnections: true,
-  connectionLimit: 20, // Augmenté pour plus de connexions simultanées
+  connectionLimit: 20, // Increased for more simultaneous connections
   queueLimit: 10,
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
@@ -49,26 +49,26 @@ const poolConfig = {
   },
 };
 
-// Création du pool avec gestion des erreurs
+// Create the pool with error handling
 let poolConnection: mysql.Pool;
 
 export const initializeDatabase = async () => {
   try {
     poolConnection = mysql.createPool(poolConfig);
 
-    // Test initial de la connexion
+    // Initial connection test
     await poolConnection.query("SELECT 1");
-    console.log("Connexion à la base de données établie avec succès");
+    console.log("Database connection established successfully");
 
-    // Configuration des écouteurs d'événements
+    // Configure event listeners
     poolConnection.on("connection", (connection) => {
-      console.log("Nouvelle connexion établie");
+      console.log("New connection established");
 
       connection.on("error", (err) => {
-        console.error("Erreur de connexion MySQL:", err);
+        console.error("MySQL connection error:", err);
         if (err.code === "PROTOCOL_CONNECTION_LOST") {
           console.error(
-            "Connexion à la base de données perdue - Tentative de reconnexion..."
+            "Database connection lost - Attempting to reconnect..."
           );
           initializeDatabase().catch(console.error);
         }
@@ -76,13 +76,13 @@ export const initializeDatabase = async () => {
     });
 
     poolConnection.on("error", (err) => {
-      console.error("Erreur du pool MySQL:", err);
+      console.error("MySQL pool error:", err);
       if (err.code === "POOL_ENQUEUELIMIT") {
-        console.error("Limite de la file d'attente du pool atteinte");
+        console.error("Pool queue limit reached");
       }
     });
 
-    // Configuration de Drizzle avec le pool
+    // Configure Drizzle with the pool
     const db = drizzle(poolConnection, {
       schema: {
         users,
@@ -106,15 +106,12 @@ export const initializeDatabase = async () => {
 
     return db;
   } catch (error) {
-    console.error(
-      "Erreur lors de l'initialisation de la base de données:",
-      error
-    );
+    console.error("Error while initializing the database:", error);
     throw error;
   }
 };
 
-// Fonction pour vérifier la santé de la base de données
+// Function to check the database health
 export const checkDatabaseHealth = async () => {
   if (!poolConnection) {
     return false;
@@ -124,15 +121,12 @@ export const checkDatabaseHealth = async () => {
     await poolConnection.query("SELECT 1");
     return true;
   } catch (error) {
-    console.error(
-      "Erreur lors de la vérification de la santé de la base de données:",
-      error
-    );
+    console.error("Error while checking database health:", error);
     return false;
   }
 };
 
-// Fonction pour fermer proprement le pool
+// Function to close the pool cleanly
 export const closeDatabase = async () => {
   if (!poolConnection) {
     return;
@@ -140,14 +134,14 @@ export const closeDatabase = async () => {
 
   try {
     await poolConnection.end();
-    console.log("Connexion à la base de données fermée avec succès");
+    console.log("Database connection closed successfully");
   } catch (error) {
-    console.error("Erreur lors de la fermeture de la base de données:", error);
+    console.error("Error while closing the database:", error);
     throw error;
   }
 };
 
-// Initialisation de la base de données et export de l'instance
+// Initialize the database and export the instance
 export let db: ReturnType<typeof drizzle>;
 
 export const setupDatabase = async () => {

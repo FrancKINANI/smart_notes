@@ -6,14 +6,14 @@ import { extractJsonArray, extractJsonObject, resolveUserId } from "../services/
 const router = Router();
 
 const ENHANCE_SYSTEM_PROMPT =
-  "Tu es un expert en amélioration de notes de cours. À partir de la note fournie, améliore-la : structure-la avec des titres, clarifie les concepts, ajoute des exemples pertinents et des explications. Retourne UNIQUEMENT un objet JSON valide de la forme : {\"enhancedContent\": \"<contenu amélioré en markdown>\", \"summary\": \"<résumé concis de 2-3 phrases>\"}. Ne mets aucun texte autour du JSON.";
+  "You are an expert in improving course notes. From the provided note, improve it: structure it with headings, clarify concepts, add relevant examples and explanations. Return ONLY a valid JSON object of the form: {\"enhancedContent\": \"<enhanced content in markdown>\", \"summary\": \"<concise 2-3 sentence summary>\"}. Do not put any text around the JSON.";
 
 const FLASHCARD_SYSTEM_PROMPT = (count: number) =>
-  `Tu es un expert en création de cartes mémoire (flashcards). À partir de la note fournie, crée ${count} cartes de révision pertinentes qui couvrent les concepts clés. Retourne UNIQUEMENT un tableau JSON valide de la forme : [{"front": "<question ou terme>", "back": "<réponse ou définition>"}, ...]. Ne mets aucun texte autour du JSON.`;
+  `You are an expert in creating flashcards. From the provided note, create ${count} relevant revision cards covering the key concepts. Return ONLY a valid JSON array of the form: [{"front": "<question or term>", "back": "<answer or definition>"}, ...]. Do not put any text around the JSON.`;
 
-// ---- CRUD notes ----
+// ---- Notes CRUD ----
 
-// GET /api/notes/recent?userId=  (liste les notes récentes, utilisée par les tableaux de bord)
+// GET /api/notes/recent?userId=  (lists recent notes, used by dashboards)
 router.get("/recent", async (req, res) => {
   try {
     const userId = resolveUserId(req, res);
@@ -21,8 +21,8 @@ router.get("/recent", async (req, res) => {
     const notes = await storage.getRecentNotes(userId, 10);
     res.json(notes);
   } catch (error) {
-    console.error("Erreur notes récentes:", error);
-    res.status(500).json({ message: "Erreur lors de la récupération des notes" });
+    console.error("Recent notes error:", error);
+    res.status(500).json({ message: "Error while retrieving notes" });
   }
 });
 
@@ -38,8 +38,8 @@ router.get("/", async (req, res) => {
     );
     res.json(notes);
   } catch (error) {
-    console.error("Erreur notes:", error);
-    res.status(500).json({ message: "Erreur lors de la récupération des notes" });
+    console.error("Notes error:", error);
+    res.status(500).json({ message: "Error while retrieving notes" });
   }
 });
 
@@ -51,7 +51,7 @@ router.post("/", async (req, res) => {
     if (!title || !content || !subjectId) {
       return res
         .status(400)
-        .json({ message: "Le titre, le contenu et la matière sont requis" });
+        .json({ message: "Title, content and subject are required" });
     }
     const userId = resolveUserId(req, res);
     if (userId === null) return;
@@ -67,8 +67,8 @@ router.post("/", async (req, res) => {
     });
     res.status(201).json(note);
   } catch (error) {
-    console.error("Erreur création note:", error);
-    res.status(500).json({ message: "Erreur lors de la création de la note" });
+    console.error("Note creation error:", error);
+    res.status(500).json({ message: "Error while creating the note" });
   }
 });
 
@@ -77,11 +77,11 @@ router.get("/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const note = await storage.getNote(id);
-    if (!note) return res.status(404).json({ message: "Note introuvable" });
+    if (!note) return res.status(404).json({ message: "Note not found" });
     res.json(note);
   } catch (error) {
-    console.error("Erreur récupération note:", error);
-    res.status(500).json({ message: "Erreur lors de la récupération de la note" });
+    console.error("Note retrieval error:", error);
+    res.status(500).json({ message: "Error while retrieving the note" });
   }
 });
 
@@ -90,7 +90,7 @@ router.put("/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const existing = await storage.getNote(id);
-    if (!existing) return res.status(404).json({ message: "Note introuvable" });
+    if (!existing) return res.status(404).json({ message: "Note not found" });
 
     const { title, content, subjectId, summary, enhancedContent, sourceType } =
       req.body;
@@ -105,8 +105,8 @@ router.put("/:id", async (req, res) => {
     });
     res.json(note);
   } catch (error) {
-    console.error("Erreur mise à jour note:", error);
-    res.status(500).json({ message: "Erreur lors de la mise à jour de la note" });
+    console.error("Note update error:", error);
+    res.status(500).json({ message: "Error while updating the note" });
   }
 });
 
@@ -115,27 +115,27 @@ router.delete("/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const existing = await storage.getNote(id);
-    if (!existing) return res.status(404).json({ message: "Note introuvable" });
+    if (!existing) return res.status(404).json({ message: "Note not found" });
     await storage.deleteNote(id);
-    res.json({ message: "Note supprimée", id });
+    res.json({ message: "Note deleted", id });
   } catch (error) {
-    console.error("Erreur suppression note:", error);
-    res.status(500).json({ message: "Erreur lors de la suppression de la note" });
+    console.error("Note deletion error:", error);
+    res.status(500).json({ message: "Error while deleting the note" });
   }
 });
 
-// ---- Routes IA sur les notes ----
+// ---- AI routes on notes ----
 
-// POST /api/notes/:id/enhance — améliore la note avec le LLM (enhanceNote)
+// POST /api/notes/:id/enhance — improves the note with the LLM (enhanceNote)
 router.post("/:id/enhance", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const note = await storage.getNote(id);
-    if (!note) return res.status(404).json({ message: "Note introuvable" });
+    if (!note) return res.status(404).json({ message: "Note not found" });
     if (!note.content || !note.content.trim()) {
       return res
         .status(400)
-        .json({ message: "La note doit contenir du contenu pour être améliorée" });
+        .json({ message: "The note must contain content to be improved" });
     }
 
     const provider = await getLLMProvider();
@@ -147,7 +147,7 @@ router.post("/:id/enhance", async (req, res) => {
       { temperature: 0.4, maxTokens: 2000 }
     );
 
-    // Fallback : le texte brut si le JSON n'est pas exploitable
+    // Fallback: the raw text if the JSON is not usable
     let enhancedContent = raw;
     let summary = "";
 
@@ -171,9 +171,9 @@ router.post("/:id/enhance", async (req, res) => {
       summary,
     });
   } catch (error) {
-    console.error("Erreur enhancement note:", error);
+    console.error("Note enhancement error:", error);
     res.status(500).json({
-      message: "Erreur lors de l'amélioration de la note",
+      message: "Error while improving the note",
       error:
         process.env.NODE_ENV === "development" && error instanceof Error
           ? error.message
@@ -182,16 +182,16 @@ router.post("/:id/enhance", async (req, res) => {
   }
 });
 
-// POST /api/notes/:id/generate-flashcards — génère des flashcards via LLM
+// POST /api/notes/:id/generate-flashcards — generates flashcards via LLM
 router.post("/:id/generate-flashcards", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const note = await storage.getNote(id);
-    if (!note) return res.status(404).json({ message: "Note introuvable" });
+    if (!note) return res.status(404).json({ message: "Note not found" });
     if (!note.content || !note.content.trim()) {
       return res
         .status(400)
-        .json({ message: "La note doit contenir du contenu pour générer des cartes" });
+        .json({ message: "The note must contain content to generate cards" });
     }
 
     const userId = resolveUserId(req, res);
@@ -212,7 +212,7 @@ router.post("/:id/generate-flashcards", async (req, res) => {
     if (!pairs || pairs.length === 0) {
       return res.status(422).json({
         message:
-          "Impossible de générer des cartes de qualité à partir de cette note. Essayez d'enrichir le contenu.",
+          "Unable to generate quality cards from this note. Try enriching the content.",
       });
     }
 
@@ -237,9 +237,9 @@ router.post("/:id/generate-flashcards", async (req, res) => {
 
     res.status(201).json(created);
   } catch (error) {
-    console.error("Erreur génération flashcards:", error);
+    console.error("Flashcards generation error:", error);
     res.status(500).json({
-      message: "Erreur lors de la génération des flashcards",
+      message: "Error while generating flashcards",
       error:
         process.env.NODE_ENV === "development" && error instanceof Error
           ? error.message
@@ -248,15 +248,15 @@ router.post("/:id/generate-flashcards", async (req, res) => {
   }
 });
 
-// POST /api/notes/ocr — stub (aucun moteur OCR n'est configuré)
+// POST /api/notes/ocr — stub (no OCR engine is configured)
 router.post("/ocr", async (_req, res) => {
   res.status(501).json({
     message:
-      "L'OCR n'est pas configuré sur ce serveur. Aucun moteur d'extraction de texte d'image n'est disponible.",
+      "OCR is not configured on this server. No image text extraction engine is available.",
   });
 });
 
-// ---- Commentaires ----
+// ---- Comments ----
 
 // GET /api/notes/:id/comments
 router.get("/:id/comments", async (req, res) => {
@@ -275,16 +275,16 @@ router.get("/:id/comments", async (req, res) => {
                 displayName: user.displayName,
                 avatar: user.avatar,
               }
-            : { id: comment.userId, username: "inconnu", displayName: null, avatar: null },
+            : { id: comment.userId, username: "unknown", displayName: null, avatar: null },
         };
       })
     );
     res.json(withUsers);
   } catch (error) {
-    console.error("Erreur commentaires:", error);
+    console.error("Comments error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la récupération des commentaires" });
+      .json({ message: "Error while retrieving comments" });
   }
 });
 
@@ -296,7 +296,7 @@ router.post("/:id/comments", async (req, res) => {
     if (!content || !String(content).trim()) {
       return res
         .status(400)
-        .json({ message: "Le commentaire ne peut pas être vide" });
+        .json({ message: "The comment cannot be empty" });
     }
     const userId = resolveUserId(req, res);
     if (userId === null) return;
@@ -317,13 +317,13 @@ router.post("/:id/comments", async (req, res) => {
             displayName: user.displayName,
             avatar: user.avatar,
           }
-        : { id: userId, username: "inconnu", displayName: null, avatar: null },
+        : { id: userId, username: "unknown", displayName: null, avatar: null },
     });
   } catch (error) {
-    console.error("Erreur ajout commentaire:", error);
+    console.error("Add comment error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de l'ajout du commentaire" });
+      .json({ message: "Error while adding the comment" });
   }
 });
 

@@ -5,7 +5,7 @@ import type { InsertFlashcard } from "@shared/schema";
 
 const router = Router();
 
-// GET /api/flashcards/review?userId= — doit être déclarée AVANT /:id
+// GET /api/flashcards/review?userId= — must be declared BEFORE /:id
 router.get("/review", async (req, res) => {
   try {
     const userId = resolveUserId(req, res);
@@ -13,10 +13,10 @@ router.get("/review", async (req, res) => {
     const cards = await storage.getFlashcardsForReview(userId);
     res.json(cards);
   } catch (error) {
-    console.error("Erreur flashcards review:", error);
+    console.error("Flashcards review error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la récupération des cartes à réviser" });
+      .json({ message: "Error while retrieving cards to review" });
   }
 });
 
@@ -38,21 +38,21 @@ router.get("/", async (req, res) => {
 
     res.json(cards);
   } catch (error) {
-    console.error("Erreur flashcards:", error);
+    console.error("Flashcards error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la récupération des cartes" });
+      .json({ message: "Error while retrieving cards" });
   }
 });
 
-// POST /api/flashcards — création (utilisée par la synchronisation offline)
+// POST /api/flashcards — creation (used by offline synchronization)
 router.post("/", async (req, res) => {
   try {
     const { front, back, noteId } = req.body;
     if (!front || !back) {
       return res
         .status(400)
-        .json({ message: "Le recto et le verso de la carte sont requis" });
+        .json({ message: "The front and back of the card are required" });
     }
     const userId = resolveUserId(req, res);
     if (userId === null) return;
@@ -68,20 +68,20 @@ router.post("/", async (req, res) => {
     });
     res.status(201).json(card);
   } catch (error) {
-    console.error("Erreur création flashcard:", error);
+    console.error("Flashcard creation error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la création de la carte" });
+      .json({ message: "Error while creating the card" });
   }
 });
 
-// PUT /api/flashcards/:id — mise à jour SM-2 (processResponse côté client)
+// PUT /api/flashcards/:id — SM-2 update (processResponse on the client side)
 router.put("/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const existing = await storage.getFlashcard(id);
     if (!existing) {
-      return res.status(404).json({ message: "Flashcard introuvable" });
+      return res.status(404).json({ message: "Flashcard not found" });
     }
 
     const {
@@ -97,12 +97,12 @@ router.put("/:id", async (req, res) => {
       difficulty,
     } = req.body;
 
-    // front/back/noteId sont acceptés pour la synchronisation offline
-    // (syncOfflineChanges envoie un PUT même pour une carte créée hors-ligne,
-    // car IndexedDB attribue un id local). Les champs SM-2
+    // front/back/noteId are accepted for offline synchronization
+    // (syncOfflineChanges sends a PUT even for a card created offline,
+    // because IndexedDB assigns a local id). The SM-2 fields
     // (consecutiveCorrect, totalReviews, lastResponseQuality, difficulty)
-    // existent en DB (migration 0003) mais pas dans InsertFlashcard : on cast
-    // pour les passer à drizzle (même convention que storage.ts).
+    // exist in the DB (migration 0003) but not in InsertFlashcard: we cast
+    // them to pass to drizzle (same convention as storage.ts).
     const update: Partial<InsertFlashcard> & {
       consecutiveCorrect?: number;
       totalReviews?: number;
@@ -133,10 +133,10 @@ router.put("/:id", async (req, res) => {
 
     res.json(card);
   } catch (error) {
-    console.error("Erreur mise à jour flashcard:", error);
+    console.error("Flashcard update error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la mise à jour de la carte" });
+      .json({ message: "Error while updating the card" });
   }
 });
 

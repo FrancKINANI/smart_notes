@@ -32,18 +32,18 @@ interface NotesDB extends DBSchema {
 const DB_NAME = "smart-study-companion-offline";
 const DB_VERSION = 1;
 
-// Initialiser la base de données
+// Initialize the database
 async function initDB(): Promise<IDBPDatabase<NotesDB>> {
   return openDB<NotesDB>(DB_NAME, DB_VERSION, {
     upgrade(db) {
-      // Store pour les notes
+      // Store for notes
       const notesStore = db.createObjectStore("offline-notes", {
         keyPath: "id",
         autoIncrement: true,
       });
       notesStore.createIndex("by-pending", "pendingSync");
 
-      // Store pour les flashcards
+      // Store for flashcards
       const flashcardsStore = db.createObjectStore("offline-flashcards", {
         keyPath: "id",
         autoIncrement: true,
@@ -53,7 +53,7 @@ async function initDB(): Promise<IDBPDatabase<NotesDB>> {
   });
 }
 
-// Singleton pour la connexion à la base de données
+// Singleton for the database connection
 let dbPromise: Promise<IDBPDatabase<NotesDB>> | null = null;
 
 export function getDB(): Promise<IDBPDatabase<NotesDB>> {
@@ -63,7 +63,7 @@ export function getDB(): Promise<IDBPDatabase<NotesDB>> {
   return dbPromise;
 }
 
-// Fonctions pour les notes
+// Functions for notes
 export async function saveNoteOffline(note: NotesDB["offline-notes"]["value"]) {
   const db = await getDB();
   return db.put("offline-notes", {
@@ -102,7 +102,7 @@ export async function markNoteSynced(id: number) {
   }
 }
 
-// Fonctions pour les flashcards
+// Functions for flashcards
 export async function saveFlashcardOffline(
   flashcard: NotesDB["offline-flashcards"]["value"]
 ) {
@@ -142,9 +142,9 @@ export async function markFlashcardSynced(id: number) {
   }
 }
 
-// Fonction de synchronisation
+// Sync function
 export async function syncOfflineChanges() {
-  // Synchroniser les notes
+  // Sync notes
   const pendingNotes = await getPendingNotes();
   for (const note of pendingNotes) {
     try {
@@ -169,11 +169,11 @@ export async function syncOfflineChanges() {
         }
       }
     } catch (error) {
-      console.error("Erreur lors de la synchronisation de la note:", error);
+      console.error("Error syncing the note:", error);
     }
   }
 
-  // Synchroniser les flashcards
+  // Sync flashcards
   const pendingFlashcards = await getPendingFlashcards();
   for (const flashcard of pendingFlashcards) {
     try {
@@ -199,14 +199,14 @@ export async function syncOfflineChanges() {
       }
     } catch (error) {
       console.error(
-        "Erreur lors de la synchronisation de la flashcard:",
+        "Error syncing the flashcard:",
         error
       );
     }
   }
 }
 
-// Écouter les événements de connexion pour la synchronisation automatique
+// Listen for connection events for automatic sync
 if (typeof window !== "undefined") {
   window.addEventListener("online", () => {
     syncOfflineChanges();

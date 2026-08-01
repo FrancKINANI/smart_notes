@@ -45,7 +45,7 @@ export async function apiRequest(
 
     return await response.json();
   } catch (error) {
-    // Si nous sommes hors ligne, mettre la requête en file d'attente
+    // If we are offline, queue the request
     if (
       !navigator.onLine ||
       (error instanceof Error && error.message.includes("Failed to fetch"))
@@ -63,14 +63,14 @@ export async function apiRequest(
           reject,
         });
 
-        // Si nous ne sommes pas déjà en train de réessayer, commencer à réessayer
+        // If we are not already retrying, start retrying
         if (!isRetrying) {
           retryQueuedRequests();
         }
       });
     }
 
-    // Si nous avons encore des tentatives, réessayer après un délai
+    // If we still have attempts, retry after a delay
     if (retries > 0) {
       await sleep(retryDelay);
       return apiRequest(url, {
@@ -103,16 +103,16 @@ async function retryQueuedRequests() {
       const response = await apiRequest(request.url, request.config);
       request.resolve(response);
 
-      // Invalider les requêtes en cache qui pourraient être affectées
+      // Invalidate cached queries that might be affected
       const urlParts = request.url.split("/");
-      const resourceType = urlParts[urlParts.length - 2]; // ex: 'notes', 'flashcards'
+      const resourceType = urlParts[urlParts.length - 2]; // e.g., 'notes', 'flashcards'
       queryClient.invalidateQueries([resourceType]);
     } catch (error) {
-      // Si la requête échoue toujours après le nombre maximum de tentatives
+      // If the request still fails after the maximum number of attempts
       if (request.config.retries === 0) {
         request.reject(error);
       } else {
-        // Remettre la requête dans la file d'attente avec un délai plus long
+        // Put the request back in the queue with a longer delay
         requestQueue.push({
           ...request,
           config: {
@@ -124,14 +124,14 @@ async function retryQueuedRequests() {
       }
     }
 
-    // Attendre un peu entre chaque tentative pour éviter de surcharger le serveur
+    // Wait a bit between each attempt to avoid overloading the server
     await sleep(1000);
   }
 
   isRetrying = false;
 }
 
-// Écouter les événements de connexion
+// Listen for connection events
 window.addEventListener("online", () => {
   retryQueuedRequests();
 });

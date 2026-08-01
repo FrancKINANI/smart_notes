@@ -163,8 +163,8 @@ export const aiConversations = mysqlTable("ai_conversations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Config LLM persistée (bascule cloud/edge à chaud via l'interface admin).
-// La clé API cloud reste UNIQUEMENT en variable d'environnement (jamais en DB).
+// Persisted LLM config (hot cloud/edge switch via the admin interface).
+// The cloud API key stays ONLY in environment variables (never in the DB).
 export const llmSettings = mysqlTable("llm_settings", {
   id: int("id").autoincrement().primaryKey(),
   provider: varchar("provider", { length: 50 }).notNull().default("openrouter"),
@@ -411,7 +411,7 @@ export const aiConversationRelations = relations(
 
 export const llmSettingsRelations = relations(llmSettings, () => ({}));
 
-// Mettez à jour le schéma d'insertion pour l'utilisateur pour inclure les nouveaux champs
+// Update the user insert schema to include the new fields
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   email: true,
@@ -583,17 +583,17 @@ export const registerSchema = insertUserSchema
   .extend({
     password: z
       .string()
-      .min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+      .min(8, "Password must contain at least 8 characters"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
+    message: "Passwords do not match",
     path: ["confirmPassword"],
   });
 
 export const loginSchema = z.object({
-  email: z.string().email("Veuillez fournir une adresse email valide"),
-  password: z.string().min(1, "Veuillez entrer votre mot de passe"),
+  email: z.string().email("Please provide a valid email address"),
+  password: z.string().min(1, "Please enter your password"),
 });
 
 export const updateUserSchema = createInsertSchema(users).partial().pick({
@@ -606,15 +606,15 @@ export const updateUserSchema = createInsertSchema(users).partial().pick({
 
 export const updatePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Le mot de passe actuel est requis"),
+    currentPassword: z.string().min(1, "Current password is required"),
     newPassword: z
       .string()
-      .min(8, "Le nouveau mot de passe doit contenir au moins 8 caractères"),
+      .min(8, "New password must contain at least 8 characters"),
     confirmPassword: z
       .string()
-      .min(1, "Veuillez confirmer votre nouveau mot de passe"),
+      .min(1, "Please confirm your new password"),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
+    message: "Passwords do not match",
     path: ["confirmPassword"],
   });

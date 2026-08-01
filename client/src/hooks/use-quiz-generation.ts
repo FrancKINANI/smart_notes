@@ -25,9 +25,9 @@ export function useQuizGeneration() {
 
       // Show success notification
       toast({
-        title: "Quiz généré avec succès",
+        title: "Quiz generated successfully",
         description:
-          "Un nouveau quiz a été créé à partir de votre note. Vous allez être redirigé vers celui-ci.",
+          "A new quiz was created from your note. You will be redirected to it.",
       });
 
       // Navigate to the new quiz
@@ -38,20 +38,20 @@ export function useQuizGeneration() {
       console.error("Quiz generation error:", error);
 
       // Show error notification with more specific message
-      let errorMessage = "Impossible de générer le quiz. Veuillez réessayer.";
+      let errorMessage = "Unable to generate the quiz. Please try again.";
 
       if (error instanceof Error) {
-        if (error.message.includes("contenu")) {
+        if (error.message.includes("content")) {
           errorMessage =
-            "La note doit contenir du contenu pour générer un quiz.";
-        } else if (error.message.includes("qualité")) {
+            "The note must contain content to generate a quiz.";
+        } else if (error.message.includes("quality")) {
           errorMessage =
-            "Impossible de générer un quiz de qualité à partir de cette note. Essayez d'enrichir le contenu.";
+            "Unable to generate a quality quiz from this note. Try enriching the content.";
         }
       }
 
       toast({
-        title: "Échec de la génération",
+        title: "Generation failed",
         description: errorMessage,
         variant: "destructive",
       });

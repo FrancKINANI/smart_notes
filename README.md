@@ -190,7 +190,7 @@ Example:
 # Cloud (default)
 LLM_PROVIDER=openrouter OPENROUTER_API_KEY=sk-... npm run dev
 
-# Local edge inference (fallback env, si aucune config admin en DB)
+# Local edge inference (fallback env, if no admin config in DB)
 LLM_PROVIDER=qvac npm run dev
 ```
 
@@ -216,36 +216,36 @@ provider by changing `LLM_PROVIDER`.
 > The rationale is also documented as a code comment at the top of
 > `server/services/llm-provider.ts`.
 
-### Configuration (admin, sans redémarrage)
+### Configuration (admin, no restart)
 
-Le mode Edge s'active à chaud depuis la page **`/admin`** (réservée aux comptes `admin`) :
+Edge mode activates live from the **`/admin`** page (reserved for `admin` accounts):
 
-1. Choisir **Cloud** ou **Edge (QVAC local)** — la config est persistée en base (`llm_settings`).
-2. Cliquer **"Tester la connexion"** : un prompt de test est envoyé et la latence + un extrait
-   de la réponse sont affichés, pour valider **avant** de basculer.
-3. **"Enregistrer et appliquer"** : la bascule est immédiate (aucun redémarrage du serveur).
+1. Choose **Cloud** or **Edge (local QVAC)** — config is persisted in database (`llm_settings`).
+2. Click **"Test connection"**: a test prompt is sent and latency + response excerpt
+   are displayed, to validate **before** switching.
+3. **"Save and apply"**: the switch is immediate (no server restart).
 
-> ⚠️ **Premier appel en mode Edge** : le premier appel peut prendre plusieurs dizaines de
-> secondes (chargement du modèle en RAM) voire échouer/lent si le téléchargement P2P initial
-> est en cours — l'interface affiche un message explicatif après 10 s, ne laissez pas un
-> spinner silencieux.
+> ⚠️ **First call in Edge mode**: the first call can take several tens of
+> seconds (model loading into RAM) or fail/be slow if the initial P2P download
+> is in progress — the interface displays an explanatory message after 10 s, don't leave a
+> silent spinner.
 
 ```env
-# Fallback env (utilisé seulement si aucune config n'est enregistrée en base)
+# Fallback env (used only if no config is saved in database)
 LLM_PROVIDER=qvac
 # Optional: registry constant, or URL / local path to a .gguf
 QVAC_MODEL_SRC=LLAMA_3_2_1B_INST_Q4_0
 ```
 
-### Dimensionnement (RAM / CPU)
+### Sizing (RAM / CPU)
 
-> ⚠️ **Le mode Edge exige que le serveur dispose de RAM/CPU en continu** : le modèle reste
-> chargé en mémoire entre deux appels. Ordre de grandeur mesuré : **~130 Mo RSS pour le
-> modèle 1B Q4** (`LLAMA_3_2_1B_INST_Q4_0`) — c'est un **minimum**, des modèles plus gros
-> (3B, 7B) demanderont proportionnellement plus (plusieurs Go). Sur une machine partagée,
-> prévoir de l'isolation (containeur/dédié) pour que l'inférence ne dégrade pas les autres
-> services. En CPU-only, la génération est lente : réservez le mode Edge aux cas où la
-> latence n'est pas critique (batch, hors-ligne).
+> ⚠️ **Edge mode requires the server to have continuous RAM/CPU**: the model remains
+> loaded in memory between calls. Measured order of magnitude: **~130 MB RSS for the
+> 1B Q4 model** (`LLAMA_3_2_1B_INST_Q4_0`) — this is a **minimum**, larger models
+> (3B, 7B) will proportionally require more (several GB). On a shared machine,
+> plan for isolation (container/dedicated) so that inference does not degrade the other
+> services. In CPU-only mode, generation is slow: reserve Edge mode for cases where
+> latency is not critical (batch, offline).
 
 Known limitations:
 - **First-call latency**: the first `chat()` after a switch to Edge loads the model into RAM

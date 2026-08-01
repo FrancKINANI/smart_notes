@@ -39,7 +39,7 @@ export default function Assistant() {
     {
       id: "1",
       content:
-        "Bonjour ! Je suis votre assistant d'étude. Comment puis-je vous aider aujourd'hui ?",
+        "Hello! I am your study assistant. How can I help you today?",
       sender: "assistant",
       timestamp: new Date(),
     },
@@ -80,9 +80,9 @@ export default function Assistant() {
     } catch (error) {
       console.error("Error getting AI response:", error);
       toast({
-        title: "Erreur",
+        title: "Error",
         description:
-          "Impossible d'obtenir une réponse de l'assistant. Veuillez réessayer.",
+          "Unable to get a response from the assistant. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -124,35 +124,35 @@ export default function Assistant() {
   // Open detached mode with current messages
   const openDetachedMode = () => {
     const history = messages
-      .map((m) => `${m.sender === "user" ? "Vous" : "Assistant"}: ${m.content}`)
+      .map((m) => `${m.sender === "user" ? "You" : "Assistant"}: ${m.content}`)
       .join("\n");
     assistantModal.openAssistantModal(history);
   };
 
-  // Sample suggested questions avec une meilleure organisation
+  // Sample suggested questions with better organization
   const suggestedQuestions = [
     {
-      category: "Mathématiques",
+      category: "Mathematics",
       questions: [
-        "Explique-moi le concept d'intégration par parties",
-        "Comment résoudre une équation différentielle ?",
-        "Qu'est-ce que le théorème de Pythagore ?",
+        "Explain the concept of integration by parts",
+        "How do you solve a differential equation?",
+        "What is the Pythagorean theorem?",
       ],
     },
     {
-      category: "Sciences",
+      category: "Science",
       questions: [
-        "Comment fonctionne la photosynthèse ?",
-        "Explique-moi la théorie de la relativité",
-        "Qu'est-ce que la loi de conservation de l'énergie ?",
+        "How does photosynthesis work?",
+        "Explain the theory of relativity",
+        "What is the law of conservation of energy?",
       ],
     },
     {
-      category: "Informatique",
+      category: "Computer Science",
       questions: [
-        "Quelles sont les différentes structures de données ?",
-        "Comment fonctionne la récursivité ?",
-        "Explique-moi le concept de programmation orientée objet",
+        "What are the different data structures?",
+        "How does recursion work?",
+        "Explain the concept of object-oriented programming",
       ],
     },
   ];
@@ -170,11 +170,11 @@ export default function Assistant() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">
-            Assistant d'étude
+            Study assistant
           </h1>
           <Button variant="outline" size="sm" onClick={openDetachedMode}>
             <Brain className="mr-2 h-4 w-4" />
-            Mode détaché
+            Detached mode
           </Button>
         </div>
 
@@ -186,11 +186,11 @@ export default function Assistant() {
               <CardHeader className="bg-primary-50">
                 <CardTitle className="flex items-center text-primary-700">
                   <Brain className="mr-2 h-5 w-5" />
-                  Discutez avec votre assistant
+                  Chat with your assistant
                 </CardTitle>
                 <CardDescription>
-                  Posez des questions sur vos cours, demandez des explications,
-                  ou obtenez de l'aide pour vos révisions.
+                  Ask questions about your courses, request explanations,
+                  or get help with your revision.
                 </CardDescription>
               </CardHeader>
 
@@ -220,7 +220,7 @@ export default function Assistant() {
                             className={cn(
                               "rounded-lg p-3 text-sm",
                               message.sender === "user"
-                                ? "bg-blue-600 text-white rounded-tr-none" // Changé pour un bleu plus foncé
+                                ? "bg-blue-600 text-white rounded-tr-none" // Changed to a darker blue
                                 : "bg-gray-100 text-gray-900 rounded-tl-none"
                             )}
                           >
@@ -263,7 +263,7 @@ export default function Assistant() {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Tapez votre message..."
+                    placeholder="Type your message..."
                     className="flex-1"
                     disabled={isLoading}
                   />
@@ -272,7 +272,7 @@ export default function Assistant() {
                     disabled={!inputValue.trim() || isLoading}
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    {isLoading ? "Envoi..." : "Envoyer"}
+                    {isLoading ? "Sending..." : "Send"}
                   </Button>
                 </div>
               </CardFooter>
@@ -280,13 +280,13 @@ export default function Assistant() {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Questions suggérées avec un style amélioré et optimisé */}
+              {/* Suggested questions with improved and optimized style */}
               <Card className="overflow-hidden border border-gray-200">
                 <CardHeader className="pb-0">
                   <div className="flex items-center space-x-2 mb-2">
                     <HelpCircle className="h-5 w-5 text-primary-600" />
                     <CardTitle className="text-lg font-semibold">
-                      Questions suggérées
+                      Suggested questions
                     </CardTitle>
                   </div>
                 </CardHeader>
@@ -350,35 +350,35 @@ export default function Assistant() {
               {/* Tools */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Outils</CardTitle>
+                  <CardTitle className="text-sm">Tools</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-1">
                   <Tabs defaultValue="help">
                     <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="help">Aide</TabsTrigger>
-                      <TabsTrigger value="history">Historique</TabsTrigger>
-                      <TabsTrigger value="topics">Sujets</TabsTrigger>
+                      <TabsTrigger value="help">Help</TabsTrigger>
+                      <TabsTrigger value="history">History</TabsTrigger>
+                      <TabsTrigger value="topics">Topics</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="help" className="mt-2">
                       <div className="text-sm text-gray-500 space-y-2">
-                        <p>Votre assistant peut vous aider avec:</p>
+                        <p>Your assistant can help you with:</p>
                         <ul className="list-disc list-inside space-y-1">
-                          <li>Explications de concepts</li>
-                          <li>Résolution de problèmes</li>
-                          <li>Création de résumés</li>
-                          <li>Préparation d'examens</li>
+                          <li>Concept explanations</li>
+                          <li>Problem solving</li>
+                          <li>Summary creation</li>
+                          <li>Exam preparation</li>
                         </ul>
                       </div>
                     </TabsContent>
 
                     <TabsContent value="history" className="mt-2">
                       <div className="text-sm text-gray-500">
-                        <p className="mb-2">Conversations récentes:</p>
+                        <p className="mb-2">Recent conversations:</p>
                         <div className="space-y-1">
-                          {/* Les conversations récentes seront chargées dynamiquement */}
+                          {/* Recent conversations will be loaded dynamically */}
                           <p className="text-center text-gray-400 py-2">
-                            Aucune conversation récente
+                            No recent conversation
                           </p>
                         </div>
                       </div>
@@ -386,7 +386,7 @@ export default function Assistant() {
 
                     <TabsContent value="topics" className="mt-2">
                       <div className="text-sm text-gray-500">
-                        <p className="mb-2">Sujets populaires:</p>
+                        <p className="mb-2">Popular topics:</p>
                         <div className="space-y-1">
                           {suggestedQuestions.map((category) => (
                             <Button
@@ -410,7 +410,7 @@ export default function Assistant() {
         )}
       </div>
 
-      {/* Le modal global est déjà monté dans App.tsx */}
+      {/* The global modal is already mounted in App.tsx */}
       <AssistantModal
         isOpen={assistantModal.isOpen}
         onClose={assistantModal.close}

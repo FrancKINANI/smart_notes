@@ -27,7 +27,7 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Fonction pour rejouer les mutations en attente
+// Function to replay pending mutations
 export async function replayPendingMutations() {
   const pendingMutations = JSON.parse(
     localStorage.getItem("pendingMutations") || "[]"
@@ -35,23 +35,23 @@ export async function replayPendingMutations() {
 
   if (pendingMutations.length === 0) return;
 
-  // Trier les mutations par timestamp
+  // Sort mutations by timestamp
   pendingMutations.sort((a: any, b: any) => a.timestamp - b.timestamp);
 
-  // Rejouer chaque mutation
+  // Replay each mutation
   for (const mutation of pendingMutations) {
     try {
       await queryClient.executeMutation(mutation);
     } catch (error) {
-      console.error("Erreur lors de la reprise de la mutation:", error);
+      console.error("Error resuming the mutation:", error);
     }
   }
 
-  // Effacer les mutations en attente
+  // Clear pending mutations
   localStorage.removeItem("pendingMutations");
 }
 
-// Hook personnalisé pour la gestion des requêtes hors-ligne
+// Custom hook for offline query management
 export function useOfflineQuery(queryKey: any[], queryFn: () => Promise<any>) {
   const { isOffline } = useOffline();
 
@@ -64,7 +64,7 @@ export function useOfflineQuery(queryKey: any[], queryFn: () => Promise<any>) {
   });
 }
 
-// Écouter les événements de connexion pour rejouer les mutations
+// Listen for connection events to replay mutations
 if (typeof window !== "undefined") {
   window.addEventListener("online", () => {
     replayPendingMutations();

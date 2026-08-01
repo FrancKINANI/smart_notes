@@ -61,7 +61,7 @@ export async function generateFlashcards(
     );
     return response;
   } catch (error) {
-    console.error("Erreur lors de la génération des flashcards:", error);
+    console.error("Error generating flashcards:", error);
     throw error;
   }
 }
@@ -133,8 +133,8 @@ export async function sendChatMessage(
 
     return response.data.reply;
   } catch (error) {
-    console.error('Erreur lors de la communication avec l\'API OpenAI:', error);
-    throw new Error("Impossible de générer une réponse. Veuillez réessayer.");
+    console.error('Error communicating with the OpenAI API:', error);
+    throw new Error("Unable to generate a response. Please try again.");
   }
 }
 
@@ -143,16 +143,16 @@ export async function generateContextualExplanation(
   userContext: UserContext,
   options: GenerationOptions = {}
 ): Promise<string> {
-  const systemPrompt = `Tu es un assistant pédagogique expert. Explique le concept suivant en 
-  l'adaptant au niveau et au style d'apprentissage de l'utilisateur. Utilise des exemples pertinents
-  par rapport à ses intérêts et domaines d'études. Concentre-toi particulièrement sur les liens
-  avec ce qu'il connaît déjà et ce qu'il trouve difficile.`;
+  const systemPrompt = `You are an expert educational assistant. Explain the following concept by 
+  adapting it to the user's level and learning style. Use examples that are relevant
+  to their interests and fields of study. Focus especially on the connections
+  with what they already know and what they find difficult.`;
 
   const contextSummary = createUserContextSummary(userContext);
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: `Concept à expliquer: ${concept}\n\nContexte de l'utilisateur: ${contextSummary}` }
+    { role: "user", content: `Concept to explain: ${concept}\n\nUser context: ${contextSummary}` }
   ];
 
   try {
@@ -163,8 +163,8 @@ export async function generateContextualExplanation(
 
     return response.data.content;
   } catch (error) {
-    console.error('Erreur lors de la génération d\'explication contextuelle:', error);
-    throw new Error("Impossible de générer une explication. Veuillez réessayer.");
+    console.error('Error generating contextual explanation:', error);
+    throw new Error("Unable to generate an explanation. Please try again.");
   }
 }
 
@@ -173,17 +173,16 @@ export async function generatePersonalizedSummary(
   userContext: UserContext,
   options: GenerationOptions = {}
 ): Promise<string> {
-  const systemPrompt = `Tu es un assistant spécialisé dans les résumés personnalisés. 
-  Crée un résumé concis mais complet du contenu fourni. Adapte ton résumé aux forces, 
-  faiblesses et préférences d'apprentissage de l'utilisateur. Souligne les points clés qui 
-  correspondent aux centres d'intérêt de l'utilisateur et simplifie les concepts qu'il trouve 
-  habituellement difficiles.`;
+  const systemPrompt = `You are an assistant specialized in personalized summaries. 
+  Create a concise but complete summary of the provided content. Adapt your summary to the user's 
+  strengths, weaknesses and learning preferences. Highlight the key points that 
+  match the user's interests and simplify the concepts they usually find difficult.`;
 
   const contextSummary = createUserContextSummary(userContext);
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: `Contenu à résumer: ${noteContent}\n\nContexte de l'utilisateur: ${contextSummary}` }
+    { role: "user", content: `Content to summarize: ${noteContent}\n\nUser context: ${contextSummary}` }
   ];
 
   try {
@@ -194,8 +193,8 @@ export async function generatePersonalizedSummary(
 
     return response.data.content;
   } catch (error) {
-    console.error('Erreur lors de la génération du résumé personnalisé:', error);
-    throw new Error("Impossible de générer un résumé. Veuillez réessayer.");
+    console.error('Error generating personalized summary:', error);
+    throw new Error("Unable to generate a summary. Please try again.");
   }
 }
 
@@ -205,17 +204,17 @@ export async function generateStudyPlan(
   userContext: UserContext,
   options: GenerationOptions = {}
 ): Promise<any> {
-  const systemPrompt = `Tu es un expert en plans d'étude personnalisés. Crée un plan d'étude 
-  détaillé pour le sujet demandé, adapté au profil d'apprentissage, aux forces et aux faiblesses 
-  de l'utilisateur. Le plan doit inclure des ressources recommandées, des exercices pratiques, 
-  et un calendrier réaliste sur la durée spécifiée. Prends en compte les contraintes de temps 
-  et le niveau de connaissance actuel de l'utilisateur.`;
+  const systemPrompt = `You are an expert in personalized study plans. Create a detailed study plan 
+  for the requested topic, tailored to the user's learning profile, strengths and weaknesses. 
+  The plan must include recommended resources, practical exercises, 
+  and a realistic schedule over the specified duration. Take into account the user's time 
+  constraints and current level of knowledge.`;
 
   const contextSummary = createUserContextSummary(userContext);
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: `Sujet: ${topic}\nDurée: ${duration}\n\nContexte de l'utilisateur: ${contextSummary}` }
+    { role: "user", content: `Topic: ${topic}\nDuration: ${duration}\n\nUser context: ${contextSummary}` }
   ];
 
   try {
@@ -225,54 +224,54 @@ export async function generateStudyPlan(
     });
 
     return {
-      title: `Plan d'étude: ${topic}`,
+      title: `Study plan: ${topic}`,
       duration: duration,
       content: response.data.content,
       createdAt: new Date().toISOString()
     };
   } catch (error) {
-    console.error('Erreur lors de la génération du plan d\'étude:', error);
-    throw new Error("Impossible de générer un plan d'étude. Veuillez réessayer.");
+    console.error('Error generating study plan:', error);
+    throw new Error("Unable to generate a study plan. Please try again.");
   }
 }
 
 function createUserContextSummary(context: UserContext): string {
-  let summary = "Profil de l'utilisateur:\n";
+  let summary = "User profile:\n";
 
   if (context.learningPreferences) {
-    summary += "- Préférences d'apprentissage: ";
+    summary += "- Learning preferences: ";
     if (context.learningPreferences.preferredLearningStyle) {
-      summary += `Style préféré: ${context.learningPreferences.preferredLearningStyle}. `;
+      summary += `Preferred style: ${context.learningPreferences.preferredLearningStyle}. `;
     }
     if (context.learningPreferences.difficultyPreference) {
-      summary += `Préfère les défis: ${context.learningPreferences.difficultyPreference}. `;
+      summary += `Prefers challenges: ${context.learningPreferences.difficultyPreference}. `;
     }
     if (context.learningPreferences.focusAreas && context.learningPreferences.focusAreas.length > 0) {
-      summary += `Domaines d'intérêt: ${context.learningPreferences.focusAreas.join(', ')}.`;
+      summary += `Areas of interest: ${context.learningPreferences.focusAreas.join(', ')}.`;
     }
     summary += "\n";
   }
 
   if (context.performanceMetrics) {
-    summary += "- Performances: ";
+    summary += "- Performance: ";
     if (context.performanceMetrics.strongAreas && context.performanceMetrics.strongAreas.length > 0) {
-      summary += `Points forts: ${context.performanceMetrics.strongAreas.join(', ')}. `;
+      summary += `Strengths: ${context.performanceMetrics.strongAreas.join(', ')}. `;
     }
     if (context.performanceMetrics.weakAreas && context.performanceMetrics.weakAreas.length > 0) {
-      summary += `Points à améliorer: ${context.performanceMetrics.weakAreas.join(', ')}.`;
+      summary += `Areas to improve: ${context.performanceMetrics.weakAreas.join(', ')}.`;
     }
     summary += "\n";
   }
 
   if (context.notes && context.notes.length > 0) {
-    summary += "- Notes récentes: ";
+    summary += "- Recent notes: ";
     const recentNotes = context.notes.slice(0, 3).map(note => note.title);
     summary += recentNotes.join(', ');
     summary += "\n";
   }
 
   if (context.quizResults && context.quizResults.length > 0) {
-    summary += "- Performances récentes aux quiz: ";
+    summary += "- Recent quiz results: ";
     const recentQuizzes = context.quizResults.slice(0, 3).map(quiz => 
       `${quiz.topic} (${quiz.score}%)`
     );
@@ -287,14 +286,14 @@ export async function extractKeyConcepts(
   content: string,
   options: GenerationOptions = {}
 ): Promise<string[]> {
-  const systemPrompt = `Tu es un expert en analyse de contenu éducatif. Identifie et liste 
-  les concepts clés présents dans le texte fourni. Concentre-toi uniquement sur les concepts 
-  importants, les théories, les termes techniques, et les idées principales. Retourne le résultat 
-  sous forme de liste de concepts.`;
+  const systemPrompt = `You are an expert in educational content analysis. Identify and list 
+  the key concepts present in the provided text. Focus only on the important concepts, 
+  theories, technical terms, and main ideas. Return the result 
+  as a list of concepts.`;
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: `Analyse le contenu suivant et extrais les concepts clés:\n\n${content}` }
+    { role: "user", content: `Analyze the following content and extract the key concepts:\n\n${content}` }
   ];
 
   try {
@@ -311,8 +310,8 @@ export async function extractKeyConcepts(
 
     return concepts;
   } catch (error) {
-    console.error('Erreur lors de l\'extraction des concepts clés:', error);
-    throw new Error("Impossible d'extraire les concepts clés. Veuillez réessayer.");
+    console.error('Error extracting key concepts:', error);
+    throw new Error("Unable to extract the key concepts. Please try again.");
   }
 }
 
@@ -322,14 +321,14 @@ export async function generateComprehensionQuestions(
   count: number = 3,
   options: GenerationOptions = {}
 ): Promise<Array<{ question: string, answer: string }>> {
-  const systemPrompt = `Tu es un expert en évaluation éducative. Génère ${count} questions de 
-  compréhension de niveau "${difficulty}" basées sur le contenu fourni. Pour chaque question, 
-  fournis également la réponse correcte. Les questions doivent être précises, claires et 
-  directement liées au contenu.`;
+  const systemPrompt = `You are an expert in educational assessment. Generate ${count} comprehension 
+  questions at "${difficulty}" level based on the provided content. For each question, 
+  also provide the correct answer. The questions must be precise, clear and 
+  directly related to the content.`;
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: `Contenu à évaluer:\n\n${content}` }
+    { role: "user", content: `Content to assess:\n\n${content}` }
   ];
 
   try {
@@ -343,8 +342,8 @@ export async function generateComprehensionQuestions(
     
     return questionsAndAnswers.slice(0, count);
   } catch (error) {
-    console.error('Erreur lors de la génération des questions:', error);
-    throw new Error("Impossible de générer des questions. Veuillez réessayer.");
+    console.error('Error generating questions:', error);
+    throw new Error("Unable to generate questions. Please try again.");
   }
 }
 
@@ -352,9 +351,9 @@ function parseQuestionsAndAnswers(text: string): Array<{ question: string, answe
   const result: Array<{ question: string, answer: string }> = [];
   
   const patterns = [
-    /Q\d+\.\s*(.*?)\s*\n\s*R\d+\.\s*(.*?)(?=\n\s*Q\d+\.|\n\s*$|$)/gs,
-    /Question\s*\d+\s*:\s*(.*?)\s*\n\s*Réponse\s*:\s*(.*?)(?=\n\s*Question\s*\d+\s*:|\n\s*$|$)/gs,
-    /\d+\.\s*(.*?)\s*\n\s*Réponse\s*:\s*(.*?)(?=\n\s*\d+\.|\n\s*$|$)/gs
+    /Q\d+\.\s*(.*?)\s*\n\s*A\d+\.\s*(.*?)(?=\n\s*Q\d+\.|\n\s*$|$)/gs,
+    /Question\s*\d+\s*:\s*(.*?)\s*\n\s*Answer\s*:\s*(.*?)(?=\n\s*Question\s*\d+\s*:|\n\s*$|$)/gs,
+    /\d+\.\s*(.*?)\s*\n\s*Answer\s*:\s*(.*?)(?=\n\s*\d+\.|\n\s*$|$)/gs
   ];
   
   for (const pattern of patterns) {
@@ -384,8 +383,8 @@ function parseQuestionsAndAnswers(text: string): Array<{ question: string, answe
           questionLine.match(/^\d+\./) || 
           questionLine.toLowerCase().includes('question')) {
         let answer = answerLine;
-        if (answerLine.toLowerCase().includes('réponse')) {
-          answer = answerLine.replace(/^.*?éponse\s*:?\s*/i, '');
+        if (answerLine.toLowerCase().includes('answer')) {
+          answer = answerLine.replace(/^.*?answer\s*:?\s*/i, '');
         }
         
         result.push({

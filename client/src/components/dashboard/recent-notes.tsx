@@ -48,9 +48,9 @@ export default function RecentNotes({ notes, isLoading }: RecentNotesProps) {
   return (
     <div className="mb-10">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-medium text-gray-900">Notes récentes</h2>
+        <h2 className="text-lg font-medium text-gray-900">Recent notes</h2>
         <Link href="/notes" className="text-sm font-medium text-primary-600 hover:text-primary-700">
-          Voir toutes
+          View all
         </Link>
       </div>
 
@@ -110,7 +110,7 @@ export default function RecentNotes({ notes, isLoading }: RecentNotesProps) {
                     
                     <Button size="sm" variant="outline" asChild>
                       <Link href={`/notes/${note.id}`}>
-                        <Edit className="mr-1 h-3 w-3" /> Modifier
+                        <Edit className="mr-1 h-3 w-3" /> Edit
                       </Link>
                     </Button>
                   </div>
@@ -120,9 +120,9 @@ export default function RecentNotes({ notes, isLoading }: RecentNotesProps) {
           })
         ) : (
           <div className="col-span-full text-center py-8">
-            <p className="text-gray-500 mb-4">Vous n'avez pas encore de notes.</p>
+            <p className="text-gray-500 mb-4">You don't have any notes yet.</p>
             <Button asChild>
-              <Link href="/notes/create">Créer votre première note</Link>
+              <Link href="/notes/create">Create your first note</Link>
             </Button>
           </div>
         )}

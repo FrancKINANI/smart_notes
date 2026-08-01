@@ -71,7 +71,7 @@ export default function CreateNote() {
       subjectId: "",
       content: "",
     },
-    mode: "onSubmit", // Empêche la synchro/sauvegarde à chaque onChange
+    mode: "onSubmit", // Prevents sync/save on every onChange
   });
 
   // Update form values when editing an existing note

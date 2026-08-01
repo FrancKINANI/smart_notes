@@ -2,7 +2,7 @@ const isLocalhost = Boolean(
   window.location.hostname === "localhost" ||
     window.location.hostname === "[::1]" ||
     window.location.hostname.match(
-      /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
+      /^127(?:\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
     )
 );
 
@@ -100,7 +100,7 @@ export function unregister() {
   }
 }
 
-// Interface pour gérer la synchronisation en arrière-plan
+// Interface to manage background sync
 export async function registerBackgroundSync() {
   if ("serviceWorker" in navigator && "SyncManager" in window) {
     try {
@@ -113,7 +113,7 @@ export async function registerBackgroundSync() {
   }
 }
 
-// Interface pour gérer les notifications push
+// Interface to manage push notifications
 export async function subscribeToPushNotifications() {
   if ("serviceWorker" in navigator && "PushManager" in window) {
     try {
@@ -130,7 +130,7 @@ export async function subscribeToPushNotifications() {
         applicationServerKey: process.env.VITE_VAPID_PUBLIC_KEY,
       });
 
-      // Envoyer la subscription au serveur
+      // Send the subscription to the server
       await fetch("/api/push/subscribe", {
         method: "POST",
         headers: {

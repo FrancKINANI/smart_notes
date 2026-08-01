@@ -4,30 +4,30 @@ import { getLLMProvider } from "../services/llm-provider";
 const router = Router();
 
 const SYSTEM_PROMPT =
-  "Vous êtes un assistant d'étude intelligent qui aide les étudiants à mieux comprendre et apprendre. Vos réponses sont concises, précises et pédagogiques.";
+  "You are an intelligent study assistant who helps students understand and learn better. Your answers are concise, precise and educational.";
 
 // Mode-specific system prompts (advanced-learning-assistant)
 const MODE_PROMPTS: Record<string, string> = {
   tutor:
-    "Agissez comme un tuteur patient et pédagogique. Guidez l'étudiant étape par étape sans donner directement toutes les réponses.",
+    "Act as a patient and pedagogical tutor. Guide the student step by step without directly giving all the answers.",
   quiz:
-    "Agissez comme un professeur qui pose des questions de quiz. Posez une question à la fois et évaluez la réponse de l'étudiant.",
+    "Act as a teacher asking quiz questions. Ask one question at a time and assess the student's answer.",
   explain:
-    "Agissez comme un expert qui explique simplement les concepts complexes, avec des exemples concrets et des analogies.",
+    "Act as an expert who simply explains complex concepts, with concrete examples and analogies.",
 };
 
-// POST /api/ai/chat — utilisé par sendChatMessage (openai.ts) et
+// POST /api/ai/chat — used by sendChatMessage (openai.ts) and
 // AdvancedLearningAssistant (payload { message, context, mode, history }).
 router.post("/chat", async (req, res) => {
   try {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Non authentifié" });
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const { message, history, options, mode } = req.body;
 
     if (!message) {
-      return res.status(400).json({ message: "Le message est requis" });
+      return res.status(400).json({ message: "Message is required" });
     }
 
     const systemPrompt = (mode && MODE_PROMPTS[mode]) || SYSTEM_PROMPT;
@@ -46,9 +46,9 @@ router.post("/chat", async (req, res) => {
       (await provider.chat(chatMessages, {
         temperature: options?.temperature ?? 0.7,
         maxTokens: options?.maxTokens ?? 1000,
-      })) || "Désolé, je n'ai pas pu générer une réponse.";
+      })) || "Sorry, I could not generate a response.";
 
-    // `reply` pour openai.ts, `response`/`type`/`shouldSpeak` pour AdvancedLearningAssistant
+    // `reply` for openai.ts, `response`/`type`/`shouldSpeak` for AdvancedLearningAssistant
     res.json({
       reply,
       response: reply,
@@ -56,9 +56,9 @@ router.post("/chat", async (req, res) => {
       shouldSpeak: false,
     });
   } catch (error) {
-    console.error("Erreur de l'API AI Chat:", error);
+    console.error("AI Chat API error:", error);
     res.status(500).json({
-      message: "Erreur lors de la génération de la réponse",
+      message: "Error while generating the response",
       error:
         process.env.NODE_ENV === "development" && error instanceof Error
           ? error.message
@@ -67,13 +67,13 @@ router.post("/chat", async (req, res) => {
   }
 });
 
-// POST /api/ai/generate — utilisé par generateContextualExplanation,
+// POST /api/ai/generate — used by generateContextualExplanation,
 // generatePersonalizedSummary, generateStudyPlan, extractKeyConcepts,
 // generateComprehensionQuestions (openai.ts). Payload { messages, options }.
 router.post("/generate", async (req, res) => {
   try {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Non authentifié" });
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const { messages, options } = req.body;
@@ -81,7 +81,7 @@ router.post("/generate", async (req, res) => {
     if (!Array.isArray(messages) || messages.length === 0) {
       return res
         .status(400)
-        .json({ message: "Le tableau de messages est requis" });
+        .json({ message: "The messages array is required" });
     }
 
     const sanitized = messages.map(
@@ -101,9 +101,9 @@ router.post("/generate", async (req, res) => {
 
     res.json({ content });
   } catch (error) {
-    console.error("Erreur de l'API AI Generate:", error);
+    console.error("AI Generate API error:", error);
     res.status(500).json({
-      message: "Erreur lors de la génération",
+      message: "Error while generating",
       error:
         process.env.NODE_ENV === "development" && error instanceof Error
           ? error.message
@@ -112,8 +112,8 @@ router.post("/generate", async (req, res) => {
   }
 });
 
-// POST /api/ai/feedback — retours positifs/négatifs de AdvancedLearningAssistant.
-// Aucune table dédiée : on journalise et on répond ok.
+// POST /api/ai/feedback — positive/negative feedback from AdvancedLearningAssistant.
+// No dedicated table: we log and reply ok.
 router.post("/feedback", async (req, res) => {
   const { messageId, isPositive } = req.body;
   console.log(

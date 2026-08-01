@@ -50,7 +50,7 @@ export default function StudyGroupsPage() {
     isPrivate: false,
   });
 
-  // Récupérer les groupes d'étude de l'utilisateur
+  // Fetch the user's study groups
   const {
     data: studyGroups,
     isLoading,
@@ -61,7 +61,7 @@ export default function StudyGroupsPage() {
     queryFn: async () => {
       const res = await apiRequest("/api/study-groups");
       if (!res.ok) {
-        throw new Error("Impossible de récupérer les groupes d'étude");
+        throw new Error("Unable to retrieve study groups");
       }
       return res.json();
     },
@@ -72,8 +72,8 @@ export default function StudyGroupsPage() {
 
     if (!newGroup.name) {
       toast({
-        title: "Erreur",
-        description: "Le nom du groupe est requis",
+        title: "Error",
+        description: "Group name is required",
         variant: "destructive",
       });
       return;
@@ -87,21 +87,21 @@ export default function StudyGroupsPage() {
       if (!res.ok) {
         const error = await res.json();
         throw new Error(
-          error.message || "Erreur lors de la création du groupe"
+          error.message || "Error while creating the group"
         );
       }
 
       toast({
-        title: "Groupe créé",
-        description: "Votre groupe d'étude a été créé avec succès",
+        title: "Group created",
+        description: "Your study group has been created successfully",
       });
 
       setNewGroupDialog(false);
       setNewGroup({ name: "", description: "", isPrivate: false });
-      refetch(); // Actualiser la liste des groupes
+      refetch(); // Refresh the group list
     } catch (error: any) {
       toast({
-        title: "Erreur",
+        title: "Error",
         description: error.message,
         variant: "destructive",
       });
@@ -112,33 +112,33 @@ export default function StudyGroupsPage() {
     <div className="container py-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Groupes d'étude</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Study groups</h1>
           <p className="text-muted-foreground">
-            Collaborez avec d'autres étudiants pour améliorer votre
-            apprentissage
+            Collaborate with other students to improve your
+            learning
           </p>
         </div>
         <Dialog open={newGroupDialog} onOpenChange={setNewGroupDialog}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="mr-2 h-4 w-4" /> Nouveau groupe
+              <Plus className="mr-2 h-4 w-4" /> New group
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Créer un nouveau groupe d'étude</DialogTitle>
+              <DialogTitle>Create a new study group</DialogTitle>
               <DialogDescription>
-                Créez un groupe pour partager vos notes et collaborer avec
-                d'autres étudiants.
+                Create a group to share your notes and collaborate with
+                other students.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateGroup}>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nom du groupe</Label>
+                  <Label htmlFor="name">Group name</Label>
                   <Input
                     id="name"
-                    placeholder="Ex: Groupe de biologie avancée"
+                    placeholder="e.g. Advanced biology group"
                     value={newGroup.name}
                     onChange={(e) =>
                       setNewGroup({ ...newGroup, name: e.target.value })
@@ -147,10 +147,10 @@ export default function StudyGroupsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description (optionnelle)</Label>
+                  <Label htmlFor="description">Description (optional)</Label>
                   <Input
                     id="description"
-                    placeholder="Décrivez le but de ce groupe d'étude"
+                    placeholder="Describe the purpose of this study group"
                     value={newGroup.description}
                     onChange={(e) =>
                       setNewGroup({ ...newGroup, description: e.target.value })
@@ -166,7 +166,7 @@ export default function StudyGroupsPage() {
                     }
                   />
                   <Label htmlFor="private">
-                    Groupe privé (accès sur invitation uniquement)
+                    Private group (invitation only)
                   </Label>
                 </div>
               </div>
@@ -176,9 +176,9 @@ export default function StudyGroupsPage() {
                   type="button"
                   onClick={() => setNewGroupDialog(false)}
                 >
-                  Annuler
+                  Cancel
                 </Button>
-                <Button type="submit">Créer le groupe</Button>
+                <Button type="submit">Create the group</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -187,8 +187,8 @@ export default function StudyGroupsPage() {
 
       <Tabs defaultValue="mygroups">
         <TabsList>
-          <TabsTrigger value="mygroups">Mes groupes</TabsTrigger>
-          <TabsTrigger value="discover">Découvrir</TabsTrigger>
+          <TabsTrigger value="mygroups">My groups</TabsTrigger>
+          <TabsTrigger value="discover">Discover</TabsTrigger>
         </TabsList>
         <TabsContent value="mygroups" className="space-y-4 mt-6">
           {isLoading ? (
@@ -197,9 +197,9 @@ export default function StudyGroupsPage() {
             </div>
           ) : error ? (
             <Alert variant="destructive">
-              <AlertTitle>Erreur</AlertTitle>
+              <AlertTitle>Error</AlertTitle>
               <AlertDescription>
-                Impossible de charger vos groupes d'étude.
+                Unable to load your study groups.
               </AlertDescription>
             </Alert>
           ) : studyGroups && studyGroups.length > 0 ? (
@@ -217,21 +217,21 @@ export default function StudyGroupsPage() {
                         )}
                       </div>
                       <CardDescription className="line-clamp-2">
-                        {group.description || "Aucune description"}
+                        {group.description || "No description"}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center text-sm text-muted-foreground">
                         <Users className="mr-2 h-4 w-4" />
-                        <span>Membres</span>
+                        <span>Members</span>
                       </div>
                       <div className="flex items-center text-sm text-muted-foreground mt-2">
                         <BookOpen className="mr-2 h-4 w-4" />
-                        <span>Notes partagées</span>
+                        <span>Shared notes</span>
                       </div>
                     </CardContent>
                     <CardFooter className="text-xs text-muted-foreground">
-                      Créé le {new Date(group.createdAt).toLocaleDateString()}
+                      Created on {new Date(group.createdAt).toLocaleDateString()}
                     </CardFooter>
                   </Card>
                 </Link>
@@ -240,12 +240,12 @@ export default function StudyGroupsPage() {
           ) : (
             <div className="text-center py-12">
               <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Aucun groupe d'étude</h3>
+              <h3 className="text-lg font-medium">No study group</h3>
               <p className="text-muted-foreground mt-2 mb-6">
-                Vous n'avez pas encore rejoint ou créé de groupe d'étude.
+                You have not joined or created a study group yet.
               </p>
               <Button onClick={() => setNewGroupDialog(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Créer un groupe
+                <Plus className="mr-2 h-4 w-4" /> Create a group
               </Button>
             </div>
           )}
@@ -253,14 +253,14 @@ export default function StudyGroupsPage() {
         <TabsContent value="discover" className="mt-6">
           <div className="text-center py-12 px-4">
             <UserPlus className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">Rejoindre un groupe</h3>
+            <h3 className="text-lg font-medium">Join a group</h3>
             <p className="text-muted-foreground mt-2 mb-6 max-w-md mx-auto">
-              Pour rejoindre un groupe privé, demandez le code d'invitation à un
-              membre du groupe et entrez-le ci-dessous.
+              To join a private group, ask a group member for the invitation
+              code and enter it below.
             </p>
             <div className="flex max-w-md mx-auto">
-              <Input placeholder="Code d'invitation" className="mr-2" />
-              <Button>Rejoindre</Button>
+              <Input placeholder="Invitation code" className="mr-2" />
+              <Button>Join</Button>
             </div>
           </div>
         </TabsContent>

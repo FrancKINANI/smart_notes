@@ -106,31 +106,31 @@ export default function StudyGroupDetailsPage() {
   const [selectedNote, setSelectedNote] = useState<number | null>(null);
   const [selectedPermission, setSelectedPermission] = useState<string>("read");
 
-  // Récupérer les détails du groupe
+  // Fetch the group details
   const { data: group, isLoading: groupLoading } = useQuery<StudyGroup>({
     queryKey: [`/api/study-groups/${groupId}`],
     queryFn: async () => {
       const res = await apiRequest(`/api/study-groups/${groupId}`);
       if (!res.ok) {
-        throw new Error("Impossible de récupérer les détails du groupe");
+        throw new Error("Unable to retrieve group details");
       }
       return res.json();
     },
   });
 
-  // Récupérer les membres du groupe
+  // Fetch the group members
   const { data: members, isLoading: membersLoading } = useQuery<Member[]>({
     queryKey: [`/api/study-groups/${groupId}/members`],
     queryFn: async () => {
       const res = await apiRequest(`/api/study-groups/${groupId}/members`);
       if (!res.ok) {
-        throw new Error("Impossible de récupérer les membres du groupe");
+        throw new Error("Unable to retrieve group members");
       }
       return res.json();
     },
   });
 
-  // Récupérer les notes partagées
+  // Fetch the shared notes
   const { data: sharedNotes, isLoading: notesLoading } = useQuery<SharedNote[]>(
     {
       queryKey: [`/api/study-groups/${groupId}/shared-notes`],
@@ -139,31 +139,31 @@ export default function StudyGroupDetailsPage() {
           `/api/study-groups/${groupId}/shared-notes`
         );
         if (!res.ok) {
-          throw new Error("Impossible de récupérer les notes partagées");
+          throw new Error("Unable to retrieve shared notes");
         }
         return res.json();
       },
     }
   );
 
-  // Récupérer les notes de l'utilisateur pour le partage
+  // Fetch the user's notes for sharing
   const { data: userNotes } = useQuery({
     queryKey: ["/api/notes", user?.id],
     queryFn: async () => {
       const res = await apiRequest(`/api/notes?userId=${user?.id}`);
       if (!res.ok) {
-        throw new Error("Impossible de récupérer vos notes");
+        throw new Error("Unable to retrieve your notes");
       }
       return res.json();
     },
     enabled: !!user && shareNoteDialog,
   });
 
-  // Partager une note
+  // Share a note
   const shareNoteMutation = useMutation({
     mutationFn: async () => {
       if (!selectedNote) {
-        throw new Error("Veuillez sélectionner une note à partager");
+        throw new Error("Please select a note to share");
       }
 
       const res = await apiRequest(
@@ -179,20 +179,20 @@ export default function StudyGroupDetailsPage() {
 
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Erreur lors du partage de la note");
+        throw new Error(error.message || "Error while sharing the note");
       }
 
       return res.json();
     },
     onSuccess: () => {
-      // Actualiser la liste des notes partagées
+      // Refresh the shared notes list
       queryClient.invalidateQueries({
         queryKey: [`/api/study-groups/${groupId}/shared-notes`],
       });
 
       toast({
-        title: "Note partagée",
-        description: "Votre note a été partagée avec succès",
+        title: "Note shared",
+        description: "Your note has been shared successfully",
       });
 
       setShareNoteDialog(false);
@@ -201,14 +201,14 @@ export default function StudyGroupDetailsPage() {
     },
     onError: (error: any) => {
       toast({
-        title: "Erreur",
+        title: "Error",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  // Gérer le partage du code d'invitation
+  // Handle sharing the invitation code
   const copyInviteCode = () => {
     if (group?.inviteCode) {
       navigator.clipboard.writeText(group.inviteCode);
@@ -217,7 +217,7 @@ export default function StudyGroupDetailsPage() {
     }
   };
 
-  // Déterminer si l'utilisateur est l'administrateur du groupe
+  // Determine if the user is the group administrator
   const isAdmin = members?.some(
     (member) =>
       member.userId === user?.id &&
@@ -236,14 +236,14 @@ export default function StudyGroupDetailsPage() {
     return (
       <div className="container py-6">
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold">Groupe non trouvé</h2>
+          <h2 className="text-2xl font-bold">Group not found</h2>
           <p className="text-muted-foreground mt-2">
-            Le groupe d'étude que vous recherchez n'existe pas ou vous n'avez
-            pas les permissions nécessaires.
+            The study group you are looking for does not exist or you do not
+            have the required permissions.
           </p>
           <Link href="/study-groups">
             <Button className="mt-4">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Retour aux groupes
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to groups
             </Button>
           </Link>
         </div>
@@ -262,7 +262,7 @@ export default function StudyGroupDetailsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{group.name}</h1>
           <p className="text-muted-foreground">
-            {group.description || "Aucune description"}
+            {group.description || "No description"}
           </p>
         </div>
       </div>
@@ -273,11 +273,11 @@ export default function StudyGroupDetailsPage() {
             <Users className="h-5 w-5" />
           </div>
           <span className="ml-2 text-sm text-muted-foreground">
-            {members?.length || 0} membres
+            {members?.length || 0} members
           </span>
           {group.isPrivate && (
             <span className="ml-4 text-sm bg-secondary text-secondary-foreground px-2 py-1 rounded-full">
-              Groupe privé
+              Private group
             </span>
           )}
         </div>
@@ -288,15 +288,15 @@ export default function StudyGroupDetailsPage() {
               <DialogTrigger asChild>
                 <Button variant="outline">
                   <UserPlus className="mr-2 h-4 w-4" />
-                  Inviter
+                  Invite
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Inviter des membres</DialogTitle>
+                  <DialogTitle>Invite members</DialogTitle>
                   <DialogDescription>
-                    Partagez ce code d'invitation pour permettre à d'autres
-                    personnes de rejoindre votre groupe d'étude.
+                    Share this invitation code to let other
+                    people join your study group.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
@@ -319,7 +319,7 @@ export default function StudyGroupDetailsPage() {
                   </div>
                   {copySuccess && (
                     <p className="text-sm text-green-500">
-                      Code d'invitation copié!
+                      Invitation code copied!
                     </p>
                   )}
                 </div>
@@ -331,26 +331,26 @@ export default function StudyGroupDetailsPage() {
             <DialogTrigger asChild>
               <Button>
                 <Share className="mr-2 h-4 w-4" />
-                Partager une note
+                Share a note
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Partager une note</DialogTitle>
+                <DialogTitle>Share a note</DialogTitle>
                 <DialogDescription>
-                  Partagez l'une de vos notes avec les membres de ce groupe
-                  d'étude.
+                  Share one of your notes with the members of this study
+                  group.
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4 space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="note">Sélectionnez une note</Label>
+                  <Label htmlFor="note">Select a note</Label>
                   <Select
                     value={selectedNote?.toString() || ""}
                     onValueChange={(value) => setSelectedNote(parseInt(value))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Choisir une note" />
+                      <SelectValue placeholder="Choose a note" />
                     </SelectTrigger>
                     <SelectContent>
                       {userNotes?.map((note: any) => (
@@ -371,12 +371,12 @@ export default function StudyGroupDetailsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="read">Lecture seule</SelectItem>
+                      <SelectItem value="read">Read only</SelectItem>
                       <SelectItem value="comment">
-                        Lecture + Commentaires
+                        Read + Comments
                       </SelectItem>
                       <SelectItem value="edit">
-                        Lecture + Commentaires + Édition
+                        Read + Comments + Edit
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -387,10 +387,10 @@ export default function StudyGroupDetailsPage() {
                   variant="outline"
                   onClick={() => setShareNoteDialog(false)}
                 >
-                  Annuler
+                  Cancel
                 </Button>
                 <Button onClick={() => shareNoteMutation.mutate()}>
-                  Partager
+                  Share
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -402,11 +402,11 @@ export default function StudyGroupDetailsPage() {
         <TabsList>
           <TabsTrigger value="notes">
             <BookOpen className="h-4 w-4 mr-2" />
-            Notes partagées
+            Shared notes
           </TabsTrigger>
           <TabsTrigger value="members">
             <Users className="h-4 w-4 mr-2" />
-            Membres
+            Members
           </TabsTrigger>
         </TabsList>
 
@@ -422,7 +422,7 @@ export default function StudyGroupDetailsPage() {
                       </CardTitle>
                       <CardDescription className="flex items-center text-xs">
                         <span>
-                          Partagée par{" "}
+                          Shared by{" "}
                           {shared.sharedByUser.displayName ||
                             shared.sharedByUser.username}
                         </span>
@@ -435,12 +435,12 @@ export default function StudyGroupDetailsPage() {
                     </CardContent>
                     <CardFooter className="flex justify-between text-xs text-muted-foreground">
                       <span>
-                        Partagée le{" "}
+                        Shared on{" "}
                         {new Date(shared.sharedAt).toLocaleDateString()}
                       </span>
                       <div className="flex items-center">
                         <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                        <span>Commentaires</span>
+                        <span>Comments</span>
                       </div>
                     </CardFooter>
                   </Card>
@@ -450,12 +450,12 @@ export default function StudyGroupDetailsPage() {
           ) : (
             <div className="text-center py-12">
               <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Aucune note partagée</h3>
+              <h3 className="text-lg font-medium">No shared note</h3>
               <p className="text-muted-foreground mt-2 mb-6">
-                Aucune note n'a encore été partagée dans ce groupe d'étude.
+                No note has been shared in this study group yet.
               </p>
               <Button onClick={() => setShareNoteDialog(true)}>
-                <Share className="mr-2 h-4 w-4" /> Partager une note
+                <Share className="mr-2 h-4 w-4" /> Share a note
               </Button>
             </div>
           )}
@@ -467,7 +467,7 @@ export default function StudyGroupDetailsPage() {
               <div className="flex justify-end">
                 <Button variant="outline" onClick={() => setInviteDialog(true)}>
                   <UserPlus className="mr-2 h-4 w-4" />
-                  Inviter des membres
+                  Invite members
                 </Button>
               </div>
             )}
@@ -499,7 +499,7 @@ export default function StudyGroupDetailsPage() {
                   <div className="flex items-center">
                     {member.userId === group.creatorId ? (
                       <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
-                        Créateur
+                        Creator
                       </span>
                     ) : member.role === "admin" ? (
                       <span className="text-xs bg-blue-500/10 text-blue-500 px-2 py-1 rounded-full">
@@ -507,7 +507,7 @@ export default function StudyGroupDetailsPage() {
                       </span>
                     ) : (
                       <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
-                        Membre
+                        Member
                       </span>
                     )}
                   </div>

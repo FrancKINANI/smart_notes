@@ -37,10 +37,10 @@ export default function UploadModal({ isOpen, onClose, userId }: UploadModalProp
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Upload className="h-5 w-5 mr-2 text-primary-500" />
-            Importer des notes
+            Import notes
           </DialogTitle>
           <DialogDescription>
-            Téléchargez une photo de vos notes manuscrites ou importez un document.
+            Upload a photo of your handwritten notes or import a document.
           </DialogDescription>
         </DialogHeader>
         
@@ -61,10 +61,10 @@ export default function UploadModal({ isOpen, onClose, userId }: UploadModalProp
           <TabsContent value="document" className="py-4">
             <div className="text-center py-8">
               <p className="text-gray-500 mb-4">
-                L'importation de documents (PDF, DOC) sera disponible prochainement.
+                Document import (PDF, DOC) will be available soon.
               </p>
               <Button onClick={() => setActiveTab("photo")}>
-                Utiliser l'importation de photos
+                Use photo import
               </Button>
             </div>
           </TabsContent>

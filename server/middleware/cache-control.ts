@@ -51,36 +51,36 @@ export const setCacheControl = (options: CacheOptions = {}) => {
   };
 };
 
-// Configurations de cache prédéfinies
+// Predefined cache configurations
 export const cachePresets = {
-  // Pour les ressources statiques qui changent rarement
+  // For static resources that rarely change
   staticAssets: setCacheControl({
     public: true,
-    maxAge: 86400, // 1 jour
-    staleWhileRevalidate: 43200, // 12 heures
+    maxAge: 86400, // 1 day
+    staleWhileRevalidate: 43200, // 12 hours
   }),
 
-  // Pour les données qui changent occasionnellement
+  // For data that changes occasionally
   dynamicContent: setCacheControl({
     public: true,
     maxAge: 300, // 5 minutes
     staleWhileRevalidate: 60, // 1 minute
   }),
 
-  // Pour les données de l'utilisateur
+  // For user data
   userContent: setCacheControl({
     public: false,
     maxAge: 60, // 1 minute
     mustRevalidate: true,
   }),
 
-  // Pour les données sensibles ou en temps réel
+  // For sensitive or real-time data
   noCache: setCacheControl({
     noStore: true,
   }),
 };
 
-// Middleware pour la validation ETags
+// ETag validation middleware
 export const etagMiddleware = (
   req: Request,
   res: Response,
@@ -89,13 +89,13 @@ export const etagMiddleware = (
   const originalSend = res.send;
 
   res.send = function (body: any): Response {
-    // Générer un ETag basé sur le contenu
+    // Generate an ETag based on the content
     const etag = require("crypto")
       .createHash("md5")
       .update(JSON.stringify(body))
       .digest("hex");
 
-    // Vérifier si le client a une version en cache
+    // Check if the client has a cached version
     if (req.headers["if-none-match"] === etag) {
       res.status(304).send();
       return res;
@@ -108,7 +108,7 @@ export const etagMiddleware = (
   next();
 };
 
-// Middleware pour la validation Last-Modified
+// Last-Modified validation middleware
 export const lastModifiedMiddleware = (
   req: Request,
   res: Response,

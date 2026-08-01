@@ -1,5 +1,5 @@
--- Table de configuration LLM (bascule cloud/edge à chaud via /api/admin/llm-settings).
--- La clé API cloud n'est JAMAIS stockée ici : elle reste en variable d'environnement.
+-- LLM configuration table (hot cloud/edge switch via /api/admin/llm-settings).
+-- The cloud API key is NEVER stored here: it stays in an environment variable.
 CREATE TABLE IF NOT EXISTS llm_settings (
   id INT AUTO_INCREMENT PRIMARY KEY,
   provider VARCHAR(50) NOT NULL DEFAULT 'openrouter',

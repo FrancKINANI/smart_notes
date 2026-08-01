@@ -9,9 +9,9 @@ export function useOffline() {
     const handleOnline = () => {
       setIsOffline(false);
       toast({
-        title: "Connexion rétablie",
-        description: "Votre connexion internet est de nouveau disponible",
-        variant: "default", // Remplace 'success' par une valeur valide
+        title: "Connection restored",
+        description: "Your internet connection is available again",
+        variant: "default", // Replaces 'success' with a valid value
         duration: 3000,
       });
     };
@@ -19,28 +19,28 @@ export function useOffline() {
     const handleOffline = () => {
       setIsOffline(true);
       toast({
-        title: "Mode hors-ligne",
-        description: "L'application fonctionne maintenant en mode hors-ligne",
-        variant: "destructive", // Remplace 'warning' par une valeur valide
+        title: "Offline mode",
+        description: "The app is now working in offline mode",
+        variant: "destructive", // Replaces 'warning' with a valid value
         duration: 5000,
       });
     };
 
-    // Vérifier l'état initial de la connexion
+    // Check the initial connection state
     setIsOffline(!navigator.onLine);
 
-    // Ajouter les écouteurs d'événements
+    // Add event listeners
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Nettoyer les écouteurs
+    // Clean up listeners
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
   }, [toast]);
 
-  // Fonction pour vérifier si une ressource est disponible hors-ligne
+  // Function to check if a resource is available offline
   const checkOfflineAvailability = async (url: string): Promise<boolean> => {
     if (!("caches" in window)) {
       return false;
@@ -50,12 +50,12 @@ export function useOffline() {
       const cache = await caches.match(url);
       return cache !== undefined;
     } catch (error) {
-      console.error("Erreur lors de la vérification du cache:", error);
+      console.error("Error checking the cache:", error);
       return false;
     }
   };
 
-  // Fonction pour précharger une ressource dans le cache
+  // Function to preload a resource into the cache
   const preloadResource = async (url: string): Promise<void> => {
     if (!("caches" in window)) {
       return;
@@ -65,7 +65,7 @@ export function useOffline() {
       const cache = await caches.open("offline-resources");
       await cache.add(url);
     } catch (error) {
-      console.error("Erreur lors du préchargement de la ressource:", error);
+      console.error("Error preloading the resource:", error);
     }
   };
 

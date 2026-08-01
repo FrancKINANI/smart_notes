@@ -1,9 +1,9 @@
 import { type Request, type Response } from "express";
 
 /**
- * Extrait le premier tableau JSON d'un texte de sortie LLM (tolère les
- * blocs ```json, le texte d'introduction, etc.). Retourne null si aucun
- * tableau valide n'est trouvé.
+ * Extracts the first JSON array from an LLM output text (tolerates
+ * ```json blocks, introductory text, etc.). Returns null if no valid
+ * array is found.
  */
 export function extractJsonArray(text: string): unknown[] | null {
   if (!text) return null;
@@ -15,7 +15,7 @@ export function extractJsonArray(text: string): unknown[] | null {
       const parsed = JSON.parse(match[0]);
       if (Array.isArray(parsed)) return parsed;
     } catch {
-      /* ignore, on essaie la suite */
+      /* ignore, try the rest */
     }
   }
 
@@ -30,8 +30,8 @@ export function extractJsonArray(text: string): unknown[] | null {
 }
 
 /**
- * Extrait le premier objet JSON d'un texte de sortie LLM.
- * Retourne null si aucun objet valide n'est trouvé.
+ * Extracts the first JSON object from an LLM output text.
+ * Returns null if no valid object is found.
  */
 export function extractJsonObject(text: string): Record<string, unknown> | null {
   if (!text) return null;
@@ -62,10 +62,10 @@ export function extractJsonObject(text: string): Record<string, unknown> | null 
 }
 
 /**
- * Résout l'id utilisateur à utiliser pour une requête :
- *   1. l'utilisateur de session (req.user) quand authentifié,
- *   2. le paramètre `userId` (query ou body) — mode démo/offline,
- *   3. null sinon (→ 401).
+ * Resolves the user id to use for a request:
+ *   1. the session user (req.user) when authenticated,
+ *   2. the `userId` parameter (query or body) — demo/offline mode,
+ *   3. null otherwise (→ 401).
  */
 export function resolveUserId(
   req: Request,
@@ -82,7 +82,7 @@ export function resolveUserId(
   const id = fromAuth ?? (raw !== undefined ? parseInt(String(raw), 10) : undefined);
 
   if (id === undefined || Number.isNaN(id)) {
-    res.status(401).json({ message: "Authentification requise (userId introuvable)" });
+    res.status(401).json({ message: "Authentication required (userId not found)" });
     return null;
   }
   return id;

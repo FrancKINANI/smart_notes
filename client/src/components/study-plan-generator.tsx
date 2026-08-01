@@ -41,7 +41,7 @@ export function StudyPlanGenerator({
   onSavePlan,
 }: StudyPlanGeneratorProps) {
   const [topic, setTopic] = useState("");
-  const [duration, setDuration] = useState("1 semaine");
+  const [duration, setDuration] = useState("1 week");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<any | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -50,8 +50,8 @@ export function StudyPlanGenerator({
   const handleGenerate = async () => {
     if (!topic) {
       toast({
-        title: "Sujet requis",
-        description: "Veuillez entrer un sujet pour générer un plan d'étude.",
+        title: "Topic required",
+        description: "Please enter a topic to generate a study plan.",
         variant: "destructive",
       });
       return;
@@ -64,9 +64,9 @@ export function StudyPlanGenerator({
       setIsDialogOpen(true);
     } catch (error) {
       toast({
-        title: "Erreur",
+        title: "Error",
         description:
-          "Impossible de générer un plan d'étude. Veuillez réessayer.",
+          "Unable to generate a study plan. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -78,37 +78,37 @@ export function StudyPlanGenerator({
     if (onSavePlan && generatedPlan) {
       onSavePlan(generatedPlan);
       toast({
-        title: "Plan enregistré",
-        description: "Votre plan d'étude a été enregistré avec succès.",
+        title: "Plan saved",
+        description: "Your study plan was saved successfully.",
       });
       setIsDialogOpen(false);
     }
   };
 
-  // Formatage du contenu du plan d'étude pour l'affichage
+  // Format the study plan content for display
   const formatPlanContent = (content: string) => {
-    // Conversion des titres Markdown en HTML
+    // Convert Markdown headings to HTML
     let formattedContent = content
       .replace(/^# (.*$)/gim, '<h1 class="text-xl font-bold mb-2 mt-4">$1</h1>')
       .replace(/^## (.*$)/gim, '<h2 class="text-lg font-semibold mb-2 mt-3">$1</h2>')
       .replace(/^### (.*$)/gim, '<h3 class="text-md font-medium mb-1 mt-2">$1</h3>');
 
-    // Conversion des listes
+    // Convert lists
     formattedContent = formattedContent
       .replace(/^\* (.*$)/gim, '<li class="ml-4">$1</li>')
       .replace(/^- (.*$)/gim, '<li class="ml-4">$1</li>')
       .replace(/<\/li>\n<li/g, '</li><li');
 
-    // Envelopper les listes dans des balises ul
+    // Wrap lists in ul tags
     formattedContent = formattedContent
       .replace(/(<li.*<\/li>)/gs, '<ul class="list-disc mb-2">$1</ul>');
 
-    // Conversion des paragraphes
+    // Convert paragraphs
     formattedContent = formattedContent
       .replace(/^(?!<[h|u|l])(.*$)/gim, '<p class="mb-2">$1</p>')
       .replace(/<p><\/p>/g, '');
 
-    // Retirer les paragraphes vides
+    // Remove empty paragraphs
     formattedContent = formattedContent.replace(/<p>\s*<\/p>/g, '');
 
     return formattedContent;
@@ -120,37 +120,37 @@ export function StudyPlanGenerator({
         <CardHeader>
           <CardTitle className="flex items-center">
             <Calendar className="mr-2 h-5 w-5 text-primary-500" />
-            Générateur de plan d'étude personnalisé
+            Personalized study plan generator
           </CardTitle>
           <CardDescription>
-            Créez un plan d'étude détaillé adapté à vos besoins et à votre
-            style d'apprentissage
+            Create a detailed study plan tailored to your needs and your
+            learning style
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="topic">Sujet d'étude</Label>
+            <Label htmlFor="topic">Study topic</Label>
             <Input
               id="topic"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="ex: Programmation Python, Révolution française, Calcul intégral..."
+              placeholder="e.g., Python programming, French Revolution, Calculus..."
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="duration">Durée du plan</Label>
+            <Label htmlFor="duration">Plan duration</Label>
             <Select
               value={duration}
               onValueChange={(value) => setDuration(value)}
             >
               <SelectTrigger id="duration">
-                <SelectValue placeholder="Sélectionner une durée" />
+                <SelectValue placeholder="Select a duration" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="3 jours">Court (3 jours)</SelectItem>
-                <SelectItem value="1 semaine">Moyen (1 semaine)</SelectItem>
-                <SelectItem value="2 semaines">Long (2 semaines)</SelectItem>
-                <SelectItem value="1 mois">Intensif (1 mois)</SelectItem>
+                <SelectItem value="3 days">Short (3 days)</SelectItem>
+                <SelectItem value="1 week">Medium (1 week)</SelectItem>
+                <SelectItem value="2 weeks">Long (2 weeks)</SelectItem>
+                <SelectItem value="1 month">Intensive (1 month)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -164,12 +164,12 @@ export function StudyPlanGenerator({
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Génération en cours...
+                Generating...
               </>
             ) : (
               <>
                 <BookOpen className="mr-2 h-4 w-4" />
-                Générer un plan d'étude
+                Generate a study plan
               </>
             )}
           </Button>
@@ -182,7 +182,7 @@ export function StudyPlanGenerator({
             <DialogTitle className="text-xl">{generatedPlan?.title}</DialogTitle>
             <DialogDescription className="flex items-center text-primary-500">
               <Clock className="mr-2 h-4 w-4" />
-              Durée: {generatedPlan?.duration}
+              Duration: {generatedPlan?.duration}
             </DialogDescription>
           </DialogHeader>
 
@@ -199,12 +199,12 @@ export function StudyPlanGenerator({
 
           <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Fermer
+              Close
             </Button>
             {onSavePlan && (
               <Button onClick={handleSave}>
                 <Save className="mr-2 h-4 w-4" />
-                Enregistrer ce plan
+                Save this plan
               </Button>
             )}
           </DialogFooter>

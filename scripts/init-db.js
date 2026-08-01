@@ -11,12 +11,12 @@ async function main() {
 
   try {
     await connection.query("CREATE DATABASE IF NOT EXISTS smart_notes");
-    console.log("Base de données créée avec succès");
+    console.log("Database created successfully");
 
     await connection.query("USE smart_notes");
-    console.log("Base de données sélectionnée");
+    console.log("Database selected");
   } catch (error) {
-    console.error("Erreur lors de la création de la base de données:", error);
+    console.error("Error while creating the database:", error);
     process.exit(1);
   } finally {
     await connection.end();

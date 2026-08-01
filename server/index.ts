@@ -16,20 +16,20 @@ import learningStatsRouter from "./routes/learning-stats";
 
 const app = express();
 
-// Configuration des timeouts
+// Timeout configuration
 app.set(
   "keepAliveTimeout",
   parseInt(process.env.KEEP_ALIVE_TIMEOUT || "65000")
 );
 app.set("headersTimeout", parseInt(process.env.HEADERS_TIMEOUT || "66000"));
 
-// Middleware de compression
+// Compression middleware
 app.use(compressionWithMonitoring());
 
-// Middleware de monitoring
+// Monitoring middleware
 app.use(monitorRequest);
 
-// Configuration des middlewares de sécurité
+// Security middleware configuration
 app.use(
   helmet({
     contentSecurityPolicy:
@@ -54,7 +54,7 @@ app.use(
   })
 );
 
-// Configuration CORS avec options étendues
+// CORS configuration with extended options
 app.use(
   cors({
     origin:
@@ -76,22 +76,22 @@ app.use(
   })
 );
 
-// Limite de requêtes globale avec configuration avancée
+// Global rate limit with advanced configuration
 const globalLimiter = rateLimit({
   windowMs:
     process.env.NODE_ENV === "development"
       ? 1000
-      : parseInt(process.env.RATE_LIMIT_WINDOW || "900000"), // 1 seconde en dev, 15 minutes en prod
+      : parseInt(process.env.RATE_LIMIT_WINDOW || "900000"), // 1 second in dev, 15 minutes in prod
   max:
     process.env.NODE_ENV === "development"
       ? 1000
-      : parseInt(process.env.RATE_LIMIT_MAX || "100"), // 1000 requêtes en dev, 100 en prod
-  message: "Trop de requêtes depuis cette IP, veuillez réessayer plus tard",
+      : parseInt(process.env.RATE_LIMIT_MAX || "100"), // 1000 requests in dev, 100 in prod
+  message: "Too many requests from this IP, please try again later",
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false, // Count successful requests against the rate limit
   keyGenerator: (req) => {
-    // Utiliser l'IP réelle derrière un proxy si disponible
+    // Use the real IP behind a proxy if available
     return (
       req.ip ||
       (req.headers["x-forwarded-for"] as string) ||
@@ -103,7 +103,7 @@ const globalLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-// Configuration optimisée des parsers
+// Optimized parser configuration
 app.use(
   express.json({
     limit: process.env.MAX_REQUEST_SIZE || "10mb",
@@ -121,15 +121,15 @@ app.use(
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
 
-// Configuration de l'authentification
+// Authentication configuration
 setupAuth(app);
 
-// Configuration des routes API
+// API route configuration
 const apiRouter = Router();
 apiRouter.use("/learning-stats", learningStatsRouter);
 app.use("/api", apiRouter);
 
-// Endpoint pour les métriques avec cache
+// Metrics endpoint with cache
 let cachedMetrics: any = null;
 let lastMetricsUpdate = 0;
 
@@ -145,7 +145,7 @@ app.get("/api/metrics", checkPermissions("admin"), (_req, res) => {
   res.json(cachedMetrics);
 });
 
-// Endpoint pour vérifier la santé de l'application avec monitoring détaillé
+// Endpoint to check the application health with detailed monitoring
 app.get("/api/health", async (_req, res) => {
   try {
     const startTime = process.hrtime();
@@ -195,9 +195,9 @@ app.get("/api/health", async (_req, res) => {
   }
 });
 
-// Middleware de gestion des erreurs avec logging
+// Error handling middleware with logging
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  logger.error("Erreur non gérée:", {
+  logger.error("Unhandled error:", {
     error: err.message,
     stack: err.stack,
     status: err.status || 500,
@@ -206,7 +206,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
   const message =
     process.env.NODE_ENV === "production"
-      ? "Une erreur interne s'est produite"
+      ? "An internal error occurred"
       : err.message || "Internal Server Error";
 
   res.status(status).json({
@@ -215,16 +215,16 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-// Gestion de la fermeture propre
+// Graceful shutdown handling
 const gracefulShutdown = async (signal: string) => {
-  logger.info(`${signal} signal reçu. Fermeture propre...`);
+  logger.info(`${signal} signal received. Shutting down cleanly...`);
 
   try {
     await closeDatabase();
-    logger.info("Toutes les connexions ont été fermées proprement");
+    logger.info("All connections closed cleanly");
     process.exit(0);
   } catch (error) {
-    logger.error("Erreur lors de la fermeture:", error);
+    logger.error("Error during shutdown:", error);
     process.exit(1);
   }
 };
@@ -232,22 +232,22 @@ const gracefulShutdown = async (signal: string) => {
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-// Démarrage du serveur
+// Server startup
 (async () => {
   try {
-    // Initialiser la base de données en premier
+    // Initialize the database first
     await setupDatabase();
-    console.log("Base de données initialisée avec succès");
+    console.log("Database initialized successfully");
 
-    // Configurer l'authentification après la base de données
+    // Configure authentication after the database
     setupAuth(app);
-    console.log("Configuration de l'authentification terminée");
+    console.log("Authentication configuration complete");
 
-    // Configuration des routes API en utilisant le routeur
+    // API route configuration using the router
     const apiRouter = Router();
     apiRouter.use("/learning-stats", learningStatsRouter);
     app.use("/api", apiRouter);
-    console.log("Routes API configurées");
+    console.log("API routes configured");
 
     // Register other routes
     const server = await registerRoutes(app);
@@ -261,10 +261,10 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
     const port = 5000;
     server.listen(port, "localhost", () => {
-      log(`Serveur démarré sur http://localhost:${port}`);
+      log(`Server started on http://localhost:${port}`);
     });
   } catch (error) {
-    console.error("Erreur critique lors du démarrage du serveur:", error);
+    console.error("Critical error during server startup:", error);
     process.exit(1);
   }
 })();

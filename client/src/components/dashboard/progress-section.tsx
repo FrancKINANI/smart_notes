@@ -15,7 +15,7 @@ export default function ProgressSection() {
         credentials: "include",
       });
       if (!res.ok) {
-        throw new Error("Erreur lors de la récupération des statistiques");
+        throw new Error("Error fetching statistics");
       }
       return res.json();
     },
@@ -44,25 +44,25 @@ export default function ProgressSection() {
 
   const statCards = [
     {
-      title: "Notes prises",
+      title: "Notes taken",
       value: stats?.notesCount || 0,
       icon: <BookOpen className="text-xl text-primary-600" />,
       bgColor: "bg-primary-100",
     },
     {
-      title: "Quiz complétés",
+      title: "Quizzes completed",
       value: stats?.quizzesCompleted || 0,
       icon: <CheckCircle className="text-xl text-green-600" />,
       bgColor: "bg-green-100",
     },
     {
-      title: "Temps d'étude",
+      title: "Study time",
       value: formatStudyTime(stats?.studyTimeMinutes || 0),
       icon: <Clock className="text-xl text-amber-600" />,
       bgColor: "bg-amber-100",
     },
     {
-      title: "Score moyen",
+      title: "Average score",
       value: `${stats?.averageScore || 0}%`,
       icon: <Trophy className="text-xl text-purple-600" />,
       bgColor: "bg-purple-100",
@@ -74,7 +74,7 @@ export default function ProgressSection() {
       {/* Summary Stats */}
       <div>
         <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Aperçu rapide
+          Quick overview
         </h2>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {statCards.map((card, i) => (

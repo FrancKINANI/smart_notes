@@ -9,10 +9,10 @@ router.get("/", async (_req, res) => {
     const subjects = await storage.getSubjects();
     res.json(subjects);
   } catch (error) {
-    console.error("Erreur subjects:", error);
+    console.error("Subjects error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la récupération des matières" });
+      .json({ message: "Error while retrieving subjects" });
   }
 });
 

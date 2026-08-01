@@ -28,7 +28,7 @@ export default function RevisionReminders({ items, isLoading }: RevisionReminder
 
   return (
     <div className="mb-10">
-      <h2 className="text-lg font-medium text-gray-900 mb-4">Rappels de révision</h2>
+      <h2 className="text-lg font-medium text-gray-900 mb-4">Revision reminders</h2>
       
       {items.length > 0 ? (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
@@ -46,11 +46,11 @@ export default function RevisionReminders({ items, isLoading }: RevisionReminder
                       <div className="min-w-0 flex-1 px-4">
                         <div>
                           <p className="text-sm font-medium text-primary-600 truncate">
-                            Rappel: {item.note?.title || 'Révision prévue'}
+                            Reminder: {item.note?.title || 'Scheduled revision'}
                           </p>
                           <p className="mt-1 text-sm text-gray-500">
-                            Niveau de maîtrise actuel: {item.masteryLevel}% - 
-                            À réviser avant le {new Date(item.nextReviewDate).toLocaleDateString()}
+                            Current mastery level: {item.masteryLevel}% - 
+                            Review before {new Date(item.nextReviewDate).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -62,7 +62,7 @@ export default function RevisionReminders({ items, isLoading }: RevisionReminder
                         asChild
                       >
                         <Link href={`/notes/${item.noteId}`}>
-                          Réviser
+                          Review
                         </Link>
                       </Button>
                     </div>
@@ -75,7 +75,7 @@ export default function RevisionReminders({ items, isLoading }: RevisionReminder
       ) : (
         <div className="bg-white shadow overflow-hidden sm:rounded-md p-6 text-center">
           <p className="text-gray-500">
-            Aucun rappel de révision pour le moment. Continuez à prendre des notes et à faire des quiz !
+            No revision reminders for now. Keep taking notes and doing quizzes!
           </p>
         </div>
       )}

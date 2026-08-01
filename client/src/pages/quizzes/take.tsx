@@ -17,7 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
-// Types de questions
+// Question types
 enum QuestionType {
   MULTIPLE_CHOICE = "multiple_choice",
   TRUE_FALSE = "true_false",
@@ -26,21 +26,21 @@ enum QuestionType {
   FILL_BLANK = "fill_blank",
 }
 
-// Niveaux de difficulté
+// Difficulty levels
 enum DifficultyLevel {
   EASY = "easy",
   MEDIUM = "medium",
   HARD = "hard",
 }
 
-// Interface pour les questions de matching
+// Interface for matching questions
 interface MatchingPair {
   id: string;
   left: string;
   right: string;
 }
 
-// Type pour représenter toutes les questions possibles
+// Type to represent all possible questions
 type Question = {
   id: string;
   question: string;
@@ -72,7 +72,7 @@ export default function TakeQuiz() {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [hintUsed, setHintUsed] = useState<Record<string, boolean>>({});
 
-  // Timer pour le temps passé
+  // Timer for elapsed time
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeSpent((prev) => prev + 1);
@@ -81,21 +81,21 @@ export default function TakeQuiz() {
     return () => clearInterval(timer);
   }, []);
 
-  // Si l'utilisateur n'est pas authentifié, rediriger vers la page de connexion
+  // If the user is not authenticated, redirect to the login page
   if (!user) {
     return (
       <div className="py-6">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <Alert variant="destructive">
             <AlertDescription>
-              Veuillez vous connecter pour accéder aux quiz.
+              Please log in to access the quizzes.
             </AlertDescription>
           </Alert>
           <div className="mt-4">
             <Button asChild>
               <Link to="/login">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Se connecter
+                Log in
               </Link>
             </Button>
           </div>
@@ -117,15 +117,15 @@ export default function TakeQuiz() {
       });
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error("Le quiz demandé n'existe plus.");
+          throw new Error("The requested quiz no longer exists.");
         }
         if (response.status === 401) {
-          throw new Error("Veuillez vous connecter pour accéder à ce quiz.");
+          throw new Error("Please log in to access this quiz.");
         }
         if (response.status === 403) {
-          throw new Error("Vous n'avez pas la permission d'accéder à ce quiz.");
+          throw new Error("You do not have permission to access this quiz.");
         }
-        throw new Error("Une erreur est survenue lors du chargement du quiz.");
+        throw new Error("An error occurred while loading the quiz.");
       }
       return response.json();
     },
@@ -138,7 +138,7 @@ export default function TakeQuiz() {
       const response = await fetch(`/api/notes/${quiz?.noteId}`);
       if (!response.ok) {
         console.error(
-          "Erreur lors du chargement de la note associée:",
+          "Error while loading the associated note:",
           response.status
         );
         return null;
@@ -163,22 +163,22 @@ export default function TakeQuiz() {
         }),
       });
       if (!response.ok) {
-        throw new Error("Erreur lors de l'enregistrement des résultats");
+        throw new Error("Error while saving the results");
       }
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Quiz terminé",
-        description: "Vos résultats ont été enregistrés avec succès.",
+        title: "Quiz completed",
+        description: "Your results have been saved successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/quizzes/results"] });
     },
     onError: () => {
       toast({
-        title: "Erreur",
+        title: "Error",
         description:
-          "Impossible d'enregistrer vos résultats. Veuillez réessayer.",
+          "Unable to save your results. Please try again.",
         variant: "destructive",
       });
     },
@@ -242,7 +242,7 @@ export default function TakeQuiz() {
     : 0;
 
   if (error) {
-    let errorMessage = "Une erreur est survenue lors du chargement du quiz.";
+    let errorMessage = "An error occurred while loading the quiz.";
     if (error instanceof Error) {
       errorMessage = error.message;
     }
@@ -257,7 +257,7 @@ export default function TakeQuiz() {
             <Button asChild>
               <Link to="/quizzes">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Retour aux Quiz
+                Back to Quizzes
               </Link>
             </Button>
           </div>
@@ -276,9 +276,9 @@ export default function TakeQuiz() {
               <div className="inline-flex mb-6 p-4 bg-primary-50 rounded-full">
                 <Check className="h-12 w-12 text-primary-500" />
               </div>
-              <h1 className="text-2xl font-bold mb-2">Quiz terminé !</h1>
+              <h1 className="text-2xl font-bold mb-2">Quiz completed!</h1>
               <p className="text-gray-600 mb-6">
-                Vous avez obtenu un score de {score}% à ce quiz.
+                You scored {score}% on this quiz.
               </p>
 
               <div className="w-full max-w-md mx-auto mb-8">
@@ -286,7 +286,7 @@ export default function TakeQuiz() {
                   <div className="flex mb-2 items-center justify-between">
                     <div>
                       <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-primary-600 bg-primary-200">
-                        Votre Score
+                        Your Score
                       </span>
                     </div>
                     <div className="text-right">
@@ -304,9 +304,9 @@ export default function TakeQuiz() {
                 </div>
               </div>
 
-              {/* Correction des questions */}
+              {/* Answer key */}
               <div className="max-w-2xl mx-auto mb-8">
-                <h2 className="text-xl font-semibold mb-4">Correction</h2>
+                <h2 className="text-xl font-semibold mb-4">Answer key</h2>
                 {quiz?.questions.map((question, index) => {
                   const userAnswer = selectedAnswers[question.id];
                   const isCorrect = userAnswer === question.correctAnswer;
@@ -369,12 +369,12 @@ export default function TakeQuiz() {
 
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Button asChild variant="outline">
-                  <Link to="/quizzes">Retour aux Quiz</Link>
+                  <Link to="/quizzes">Back to Quizzes</Link>
                 </Button>
 
                 {note && (
                   <Button asChild>
-                    <Link to={`/notes/${note.id}`}>Revoir la Note</Link>
+                    <Link to={`/notes/${note.id}`}>Review the Note</Link>
                   </Button>
                 )}
               </div>
@@ -393,16 +393,16 @@ export default function TakeQuiz() {
           <Button variant="ghost" asChild>
             <Link to="/quizzes">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Quitter le Quiz
+              Leave the Quiz
             </Link>
           </Button>
 
           {note && (
-            <h1 className="text-lg font-medium">Quiz sur : {note.title}</h1>
+            <h1 className="text-lg font-medium">Quiz on: {note.title}</h1>
           )}
 
           <div className="text-sm text-gray-500">
-            Question {currentQuestionIndex + 1} sur{" "}
+            Question {currentQuestionIndex + 1} of{" "}
             {quiz?.questions.length || "..."}
           </div>
         </div>
@@ -466,7 +466,7 @@ export default function TakeQuiz() {
             disabled={currentQuestionIndex === 0}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Précédent
+            Previous
           </Button>
 
           <Button
@@ -475,12 +475,12 @@ export default function TakeQuiz() {
           >
             {currentQuestionIndex === (quiz?.questions.length || 0) - 1 ? (
               <>
-                Terminer le Quiz
+                Finish the Quiz
                 <Check className="ml-2 h-4 w-4" />
               </>
             ) : (
               <>
-                Suivant
+                Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}

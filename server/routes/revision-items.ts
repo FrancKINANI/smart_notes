@@ -12,10 +12,10 @@ router.get("/due", async (req, res) => {
     const items = await storage.getRevisionItemsForReview(userId);
     res.json(items);
   } catch (error) {
-    console.error("Erreur revision-items due:", error);
+    console.error("Revision-items due error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la récupération des révisions dues" });
+      .json({ message: "Error while retrieving due revisions" });
   }
 });
 
@@ -27,10 +27,10 @@ router.get("/", async (req, res) => {
     const items = await storage.getRevisionItemsByUser(userId);
     res.json(items);
   } catch (error) {
-    console.error("Erreur revision-items:", error);
+    console.error("Revision-items error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la récupération des révisions" });
+      .json({ message: "Error while retrieving revisions" });
   }
 });
 

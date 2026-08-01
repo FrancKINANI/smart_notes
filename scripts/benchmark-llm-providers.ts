@@ -1,24 +1,24 @@
 /**
- * Benchmark comparatif des providers LLM (cloud OpenAI-compatible vs QVAC local).
+ * Comparative benchmark of LLM providers (OpenAI-compatible cloud vs local QVAC).
  *
- * Envoie un jeu de prompts représentatifs des cas réels de SmartNotes aux providers
- * sélectionnés, mesure pour chacun : temps de réponse, longueur de sortie, tokens
- * réels (si dispo), coût estimé (cloud: tarif API configurable / QVAC: 0 + RAM/CPU).
+ * Sends a set of prompts representative of SmartNotes' real use cases to the selected
+ * providers, measuring for each: response time, output length, actual tokens
+ * (if available), estimated cost (cloud: configurable API rate / QVAC: 0 + RAM/CPU).
  *
- * La sortie brute complète (réponses non tronquées) est écrite dans un fichier JSON
- * (scripts/benchmark-results/) pour revue manuelle de qualité. Le script ne décide
- * PAS de "gagnant" — il produit les données, la décision de bascule reste manuelle.
+ * The full raw output (untruncated responses) is written to a JSON file
+ * (scripts/benchmark-results/) for manual quality review. The script does NOT
+ * decide a "winner" — it produces the data, the switch decision remains manual.
  *
- * Usage :
- *   npm run benchmark:llm                       # providers par défaut: openrouter,qvac
- *   npm run benchmark:llm -- --providers=qvac   # seulement QVAC (local)
+ * Usage:
+ *   npm run benchmark:llm                       # default providers: openrouter,qvac
+ *   npm run benchmark:llm -- --providers=qvac   # QVAC only (local)
  *   npm run benchmark:llm -- --providers=openrouter,qvac --cases=5
  *   npm run benchmark:llm -- --out=./benchmark.json
- *   npm run benchmark:llm -- --timeout=600   # timeout par case en secondes (défaut 300)
+ *   npm run benchmark:llm -- --timeout=600   # per-case timeout in seconds (default 300)
  *
- * Prérequis :
- *   - Cloud : OPENROUTER_API_KEY (ou autre preset) dans .env
- *   - QVAC  : réseau au premier lancement (téléchargement P2P du modèle) + ~1 Go disque
+ * Prerequisites:
+ *   - Cloud: OPENROUTER_API_KEY (or another preset) in .env
+ *   - QVAC  : network on first run (P2P model download) + ~1 GB disk
  */
 import "dotenv/config";
 import fs from "node:fs";
@@ -33,7 +33,7 @@ import {
 } from "../server/services/llm-provider";
 
 // ---------------------------------------------------------------------------
-// Jeu de prompts — cas réels du produit (assistant d'étude francophone)
+// Prompt set — real product use cases (study assistant)
 // ---------------------------------------------------------------------------
 
 interface BenchmarkCase {
@@ -46,73 +46,73 @@ interface BenchmarkCase {
 }
 
 const SYSTEM_STUDY =
-  "Vous êtes un assistant d'étude intelligent qui aide les étudiants à mieux comprendre et apprendre. Vos réponses sont concises, précises et pédagogiques.";
+  "You are an intelligent study assistant who helps students understand and learn better. Your answers are concise, precise and educational.";
 
 const CASES: BenchmarkCase[] = [
   {
     id: "chat-1",
     category: "chat",
-    title: "Question de cours — intégration par parties",
+    title: "Course question — integration by parts",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Explique-moi le concept d'intégration par parties avec un exemple concret." },
+      { role: "user", content: "Explain the concept of integration by parts with a concrete example." },
     ],
   },
   {
     id: "chat-2",
     category: "chat",
-    title: "Équation différentielle du premier ordre",
+    title: "First-order differential equation",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Comment résoudre une équation différentielle du premier ordre du type y' + ay = b ? Montre les étapes." },
+      { role: "user", content: "How do you solve a first-order differential equation of the form y' + ay = b? Show the steps." },
     ],
   },
   {
     id: "chat-3",
     category: "chat",
-    title: "Polarité des molécules",
+    title: "Molecular polarity",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Quelle est la différence entre une molécule polaire et une molécule apolaire ? Donne des exemples." },
+      { role: "user", content: "What is the difference between a polar and a nonpolar molecule? Give examples." },
     ],
   },
   {
     id: "chat-4",
     category: "chat",
-    title: "Conversation avec historique (relance)",
+    title: "Conversation with history (follow-up)",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Je dois réviser la photosynthèse pour mon examen de SVT." },
-      { role: "assistant", content: "Très bien ! La photosynthèse se déroule en deux phases : la phase claire (dépendante de la lumière) et le cycle de Calvin. Qu'aimerais-tu approfondir ?" },
-      { role: "user", content: "Explique-moi en détail la phase claire, avec les pigments et la photolyse de l'eau." },
+      { role: "user", content: "I need to revise photosynthesis for my biology exam." },
+      { role: "assistant", content: "Great! Photosynthesis happens in two phases: the light-dependent phase and the Calvin cycle. What would you like to dig into?" },
+      { role: "user", content: "Explain the light-dependent phase in detail, including the pigments and the photolysis of water." },
     ],
   },
   {
     id: "explain-1",
     category: "explain",
-    title: "Théorème de Pythagore niveau 4ème",
+    title: "Pythagorean theorem, 8th grade level",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Explique le théorème de Pythagore à un élève de 4ème. Utilise un triangle rectangle simple comme exemple et montre comment calculer l'hypoténuse." },
+      { role: "user", content: "Explain the Pythagorean theorem to an 8th grader. Use a simple right triangle as an example and show how to compute the hypotenuse." },
     ],
     temperature: 0.4,
   },
   {
     id: "explain-2",
     category: "explain",
-    title: "Récursivité en informatique",
+    title: "Recursion in computer science",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Explique-moi la récursivité avec une analogie simple et un exemple de code en JavaScript (ex: factorielle)." },
+      { role: "user", content: "Explain recursion with a simple analogy and a JavaScript code example (e.g. factorial)." },
     ],
   },
   {
     id: "quiz-1",
     category: "quiz",
-    title: "Génération de quiz QCM — photosynthèse",
+    title: "Multiple-choice quiz generation — photosynthesis",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Génère 5 questions de quiz à choix multiples sur la photosynthèse. Pour chaque question, fournis 4 propositions et la bonne réponse. Format: Q1) énoncé... puis Réponse: X." },
+      { role: "user", content: "Generate 5 multiple-choice quiz questions about photosynthesis. For each question, provide 4 options and the correct answer. Format: Q1) stem... then Answer: X." },
     ],
     temperature: 0.6,
     maxTokens: 800,
@@ -120,10 +120,10 @@ const CASES: BenchmarkCase[] = [
   {
     id: "quiz-2",
     category: "quiz",
-    title: "Questions ouvertes — Révolution française",
+    title: "Open-ended questions — French Revolution",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Génère 3 questions ouvertes de niveau lycée sur la Révolution française, avec un corrigé détaillé pour chacune." },
+      { role: "user", content: "Generate 3 high-school-level open-ended questions about the French Revolution, with a detailed answer key for each." },
     ],
     temperature: 0.6,
     maxTokens: 800,
@@ -131,10 +131,10 @@ const CASES: BenchmarkCase[] = [
   {
     id: "flashcards-1",
     category: "flashcards",
-    title: "Flashcards vocabulaire anglais",
+    title: "English vocabulary flashcards",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Crée 5 flashcards recto/verso pour mémoriser le vocabulaire anglais du bac sur le thème de l'environnement. Format: Recto: ... | Verso: ..." },
+      { role: "user", content: "Create 5 front/back flashcards to memorize English vocabulary for the environment theme. Format: Front: ... | Back: ..." },
     ],
     temperature: 0.5,
     maxTokens: 600,
@@ -142,10 +142,10 @@ const CASES: BenchmarkCase[] = [
   {
     id: "flashcards-2",
     category: "flashcards",
-    title: "Flashcards structures de données",
+    title: "Data structures flashcards",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Crée 5 flashcards sur les structures de données en informatique (pile, file, liste chaînée, arbre, graphe) : définition et complexité. Format: Recto: ... | Verso: ..." },
+      { role: "user", content: "Create 5 flashcards about data structures in computer science (stack, queue, linked list, tree, graph): definition and complexity. Format: Front: ... | Back: ..." },
     ],
     temperature: 0.5,
     maxTokens: 600,
@@ -153,12 +153,12 @@ const CASES: BenchmarkCase[] = [
   {
     id: "summary-1",
     category: "summary",
-    title: "Résumé de note — thermodynamique",
+    title: "Note summary — thermodynamics",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
       { role: "user", content:
-        "Résume ce cours en 5 points clés :\n\n" +
-        "« La thermodynamique étudie les échanges d'énergie entre un système et son milieu extérieur. Le premier principe (conservation de l'énergie) s'écrit ΔU = W + Q, où ΔU est la variation d'énergie interne, W le travail et Q le transfert thermique. Le second principe introduit l'entropie S : pour une transformation spontanée, l'entropie totale de l'univers augmente (ΔS ≥ 0). Les transformations peuvent être isothermes (T constante), isobares (P constante) ou isochores (V constant). L'enthalpie H = U + PV simplifie l'étude des réactions à pression constante. Le troisième principe énonce qu'au zéro absolu, l'entropie d'un cristal parfait est nulle. »" },
+        "Summarize this course in 5 key points:\n\n" +
+        "\"Thermodynamics studies the energy exchanges between a system and its surroundings. The first law (conservation of energy) is written ΔU = W + Q, where ΔU is the change in internal energy, W the work and Q the heat transfer. The second law introduces entropy S: for a spontaneous transformation, the total entropy of the universe increases (ΔS ≥ 0). Transformations can be isothermal (constant T), isobaric (constant P) or isochoric (constant V). Enthalpy H = U + PV simplifies the study of reactions at constant pressure. The third law states that at absolute zero, the entropy of a perfect crystal is zero.\"" },
     ],
     temperature: 0.3,
     maxTokens: 600,
@@ -166,12 +166,12 @@ const CASES: BenchmarkCase[] = [
   {
     id: "summary-2",
     category: "summary",
-    title: "Résumé — biologie cellulaire",
+    title: "Summary — cell biology",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
       { role: "user", content:
-        "Fais un résumé court et structuré de ce chapitre :\n\n" +
-        "« La cellule est l'unité structurale et fonctionnelle du vivant. Les cellules eucaryotes possèdent un noyau délimité par une enveloppe nucléaire, des organites (mitochondries, réticulum endoplasmique, appareil de Golgi) et un cytosquelette. Les procaryotes (bactéries) n'ont pas de noyau. La membrane plasmique, en bicouche lipidique, assure les échanges et la signalisation. Les mitochondries produisent l'ATP par respiration cellulaire. Le noyau contient l'ADN, support de l'information génétique, transcrit en ARNm puis traduit en protéines dans les ribosomes. »" },
+        "Write a short, structured summary of this chapter:\n\n" +
+        "\"The cell is the structural and functional unit of life. Eukaryotic cells have a nucleus bounded by a nuclear envelope, organelles (mitochondria, endoplasmic reticulum, Golgi apparatus) and a cytoskeleton. Prokaryotes (bacteria) have no nucleus. The plasma membrane, a lipid bilayer, enables exchanges and signaling. Mitochondria produce ATP through cellular respiration. The nucleus contains DNA, the carrier of genetic information, transcribed into mRNA then translated into proteins in the ribosomes.\"" },
     ],
     temperature: 0.3,
     maxTokens: 600,
@@ -179,10 +179,10 @@ const CASES: BenchmarkCase[] = [
   {
     id: "study-plan-1",
     category: "study-plan",
-    title: "Plan de révision — chimie organique",
+    title: "Revision plan — organic chemistry",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Propose un plan de révision d'une semaine pour préparer un examen de chimie organique (nomenclature, mécanismes SN1/SN2, stéréochimie). Détaille les objectifs par jour." },
+      { role: "user", content: "Propose a one-week revision plan to prepare for an organic chemistry exam (nomenclature, SN1/SN2 mechanisms, stereochemistry). Detail the objectives for each day." },
     ],
     temperature: 0.5,
     maxTokens: 800,
@@ -190,42 +190,42 @@ const CASES: BenchmarkCase[] = [
   {
     id: "chat-5",
     category: "chat",
-    title: "Cycle de Krebs",
+    title: "Krebs cycle",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Aide-moi à comprendre le cycle de Krebs étape par étape, sans jargon excessif." },
+      { role: "user", content: "Help me understand the Krebs cycle step by step, without excessive jargon." },
     ],
   },
   {
     id: "chat-6",
     category: "chat",
-    title: "Conservation de l'énergie",
+    title: "Conservation of energy",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Qu'est-ce que la loi de conservation de l'énergie ? Explique-la avec un exemple du quotidien." },
+      { role: "user", content: "What is the law of conservation of energy? Explain it with an everyday example." },
     ],
   },
   {
     id: "explain-3",
     category: "explain",
-    title: "Génotype vs phénotype",
+    title: "Genotype vs phenotype",
     messages: [
       { role: "system", content: SYSTEM_STUDY },
-      { role: "user", content: "Je ne comprends pas la différence entre génotype et phénotype. Peux-tu m'expliquer avec un exemple concret ?" },
+      { role: "user", content: "I don't understand the difference between genotype and phenotype. Can you explain it with a concrete example?" },
     ],
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Estimation de coût
+// Cost estimation
 // ---------------------------------------------------------------------------
 
 interface Pricing {
-  inputPerM: number; // USD par million de tokens en entrée
-  outputPerM: number; // USD par million de tokens en sortie
+  inputPerM: number; // USD per million input tokens
+  outputPerM: number; // USD per million output tokens
 }
 
-/** Prix par défaut (configurables via env) — par million de tokens, en USD. */
+/** Default prices (configurable via env) — per million tokens, in USD. */
 function defaultPricing(): Pricing {
   return {
     inputPerM: parseFloat(process.env.LLM_INPUT_PRICE_PER_MTOK || "0.5") || 0.5,
@@ -233,7 +233,7 @@ function defaultPricing(): Pricing {
   };
 }
 
-/** Best-effort : récupère le prix réel du modèle sur OpenRouter (perte de temps sinon). */
+/** Best-effort: fetches the real model price from OpenRouter (else it would be guesswork). */
 async function fetchOpenRouterPricing(model: string): Promise<Pricing | null> {
   try {
     const res = await fetch("https://openrouter.ai/api/v1/models");
@@ -243,9 +243,9 @@ async function fetchOpenRouterPricing(model: string): Promise<Pricing | null> {
     };
     const m = data.data?.find((x) => x.id === model);
     if (!m?.pricing) return null;
-    // Les prix OpenRouter (/api/v1/models) sont exprimés en USD PAR TOKEN
-    // (ex: "0.00000015" pour gpt-4o-mini = $0.15 / million). On convertit
-    // en par-million pour rester cohérent avec defaultPricing().
+    // OpenRouter prices (/api/v1/models) are expressed in USD PER TOKEN
+    // (e.g. "0.00000015" for gpt-4o-mini = $0.15 / million). We convert them
+    // to per-million to stay consistent with defaultPricing().
     return {
       inputPerM: (parseFloat(m.pricing.prompt) || 0) * 1_000_000,
       outputPerM: (parseFloat(m.pricing.completion) || 0) * 1_000_000,
@@ -256,12 +256,12 @@ async function fetchOpenRouterPricing(model: string): Promise<Pricing | null> {
 }
 
 function estimateTokens(chars: number): number {
-  // Heuristique grossière ~4 caractères par token (texte français).
+  // Rough heuristic ~4 characters per token.
   return Math.max(1, Math.round(chars / 4));
 }
 
 // ---------------------------------------------------------------------------
-// Mesures
+// Measurements
 // ---------------------------------------------------------------------------
 
 interface RunResult {
@@ -298,14 +298,14 @@ interface ProviderReport {
 }
 
 /**
- * Timeout par case (ms) — configurable via --timeout (s), défaut 300 s.
+ * Per-case timeout (ms) — configurable via --timeout (s), default 300 s.
  *
- * Fix dette technique : l'ancien withTimeout rejetait la promesse sans annuler
- * l'inférence en cours — QVAC continuait de générer en arrière-plan jusqu'à la
- * fin (slot d'inférence bloqué, RAM occupée). On propage désormais un
- * AbortController : au timeout on appelle controller.abort() ce qui déclenche,
- * dans le provider, cancel({ requestId }) pour QVAC (arrêt réel dans le worker)
- * et l'annulation fetch pour les providers OpenAI-compatible.
+ * Technical debt fix: the old withTimeout rejected the promise without cancelling
+ * the running inference — QVAC kept generating in the background until completion
+ * (blocked inference slot, RAM occupied). We now propagate an AbortController:
+ * on timeout we call controller.abort(), which triggers, in the provider,
+ * cancel({ requestId }) for QVAC (real stop in the worker) and fetch cancellation
+ * for OpenAI-compatible providers.
  */
 function withTimeout<T>(
   createPromise: (signal: AbortSignal) => Promise<T>,
@@ -316,7 +316,7 @@ function withTimeout<T>(
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       controller.abort();
-      reject(new Error(`Timeout après ${Math.round(ms / 1000)} s (${label})`));
+      reject(new Error(`Timeout after ${Math.round(ms / 1000)} s (${label})`));
     }, ms);
     createPromise(controller.signal).then(
       (v) => {
@@ -373,7 +373,7 @@ async function runCase(
     base.outputTokensEst = estimateTokens(output.length);
     base.rawOutput = output;
 
-    // Tokens réels + coût (provider cloud OpenAI-compatible)
+    // Actual tokens + cost (OpenAI-compatible cloud provider)
     const usage =
       provider instanceof QvacProvider
         ? undefined
@@ -388,7 +388,7 @@ async function runCase(
         (usage.completionTokens / 1_000_000) * p.outputPerM;
     }
 
-    // Métriques QVAC (local)
+    // QVAC metrics (local)
     if (provider instanceof QvacProvider) {
       const stats = provider.lastStats;
       base.qvac = {
@@ -413,7 +413,7 @@ async function runCase(
 }
 
 // ---------------------------------------------------------------------------
-// CLI / exécution
+// CLI / execution
 // ---------------------------------------------------------------------------
 
 function parseArgs(argv: string[]): {
@@ -442,8 +442,8 @@ async function main() {
   const selectedCases = CASES.slice(0, Math.min(caseLimit, CASES.length));
 
   console.log("═".repeat(72));
-  console.log("🧠 Benchmark LLM Providers — SmartNotes");
-  console.log(`Node ${process.version} · ${os.platform()} ${os.arch()} · ${os.cpus().length} CPU · RAM ${Math.round(os.totalmem() / 1024 / 1024 / 1024)} Go`);
+  console.log("🧠 LLM Provider Benchmark — SmartNotes");
+  console.log(`Node ${process.version} · ${os.platform()} ${os.arch()} · ${os.cpus().length} CPU · RAM ${Math.round(os.totalmem() / 1024 / 1024 / 1024)} GB`);
   console.log(`Cases: ${selectedCases.length} · Providers: ${providers.join(", ")} · Timeout/case: ${Math.round(timeoutMs / 1000)}s`);
   console.log("═".repeat(72));
 
@@ -454,12 +454,12 @@ async function main() {
 
     let provider: LLMProvider;
     try {
-      // QVAC : on branche un onProgress pour suivre le téléchargement P2P du modèle
+      // QVAC: wire an onProgress to track the model's P2P download
       if (providerName === "qvac") {
         const qvacOpts: QvacProviderOptions = {
           onProgress: (p) => {
             const mb = (n: number) => (n / 1e6).toFixed(1);
-            const line = `  ▸ Téléchargement modèle ${p.percentage.toFixed(0)}% (${mb(p.downloaded)}/${mb(p.total)} MB)`;
+            const line = `  ▸ Model download ${p.percentage.toFixed(0)}% (${mb(p.downloaded)}/${mb(p.total)} MB)`;
             process.stderr.write(process.stderr.isTTY ? `\r${line}   ` : `${line}\n`);
             if (p.percentage >= 100) process.stderr.write("\n");
           },
@@ -469,34 +469,34 @@ async function main() {
         provider = createLLMProvider(providerName);
       }
     } catch (error) {
-      console.log(`  ⚠ Skippé : ${error instanceof Error ? error.message : error}`);
+      console.log(`  ⚠ Skipped: ${error instanceof Error ? error.message : error}`);
       continue;
     }
 
-    console.log(`  Modèle: ${provider.model}`);
+    console.log(`  Model: ${provider.model}`);
     const pricing =
       providerName === "openrouter"
         ? await fetchOpenRouterPricing(provider.model)
         : null;
     if (pricing) {
       console.log(
-        `  Prix OpenRouter: $${pricing.inputPerM}/M in · $${pricing.outputPerM}/M out`
+        `  OpenRouter price: $${pricing.inputPerM}/M in · $${pricing.outputPerM}/M out`
       );
     }
 
     const results: RunResult[] = [];
     for (const testCase of selectedCases) {
-      process.stdout.write(`  [${testCase.id}] ${testCase.title}… `);
+      process.stdout.write(`  [${testCase.id}] ${testCase.title}... `);
       const result = await runCase(provider, providerName, testCase, pricing, timeoutMs);
       results.push(result);
       if (result.ok) {
         console.log(`OK (${result.latencyMs} ms, ${result.outputChars} chars)`);
       } else {
-        console.log(`ERREUR: ${result.error}`);
+        console.log(`ERROR: ${result.error}`);
       }
     }
 
-    // Libération mémoire QVAC entre deux providers
+    // Free QVAC memory between two providers
     if (provider instanceof QvacProvider) {
       await provider.unload().catch(() => undefined);
     }
@@ -505,10 +505,10 @@ async function main() {
   }
 
   // -------------------------------------------------------------------------
-  // Résumé console
+  // Console summary
   // -------------------------------------------------------------------------
   console.log("\n" + "═".repeat(72));
-  console.log("📊 RÉSUMÉ (temps de réponse & longueur de sortie)");
+  console.log("📊 SUMMARY (response time & output length)");
   console.log("═".repeat(72));
 
   const header = ["case", ...reports.map((r) => r.provider.padEnd(22))].join("  ");
@@ -531,7 +531,7 @@ async function main() {
   }
 
   // -------------------------------------------------------------------------
-  // Écriture JSON brute (pour revue manuelle de qualité)
+  // Raw JSON output (for manual quality review)
   // -------------------------------------------------------------------------
   const outDir = out ? path.dirname(path.resolve(out)) : path.join(process.cwd(), "scripts", "benchmark-results");
   const outFile =
@@ -547,7 +547,7 @@ async function main() {
       cpus: os.cpus().length,
       totalMemGb: Math.round(os.totalmem() / 1024 / 1024 / 1024),
       freeMemGb: Math.round(os.freemem() / 1024 / 1024 / 1024),
-      note: "Le benchmark ne tranche pas : la décision de bascule reste manuelle après revue de la qualité des réponses brutes.",
+      note: "The benchmark does not decide: the switch decision remains manual after reviewing the quality of the raw responses.",
     },
     cases: selectedCases.map((c) => ({
       id: c.id,
@@ -561,11 +561,11 @@ async function main() {
   };
 
   fs.writeFileSync(outFile, JSON.stringify(payload, null, 2), "utf-8");
-  console.log(`\n💾 Sortie brute complète (revue manuelle) : ${outFile}`);
-  console.log("\nRappel : ce script ne désigne pas de gagnant. Comparez les réponses brutes du JSON avant toute bascule (LLM_PROVIDER).");
+  console.log(`\n💾 Full raw output (manual review): ${outFile}`);
+  console.log("\nReminder: this script does not designate a winner. Compare the raw JSON responses before any switch (LLM_PROVIDER).");
 }
 
 main().catch((error) => {
-  console.error("Erreur fatale du benchmark:", error);
+  console.error("Fatal benchmark error:", error);
   process.exit(1);
 });

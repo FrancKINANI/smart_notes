@@ -12,23 +12,23 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   </React.StrictMode>
 );
 
-// Enregistrement du service worker avec gestion des mises à jour
+// Service worker registration with update management
 register({
   onSuccess: (registration) => {
-    console.log("Service Worker enregistré avec succès:", registration);
+    console.log("Service Worker registered successfully:", registration);
   },
   onUpdate: (registration) => {
-    // Afficher une notification pour informer l'utilisateur de la mise à jour
+    // Show a notification to inform the user of the update
     if (registration && registration.waiting) {
-      // Créer un canal de communication avec le service worker
+      // Create a communication channel with the service worker
       const channel = new MessageChannel();
 
       channel.port1.onmessage = () => {
-        // Recharger la page une fois que le service worker a pris le contrôle
+        // Reload the page once the service worker takes control
         window.location.reload();
       };
 
-      // Demander au service worker d'activer la mise à jour
+      // Ask the service worker to activate the update
       registration.waiting.postMessage({ type: "SKIP_WAITING" }, [
         channel.port2,
       ]);

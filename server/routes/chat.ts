@@ -6,21 +6,21 @@ const router = Router();
 router.post("/", async (req, res) => {
   try {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Non authentifié" });
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const { message, history } = req.body;
 
     if (!message) {
-      return res.status(400).json({ message: "Le message est requis" });
+      return res.status(400).json({ message: "Message is required" });
     }
 
-    // Préparer les messages pour le provider LLM
+    // Prepare the messages for the LLM provider
     const chatMessages = [
       {
         role: "system",
         content:
-          "Vous êtes un assistant d'étude intelligent qui aide les étudiants à mieux comprendre et apprendre. Vos réponses sont concises, précises et pédagogiques.",
+          "You are an intelligent study assistant who helps students understand and learn better. Your answers are concise, precise and educational.",
       },
       ...(history ?? []).map((msg: { role?: string; content?: string }) => ({
         role: msg.role ?? "user",
@@ -29,17 +29,17 @@ router.post("/", async (req, res) => {
       { role: "user", content: message },
     ];
 
-    // Appeler le provider LLM actif (config admin DB prioritaire, sinon LLM_PROVIDER env)
+    // Call the active LLM provider (DB admin config takes priority, otherwise LLM_PROVIDER env)
     const provider = await getLLMProvider();
     const response =
       (await provider.chat(chatMessages, { temperature: 0.7, maxTokens: 500 })) ||
-      "Désolé, je n'ai pas pu générer une réponse.";
+      "Sorry, I could not generate a response.";
 
     res.json({ response });
   } catch (error) {
-    console.error("Erreur de l'API Chat:", error);
+    console.error("Chat API error:", error);
     res.status(500).json({
-      message: "Erreur lors de la génération de la réponse",
+      message: "Error while generating the response",
       error:
         process.env.NODE_ENV === "development" && error instanceof Error
           ? error.message

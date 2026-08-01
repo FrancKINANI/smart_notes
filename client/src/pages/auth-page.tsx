@@ -23,7 +23,7 @@ export default function AuthPage() {
   const [loginError, setLoginError] = useState("");
   const [registerError, setRegisterError] = useState("");
 
-  // Rediriger si déjà authentifié
+  // Redirect if already authenticated
   if (isAuthenticated) {
     return <Redirect to="/" />;
   }
@@ -33,7 +33,7 @@ export default function AuthPage() {
     setLoginError("");
     
     if (!loginData.email || !loginData.password) {
-      setLoginError("Veuillez remplir tous les champs");
+      setLoginError("Please fill in all fields");
       return;
     }
     
@@ -49,12 +49,12 @@ export default function AuthPage() {
     setRegisterError("");
     
     if (!registerData.username || !registerData.email || !registerData.password || !registerData.confirmPassword) {
-      setRegisterError("Veuillez remplir tous les champs obligatoires");
+      setRegisterError("Please fill in all required fields");
       return;
     }
     
     if (registerData.password !== registerData.confirmPassword) {
-      setRegisterError("Les mots de passe ne correspondent pas");
+      setRegisterError("Passwords do not match");
       return;
     }
     
@@ -67,7 +67,7 @@ export default function AuthPage() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Formulaire d'authentification */}
+      {/* Authentication form */}
       <div className="flex items-center justify-center w-full lg:w-1/2 p-8">
         <div className="w-full max-w-md space-y-6">
           <div className="text-center mb-8">
@@ -77,23 +77,23 @@ export default function AuthPage() {
               </span>
             </h1>
             <p className="text-muted-foreground mt-2">
-              Votre compagnon d'études intelligent
+              Your intelligent study companion
             </p>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Connexion</TabsTrigger>
-              <TabsTrigger value="register">Inscription</TabsTrigger>
+              <TabsTrigger value="login">Log in</TabsTrigger>
+              <TabsTrigger value="register">Sign up</TabsTrigger>
             </TabsList>
             
-            {/* Onglet de connexion */}
+            {/* Login tab */}
             <TabsContent value="login">
               <Card>
                 <CardHeader>
-                  <CardTitle>Connexion</CardTitle>
+                  <CardTitle>Log in</CardTitle>
                   <CardDescription>
-                    Connectez-vous à votre compte pour continuer
+                    Log in to your account to continue
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleLoginSubmit}>
@@ -109,7 +109,7 @@ export default function AuthPage() {
                       <Input
                         id="email"
                         type="email"
-                        placeholder="votre@email.com"
+                        placeholder="your@email.com"
                         value={loginData.email}
                         onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                         required
@@ -117,9 +117,9 @@ export default function AuthPage() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="password">Mot de passe</Label>
+                        <Label htmlFor="password">Password</Label>
                         <a href="#" className="text-sm text-primary hover:underline">
-                          Mot de passe oublié?
+                          Forgot password?
                         </a>
                       </div>
                       <Input
@@ -135,10 +135,10 @@ export default function AuthPage() {
                     <Button type="submit" className="w-full" disabled={isLoginLoading}>
                       {isLoginLoading ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Connexion...
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Logging in...
                         </>
                       ) : (
-                        "Se connecter"
+                        "Log in"
                       )}
                     </Button>
                   </CardFooter>
@@ -146,13 +146,13 @@ export default function AuthPage() {
               </Card>
             </TabsContent>
             
-            {/* Onglet d'inscription */}
+            {/* Sign up tab */}
             <TabsContent value="register">
               <Card>
                 <CardHeader>
-                  <CardTitle>Créer un compte</CardTitle>
+                  <CardTitle>Create an account</CardTitle>
                   <CardDescription>
-                    Inscrivez-vous pour commencer à utiliser NoteGenius
+                    Sign up to start using NoteGenius
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleRegisterSubmit}>
@@ -164,10 +164,10 @@ export default function AuthPage() {
                       </Alert>
                     )}
                     <div className="space-y-2">
-                      <Label htmlFor="username">Nom d'utilisateur</Label>
+                      <Label htmlFor="username">Username</Label>
                       <Input
                         id="username"
-                        placeholder="pseudo"
+                        placeholder="username"
                         value={registerData.username}
                         onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
                         required
@@ -178,23 +178,23 @@ export default function AuthPage() {
                       <Input
                         id="register-email"
                         type="email"
-                        placeholder="votre@email.com"
+                        placeholder="your@email.com"
                         value={registerData.email}
                         onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="displayName">Nom d'affichage (optionnel)</Label>
+                      <Label htmlFor="displayName">Display name (optional)</Label>
                       <Input
                         id="displayName"
-                        placeholder="Comment souhaitez-vous être appelé"
+                        placeholder="What would you like to be called"
                         value={registerData.displayName}
                         onChange={(e) => setRegisterData({ ...registerData, displayName: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="register-password">Mot de passe</Label>
+                      <Label htmlFor="register-password">Password</Label>
                       <Input
                         id="register-password"
                         type="password"
@@ -204,7 +204,7 @@ export default function AuthPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+                      <Label htmlFor="confirm-password">Confirm password</Label>
                       <Input
                         id="confirm-password"
                         type="password"
@@ -218,10 +218,10 @@ export default function AuthPage() {
                     <Button type="submit" className="w-full" disabled={isRegisterLoading}>
                       {isRegisterLoading ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Inscription...
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing up...
                         </>
                       ) : (
-                        "S'inscrire"
+                        "Sign up"
                       )}
                     </Button>
                   </CardFooter>
@@ -236,27 +236,27 @@ export default function AuthPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 to-blue-500/20 flex-col items-center justify-center p-12">
         <div className="max-w-xl space-y-8 text-center">
           <h2 className="text-4xl font-bold tracking-tight">
-            Transformez vos études avec l'IA
+            Transform your studies with AI
           </h2>
           <p className="text-lg text-muted-foreground">
-            NoteGenius utilise l'intelligence artificielle pour améliorer votre expérience d'apprentissage. Prenez des notes plus intelligentes, générez des quiz, créez des cartes mémoire et partagez vos connaissances avec vos camarades d'études.
+            NoteGenius uses artificial intelligence to improve your learning experience. Take smarter notes, generate quizzes, create flashcards and share your knowledge with your study buddies.
           </p>
           <div className="grid grid-cols-2 gap-4 pt-4">
             <div className="rounded-lg bg-white/20 backdrop-blur-sm p-4 shadow">
-              <h3 className="font-semibold mb-2">Prise de notes intelligente</h3>
-              <p className="text-sm">OCR pour capturer vos notes manuscrites et amélioration par IA</p>
+              <h3 className="font-semibold mb-2">Smart note taking</h3>
+              <p className="text-sm">OCR to capture your handwritten notes and AI improvement</p>
             </div>
             <div className="rounded-lg bg-white/20 backdrop-blur-sm p-4 shadow">
-              <h3 className="font-semibold mb-2">Révision espacée</h3>
-              <p className="text-sm">Système de répétition optimisé pour une mémorisation efficace</p>
+              <h3 className="font-semibold mb-2">Spaced repetition</h3>
+              <p className="text-sm">Optimized repetition system for effective memorization</p>
             </div>
             <div className="rounded-lg bg-white/20 backdrop-blur-sm p-4 shadow">
-              <h3 className="font-semibold mb-2">Quiz et évaluations</h3>
-              <p className="text-sm">Génération automatique de questions pour tester vos connaissances</p>
+              <h3 className="font-semibold mb-2">Quizzes and assessments</h3>
+              <p className="text-sm">Automatic question generation to test your knowledge</p>
             </div>
             <div className="rounded-lg bg-white/20 backdrop-blur-sm p-4 shadow">
-              <h3 className="font-semibold mb-2">Étude collaborative</h3>
-              <p className="text-sm">Partagez et collaborez facilement avec vos camarades d'études</p>
+              <h3 className="font-semibold mb-2">Collaborative study</h3>
+              <p className="text-sm">Share and collaborate easily with your study buddies</p>
             </div>
           </div>
         </div>

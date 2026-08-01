@@ -93,27 +93,27 @@ export function RealTimeStudySession({
   const webSocketRef = useRef<WebSocket | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Configuration de la websocket
+  // WebSocket setup
   useEffect(() => {
-    // Simuler une connexion WebSocket (à remplacer par une véritable implémentation)
+    // Simulate a WebSocket connection (to be replaced by a real implementation)
     const connectWebSocket = () => {
       console.log(`Connecting to WebSocket for session ${sessionId}...`);
       
-      // En production, remplacer par la véritable URL WebSocket
+      // In production, replace with the real WebSocket URL
       // webSocketRef.current = new WebSocket(`wss://your-api-url/study-sessions/${sessionId}`);
       
-      // Simulation de la connexion WebSocket
+      // Simulate the WebSocket connection
       setTimeout(() => {
         setIsConnected(true);
         toast({
-          title: "Connecté à la session",
-          description: "Vous avez rejoint la session d'étude en temps réel.",
+          title: "Connected to session",
+          description: "You joined the real-time study session.",
         });
         
-        // Ajouter un message système
-        addSystemMessage("Vous avez rejoint la session d'étude");
+        // Add a system message
+        addSystemMessage("You joined the study session");
         
-        // Informer les autres participants de votre arrivée
+        // Notify the other participants of your arrival
         if (user) {
           broadcastMessage({
             type: "user_joined",
@@ -126,12 +126,12 @@ export function RealTimeStudySession({
     
     connectWebSocket();
     
-    // Démarrer le timer pour la durée de session
+    // Start the session duration timer
     timerRef.current = setInterval(() => {
       setSessionDuration(prev => prev + 1);
     }, 1000);
     
-    // Nettoyage à la déconnexion
+    // Cleanup on disconnect
     return () => {
       if (webSocketRef.current) {
         webSocketRef.current.close();
@@ -143,14 +143,14 @@ export function RealTimeStudySession({
     };
   }, [sessionId, toast, user]);
 
-  // Faire défiler le chat vers le bas lorsque de nouveaux messages arrivent
+  // Scroll the chat down when new messages arrive
   useEffect(() => {
     if (chatAreaRef.current) {
       chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
     }
   }, [messages]);
 
-  // Fonction pour envoyer un message
+  // Function to send a message
   const sendMessage = () => {
     if (!messageInput.trim() || !user) return;
     
@@ -163,25 +163,25 @@ export function RealTimeStudySession({
       type: "text",
     };
     
-    // Ajouter le message localement
+    // Add the message locally
     setMessages(prev => [...prev, newMessage]);
     
-    // Envoyer le message via WebSocket
+    // Send the message via WebSocket
     broadcastMessage({
       type: "chat",
       message: newMessage,
     });
     
-    // Effacer l'input
+    // Clear the input
     setMessageInput("");
   };
 
-  // Ajouter un message système
+  // Add a system message
   const addSystemMessage = (content: string) => {
     const systemMessage: Message = {
       id: Date.now().toString(),
       senderId: "system",
-      senderName: "Système",
+      senderName: "System",
       content,
       timestamp: new Date(),
       type: "system",
@@ -190,7 +190,7 @@ export function RealTimeStudySession({
     setMessages(prev => [...prev, systemMessage]);
   };
 
-  // Partager une ressource
+  // Share a resource
   const shareResource = (resource: Omit<SharedResource, "id" | "sharedBy">) => {
     if (!user) return;
     
@@ -203,29 +203,29 @@ export function RealTimeStudySession({
       },
     };
     
-    // Ajouter la ressource localement
+    // Add the resource locally
     setSharedResources(prev => [...prev, newResource]);
     
-    // Informer les autres participants
+    // Notify the other participants
     broadcastMessage({
       type: "resource_shared",
       resource: newResource,
     });
     
-    // Ajouter un message système
-    addSystemMessage(`${user.username} a partagé : ${resource.title}`);
+    // Add a system message
+    addSystemMessage(`${user.username} shared: ${resource.title}`);
   };
 
-  // Simuler l'envoi de messages via WebSocket
+  // Simulate sending messages via WebSocket
   const broadcastMessage = (data: any) => {
-    // En production, utiliser une véritable implémentation WebSocket
+    // In production, use a real WebSocket implementation
     console.log("Broadcasting message:", data);
     
-    // Simuler des réponses basées sur le type de message
+    // Simulate responses based on message type
     if (data.type === "chat") {
-      // Pas besoin de simuler une réponse, le message est déjà ajouté localement
+      // No need to simulate a response, the message is already added locally
     } else if (data.type === "user_joined") {
-      // Simuler l'ajout d'utilisateurs aléatoires en réponse à votre connexion
+      // Simulate adding random users in response to your connection
       setTimeout(() => {
         const randomUsers = [
           {
@@ -246,14 +246,14 @@ export function RealTimeStudySession({
         
         setParticipants(prev => [...prev, ...randomUsers]);
         
-        // Ajouter des messages système pour les utilisateurs aléatoires
-        addSystemMessage("Alice a rejoint la session d'étude");
-        addSystemMessage("Bob a rejoint la session d'étude");
+        // Add system messages for the random users
+        addSystemMessage("Alice joined the study session");
+        addSystemMessage("Bob joined the study session");
       }, 2000);
     }
   };
 
-  // Formater la durée
+  // Format the duration
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -262,9 +262,9 @@ export function RealTimeStudySession({
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Quitter la session
+  // Leave the session
   const handleLeaveSession = () => {
-    // Informer les autres participants
+    // Notify the other participants
     if (user) {
       broadcastMessage({
         type: "user_left",
@@ -273,23 +273,23 @@ export function RealTimeStudySession({
       });
     }
     
-    // Fermer la connexion WebSocket
+    // Close the WebSocket connection
     if (webSocketRef.current) {
       webSocketRef.current.close();
     }
     
-    // Arrêter le timer
+    // Stop the timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
     
-    // Appeler le callback si défini
+    // Call the callback if defined
     if (onLeaveSession) {
       onLeaveSession();
     }
   };
 
-  // Toggle des contrôles audio/vidéo
+  // Toggle audio/video controls
   const toggleMute = () => {
     setIsMuted(prev => !prev);
   };
@@ -302,20 +302,20 @@ export function RealTimeStudySession({
     setIsScreenSharing(prev => !prev);
     
     if (!isScreenSharing) {
-      addSystemMessage(`Vous avez commencé à partager votre écran`);
+      addSystemMessage(`You started sharing your screen`);
     } else {
-      addSystemMessage(`Vous avez arrêté de partager votre écran`);
+      addSystemMessage(`You stopped sharing your screen`);
     }
   };
 
   return (
     <div className="flex flex-col h-[80vh]">
-      {/* En-tête de session */}
+      {/* Session header */}
       <div className="flex items-center justify-between p-4 bg-primary-50 rounded-t-lg">
         <div className="flex items-center space-x-2">
           <Users className="h-5 w-5 text-primary-600" />
           <h2 className="text-lg font-semibold text-primary-700">
-            Session d'étude en direct
+            Live study session
           </h2>
         </div>
         <div className="flex items-center space-x-4">
@@ -332,21 +332,21 @@ export function RealTimeStudySession({
             onClick={handleLeaveSession}
           >
             <PhoneOff className="h-4 w-4 mr-2" />
-            Quitter
+            Leave
           </Button>
         </div>
       </div>
 
-      {/* Contenu principal */}
+      {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Zone principale (vidéo/présentation) */}
+        {/* Main area (video/presentation) */}
         <div className="flex-1 bg-gray-900 p-4 flex items-center justify-center">
           {isScreenSharing ? (
             <div className="text-center">
               <div className="bg-primary-100 p-8 rounded-lg">
                 <Share2 className="h-12 w-12 text-primary-500 mx-auto mb-4" />
                 <p className="text-primary-700 font-medium">
-                  Vous partagez votre écran
+                  You are sharing your screen
                 </p>
               </div>
             </div>
@@ -355,7 +355,7 @@ export function RealTimeStudySession({
               <div className="bg-primary-100 p-8 rounded-lg">
                 <VideoIcon className="h-12 w-12 text-primary-500 mx-auto mb-4" />
                 <p className="text-primary-700 font-medium">
-                  Votre caméra est activée
+                  Your camera is on
                 </p>
               </div>
             </div>
@@ -363,17 +363,17 @@ export function RealTimeStudySession({
             <div className="text-center text-white">
               <Users className="h-16 w-16 mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-medium mb-2">
-                Session d'étude collaborative
+                Collaborative study session
               </h3>
               <p className="text-gray-400 max-w-md">
-                Activez votre caméra ou partagez votre écran pour interagir avec
-                les autres participants.
+                Turn on your camera or share your screen to interact with
+                the other participants.
               </p>
             </div>
           )}
         </div>
 
-        {/* Barre latérale (chat, participants, ressources) */}
+        {/* Sidebar (chat, participants, resources) */}
         <div className="w-80 border-l flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full">
@@ -387,11 +387,11 @@ export function RealTimeStudySession({
               </TabsTrigger>
               <TabsTrigger value="resources" className="flex-1">
                 <BookOpen className="h-4 w-4 mr-2" />
-                Ressources
+                Resources
               </TabsTrigger>
             </TabsList>
 
-            {/* Onglet Chat */}
+            {/* Chat tab */}
             <TabsContent value="chat" className="flex-1 flex flex-col h-full">
               <ScrollArea
                 ref={chatAreaRef}
@@ -461,7 +461,7 @@ export function RealTimeStudySession({
                   <Input
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder="Envoyer un message..."
+                    placeholder="Send a message..."
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -476,11 +476,11 @@ export function RealTimeStudySession({
               </div>
             </TabsContent>
 
-            {/* Onglet Participants */}
+            {/* Participants tab */}
             <TabsContent value="participants" className="h-full">
               <ScrollArea className="h-full p-4">
                 <div className="space-y-2">
-                  {/* Vous */}
+                  {/* You */}
                   <div className="flex items-center justify-between p-2 bg-primary-50 rounded-md">
                     <div className="flex items-center space-x-3">
                       <Avatar>
@@ -489,7 +489,7 @@ export function RealTimeStudySession({
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{user?.username || "Vous"} (vous)</p>
+                        <p className="font-medium">{user?.username || "You"} (you)</p>
                       </div>
                     </div>
                     <div className="flex space-x-1">
@@ -519,7 +519,7 @@ export function RealTimeStudySession({
                     </div>
                   </div>
 
-                  {/* Autres participants */}
+                  {/* Other participants */}
                   {participants
                     .filter((p) => p.id !== user?.id)
                     .map((participant) => (
@@ -570,7 +570,7 @@ export function RealTimeStudySession({
               </ScrollArea>
             </TabsContent>
 
-            {/* Onglet Ressources */}
+            {/* Resources tab */}
             <TabsContent value="resources" className="h-full">
               <ScrollArea className="h-full p-4">
                 <div className="flex flex-col space-y-4">
@@ -578,15 +578,15 @@ export function RealTimeStudySession({
                     variant="outline"
                     className="w-full justify-start"
                     onClick={() => {
-                      // Simuler le partage d'une note
+                      // Simulate sharing a note
                       shareResource({
                         type: "note",
-                        title: "Notes sur la photosynthèse",
+                        title: "Notes on photosynthesis",
                       });
                     }}
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    Partager une note
+                    Share a note
                   </Button>
 
                   <Separator />
@@ -594,10 +594,10 @@ export function RealTimeStudySession({
                   {sharedResources.length === 0 ? (
                     <div className="text-center p-6 text-gray-500">
                       <BookOpen className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                      <p>Aucune ressource partagée pour le moment</p>
+                      <p>No shared resources yet</p>
                       <p className="text-sm">
-                        Partagez des notes ou des quiz avec vos partenaires
-                        d'étude
+                        Share notes or quizzes with your study
+                        partners
                       </p>
                     </div>
                   ) : (
@@ -621,12 +621,12 @@ export function RealTimeStudySession({
                           <CardContent className="p-3 pt-1">
                             <CardDescription className="text-xs flex items-center mt-1">
                               <User className="h-3 w-3 mr-1" />
-                              Partagé par {resource.sharedBy.name}
+                              Shared by {resource.sharedBy.name}
                             </CardDescription>
                           </CardContent>
                           <CardFooter className="p-3 pt-0 flex justify-end">
                             <Button variant="ghost" size="sm">
-                              Voir
+                              View
                             </Button>
                           </CardFooter>
                         </Card>
@@ -640,7 +640,7 @@ export function RealTimeStudySession({
         </div>
       </div>
 
-      {/* Contrôles audio/vidéo */}
+      {/* Audio/video controls */}
       <div className="p-4 bg-white border-t flex items-center justify-center space-x-4">
         <Button
           variant={isMuted ? "outline" : "default"}

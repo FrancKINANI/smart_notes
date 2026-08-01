@@ -9,24 +9,23 @@ export const PATTERNS = {
   COLOR: /^#[0-9A-Fa-f]{6}$/,
 };
 
-// Messages d'erreur personnalisés
+// Custom error messages
 export const ERROR_MESSAGES = {
-  required: "Ce champ est requis",
-  invalidEmail: "Format d'email invalide",
+  required: "This field is required",
+  invalidEmail: "Invalid email format",
   invalidPassword:
-    "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial",
-  passwordMismatch: "Les mots de passe ne correspondent pas",
+    "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character",
+  passwordMismatch: "Passwords do not match",
   invalidUsername:
-    "Le nom d'utilisateur doit contenir entre 3 et 20 caractères (lettres, chiffres, _ et - uniquement)",
-  invalidColor: "La couleur doit être au format hexadécimal (ex: #FF0000)",
-  invalidScore: "Le score doit être compris entre 0 et 100",
-  invalidMasteryLevel: "Le niveau de maîtrise doit être compris entre 0 et 5",
-  invalidInterval: "L'intervalle doit être supérieur à 0",
-  invalidEaseFactor:
-    "Le facteur de facilité doit être compris entre 130 et 500",
+    "Username must be between 3 and 20 characters (letters, numbers, _ and - only)",
+  invalidColor: "Color must be a valid hex color (e.g. #FF0000)",
+  invalidScore: "Score must be between 0 and 100",
+  invalidMasteryLevel: "Mastery level must be between 0 and 5",
+  invalidInterval: "Interval must be greater than 0",
+  invalidEaseFactor: "Ease factor must be between 130 and 500",
 };
 
-// Schémas de validation
+// Validation schemas
 export const validationSchemas = {
   user: z.object({
     username: z
@@ -90,7 +89,7 @@ export const validationSchemas = {
   }),
 };
 
-// Types dérivés des schémas
+// Types derived from the schemas
 export type ValidationSchemas = typeof validationSchemas;
 export type ValidationTypes = {
   [K in keyof ValidationSchemas]: z.infer<ValidationSchemas[K]>;

@@ -74,10 +74,10 @@ export default function QuizIndex() {
       return (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">
-            Aucun quiz disponible. Générez un quiz à partir de vos notes !
+            No quiz available. Generate a quiz from your notes!
           </p>
           <Button asChild>
-            <Link to="/notes">Parcourir les Notes</Link>
+            <Link to="/notes">Browse Notes</Link>
           </Button>
         </div>
       );
@@ -90,7 +90,7 @@ export default function QuizIndex() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <FileText className="h-5 w-5 mr-2 text-primary-500" />
-                Quiz sur : {quiz.note?.title || "Note supprimée"}
+                Quiz on: {quiz.note?.title || "Deleted note"}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -98,13 +98,13 @@ export default function QuizIndex() {
                 {quiz.questions.length} questions
               </p>
               <p className="text-sm text-gray-500">
-                Créé le {new Date(quiz.createdAt).toLocaleDateString()}
+                Created on {new Date(quiz.createdAt).toLocaleDateString()}
               </p>
             </CardContent>
             <CardFooter className="justify-end">
               <Button asChild>
                 <Link to={`/quizzes/${quiz.id}`}>
-                  Passer le Quiz <ArrowRight className="ml-2 h-4 w-4" />
+                  Take the Quiz <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </CardFooter>
@@ -130,7 +130,7 @@ export default function QuizIndex() {
       return (
         <div className="text-center py-12">
           <p className="text-gray-500">
-            Vous n'avez pas encore effectué de quiz.
+            You have not taken any quiz yet.
           </p>
         </div>
       );
@@ -146,8 +146,8 @@ export default function QuizIndex() {
                 <CardTitle className="flex items-center">
                   <BarChart className="h-5 w-5 mr-2 text-primary-500" />
                   {quiz?.note?.title
-                    ? `Quiz sur : ${quiz.note.title}`
-                    : "Quiz sur une note supprimée"}
+                    ? `Quiz on: ${quiz.note.title}`
+                    : "Quiz on a deleted note"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -189,7 +189,7 @@ export default function QuizIndex() {
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="answers">
                     <AccordionTrigger className="text-sm">
-                      Voir les réponses
+                      View the answers
                     </AccordionTrigger>
                     <AccordionContent>
                       {quiz?.questions.map((question: any, index: number) => {
@@ -208,11 +208,11 @@ export default function QuizIndex() {
                                   Q{index + 1}: {question.question}
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                  Votre réponse : {userAnswer}
+                                  Your answer: {userAnswer}
                                 </p>
                                 {!isCorrect && (
                                   <p className="text-sm text-green-600">
-                                    Réponse correcte : {question.correctAnswer}
+                                    Correct answer: {question.correctAnswer}
                                   </p>
                                 )}
                               </div>
@@ -225,13 +225,13 @@ export default function QuizIndex() {
                 </Accordion>
 
                 <p className="text-sm text-gray-500 text-center mt-4">
-                  Complété le{" "}
+                  Completed on{" "}
                   {new Date(result.completedAt).toLocaleDateString()}
                 </p>
               </CardContent>
               <CardFooter className="justify-end">
                 <Button asChild variant="outline">
-                  <Link to={`/quizzes/${result.quizId}`}>Refaire le quiz</Link>
+                  <Link to={`/quizzes/${result.quizId}`}>Retake the quiz</Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -250,8 +250,8 @@ export default function QuizIndex() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="available">Quiz Disponibles</TabsTrigger>
-            <TabsTrigger value="results">Vos Résultats</TabsTrigger>
+            <TabsTrigger value="available">Available Quizzes</TabsTrigger>
+            <TabsTrigger value="results">Your Results</TabsTrigger>
           </TabsList>
 
           <TabsContent value="available">{renderQuizzes()}</TabsContent>

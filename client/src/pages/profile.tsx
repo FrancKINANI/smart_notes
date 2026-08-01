@@ -49,7 +49,7 @@ export default function ProfilePage() {
     confirmPassword: "",
   });
 
-  // Mutation pour mettre à jour le profil
+  // Mutation to update the profile
   const updateProfileMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const res = await apiRequest(`/api/users/${user?.id}`, {
@@ -59,29 +59,29 @@ export default function ProfilePage() {
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(
-          errorData.message || "Erreur lors de la mise à jour du profil"
+          errorData.message || "Error while updating the profile"
         );
       }
       return res;
     },
     onSuccess: () => {
       toast({
-        title: "Profil mis à jour",
-        description: "Vos informations ont été mises à jour avec succès",
+        title: "Profile updated",
+        description: "Your information has been updated successfully",
       });
       setIsEditing(false);
       refetchUser();
     },
     onError: (error: any) => {
       toast({
-        title: "Erreur",
+        title: "Error",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  // Mutation pour changer le mot de passe
+  // Mutation to change the password
   const changePasswordMutation = useMutation({
     mutationFn: async (data: typeof passwordData) => {
       const res = await apiRequest(`/api/users/${user?.id}/password`, {
@@ -91,15 +91,15 @@ export default function ProfilePage() {
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(
-          errorData.message || "Erreur lors du changement de mot de passe"
+          errorData.message || "Error while changing the password"
         );
       }
       return res;
     },
     onSuccess: () => {
       toast({
-        title: "Mot de passe changé",
-        description: "Votre mot de passe a été modifié avec succès",
+        title: "Password changed",
+        description: "Your password has been changed successfully",
       });
       setPasswordData({
         currentPassword: "",
@@ -109,7 +109,7 @@ export default function ProfilePage() {
     },
     onError: (error: any) => {
       toast({
-        title: "Erreur",
+        title: "Error",
         description: error.message,
         variant: "destructive",
       });
@@ -126,8 +126,8 @@ export default function ProfilePage() {
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
-        title: "Erreur",
-        description: "Les nouveaux mots de passe ne correspondent pas",
+        title: "Error",
+        description: "The new passwords do not match",
         variant: "destructive",
       });
       return;
@@ -140,9 +140,9 @@ export default function ProfilePage() {
     return (
       <div className="container py-8">
         <Alert variant="destructive">
-          <AlertTitle>Non autorisé</AlertTitle>
+          <AlertTitle>Not authorized</AlertTitle>
           <AlertDescription>
-            Vous devez être connecté pour accéder à cette page
+            You must be logged in to access this page
           </AlertDescription>
         </Alert>
       </div>
@@ -157,7 +157,7 @@ export default function ProfilePage() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight">Mon profil</h1>
+        <h1 className="text-3xl font-bold tracking-tight">My profile</h1>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -187,7 +187,7 @@ export default function ProfilePage() {
                     onClick={() => setIsEditing(true)}
                   >
                     <FileEdit className="mr-2 h-4 w-4" />
-                    Modifier le profil
+                    Edit profile
                   </Button>
                 )}
               </div>
@@ -198,8 +198,8 @@ export default function ProfilePage() {
                 <div className="flex items-center">
                   <User className="h-4 w-4 mr-2 text-muted-foreground" />
                   <span className="text-sm">
-                    Membre depuis{" "}
-                    {new Date().toLocaleDateString("fr-FR", {
+                    Member since{" "}
+                    {new Date().toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
                     })}
@@ -208,7 +208,7 @@ export default function ProfilePage() {
                 <div className="flex items-center">
                   <UserCircle className="h-4 w-4 mr-2 text-muted-foreground" />
                   <span className="text-sm">
-                    Rôle:{" "}
+                    Role:{" "}
                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </span>
                 </div>
@@ -223,11 +223,11 @@ export default function ProfilePage() {
             <TabsList className="w-full mb-6">
               <TabsTrigger value="informations" className="flex-1">
                 <User className="h-4 w-4 mr-2" />
-                Informations
+                Information
               </TabsTrigger>
               <TabsTrigger value="securite" className="flex-1">
                 <Key className="h-4 w-4 mr-2" />
-                Sécurité
+                Security
               </TabsTrigger>
             </TabsList>
 
@@ -235,18 +235,18 @@ export default function ProfilePage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>Informations personnelles</span>
+                    <span>Personal information</span>
                     {isEditing && (
                       <Button
                         variant="ghost"
                         onClick={() => setIsEditing(false)}
                       >
-                        Annuler
+                        Cancel
                       </Button>
                     )}
                   </CardTitle>
                   <CardDescription>
-                    Gérez vos informations personnelles
+                    Manage your personal information
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -254,7 +254,7 @@ export default function ProfilePage() {
                     <form onSubmit={handleProfileSubmit} className="space-y-4">
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="displayName">Nom d'affichage</Label>
+                          <Label htmlFor="displayName">Display name</Label>
                           <Input
                             id="displayName"
                             value={formData.displayName}
@@ -267,11 +267,11 @@ export default function ProfilePage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="username">Nom d'utilisateur</Label>
+                          <Label htmlFor="username">Username</Label>
                           <Input id="username" value={user.username} disabled />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="firstName">Prénom</Label>
+                          <Label htmlFor="firstName">First name</Label>
                           <Input
                             id="firstName"
                             value={formData.firstName}
@@ -284,7 +284,7 @@ export default function ProfilePage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="lastName">Nom</Label>
+                          <Label htmlFor="lastName">Last name</Label>
                           <Input
                             id="lastName"
                             value={formData.lastName}
@@ -301,7 +301,7 @@ export default function ProfilePage() {
                           <Input id="email" value={user.email} disabled />
                         </div>
                         <div className="space-y-2 sm:col-span-2">
-                          <Label htmlFor="bio">Biographie</Label>
+                          <Label htmlFor="bio">Bio</Label>
                           <Input
                             id="bio"
                             value={formData.bio}
@@ -320,12 +320,12 @@ export default function ProfilePage() {
                         {updateProfileMutation.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Enregistrement...
+                            Saving...
                           </>
                         ) : (
                           <>
                             <Save className="mr-2 h-4 w-4" />
-                            Enregistrer les modifications
+                            Save changes
                           </>
                         )}
                       </Button>
@@ -335,25 +335,25 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                           <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                            Nom d'affichage
+                            Display name
                           </h3>
                           <p>{user.displayName || "-"}</p>
                         </div>
                         <div>
                           <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                            Nom d'utilisateur
+                            Username
                           </h3>
                           <p>{user.username}</p>
                         </div>
                         <div>
                           <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                            Prénom
+                            First name
                           </h3>
                           <p>{user.firstName || "-"}</p>
                         </div>
                         <div>
                           <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                            Nom
+                            Last name
                           </h3>
                           <p>{user.lastName || "-"}</p>
                         </div>
@@ -369,7 +369,7 @@ export default function ProfilePage() {
                         {user.bio && (
                           <div className="sm:col-span-2">
                             <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                              Biographie
+                              Bio
                             </h3>
                             <p>{user.bio}</p>
                           </div>
@@ -384,16 +384,16 @@ export default function ProfilePage() {
             <TabsContent value="securite">
               <Card>
                 <CardHeader>
-                  <CardTitle>Sécurité du compte</CardTitle>
+                  <CardTitle>Account security</CardTitle>
                   <CardDescription>
-                    Gérez votre mot de passe et la sécurité de votre compte
+                    Manage your password and account security
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handlePasswordSubmit} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="currentPassword">
-                        Mot de passe actuel
+                        Current password
                       </Label>
                       <Input
                         id="currentPassword"
@@ -409,7 +409,7 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+                      <Label htmlFor="newPassword">New password</Label>
                       <Input
                         id="newPassword"
                         type="password"
@@ -425,7 +425,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="confirmPassword">
-                        Confirmer le nouveau mot de passe
+                        Confirm new password
                       </Label>
                       <Input
                         id="confirmPassword"
@@ -448,10 +448,10 @@ export default function ProfilePage() {
                       {changePasswordMutation.isPending ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Mise à jour...
+                          Updating...
                         </>
                       ) : (
-                        "Changer le mot de passe"
+                        "Change password"
                       )}
                     </Button>
                   </form>

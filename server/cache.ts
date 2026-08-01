@@ -1,6 +1,6 @@
 import NodeCache from "node-cache";
 
-// Configuration du cache avec TTL par défaut de 5 minutes
+// Cache configuration with a default TTL of 5 minutes
 const cache = new NodeCache({
   stdTTL: 300,
   checkperiod: 320,
@@ -15,7 +15,7 @@ interface CacheOptions {
   key?: string;
 }
 
-// Fonction pour générer une clé de cache
+// Function to generate a cache key
 const generateCacheKey = (
   prefix: string,
   params: Record<string, any>
@@ -30,7 +30,7 @@ const generateCacheKey = (
   return `${prefix}:${JSON.stringify(sortedParams)}`;
 };
 
-// Wrapper pour la mise en cache des données
+// Wrapper for data caching
 export const withCache = async <T>(
   prefix: string,
   params: Record<string, any>,
@@ -49,14 +49,14 @@ export const withCache = async <T>(
   return freshData;
 };
 
-// Invalidation du cache par préfixe
+// Invalidate the cache by prefix
 export const invalidateCache = (prefix: string): void => {
   const keys = cache.keys();
   const prefixKeys = keys.filter((key) => key.startsWith(`${prefix}:`));
   cache.del(prefixKeys);
 };
 
-// Middleware de mise en cache pour Express
+// Express caching middleware
 export const cacheMiddleware = (prefix: string, ttl?: number) => {
   return async (req: any, res: any, next: any) => {
     const cacheKey = generateCacheKey(prefix, {
@@ -81,7 +81,7 @@ export const cacheMiddleware = (prefix: string, ttl?: number) => {
   };
 };
 
-// Gestionnaire de cache pour les requêtes vers l'API externe
+// Cache manager for external API requests
 export const externalApiCache = {
   set: (key: CacheKey, value: CacheValue, ttl?: number) => {
     cache.set(key, value, ttl);

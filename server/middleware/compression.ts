@@ -2,7 +2,7 @@ import compression from "compression";
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/monitoring";
 
-// Liste des types de contenu à comprimer
+// List of content types to compress
 const compressibleTypes = [
   "text/plain",
   "text/html",
@@ -16,44 +16,44 @@ const compressibleTypes = [
   "application/ld+json",
 ];
 
-// Fonction pour déterminer si la requête doit être compressée
+// Function to determine if the request should be compressed
 const shouldCompress = (req: Request, res: Response) => {
-  // Ne pas comprimer pour les anciens navigateurs
+  // Do not compress for old browsers
   if (req.headers["user-agent"]?.includes("MSIE 6")) {
     return false;
   }
 
-  // Ne pas comprimer les petites réponses
+  // Do not compress small responses
   const threshold = parseInt(process.env.COMPRESSION_THRESHOLD || "2048", 10);
   if (parseInt(res.getHeader("Content-Length") as string, 10) < threshold) {
     return false;
   }
 
-  // Vérifier le type de contenu
+  // Check the content type
   const contentType = res.getHeader("Content-Type") as string;
   if (!contentType) return false;
 
   return compressibleTypes.some((type) => contentType.includes(type));
 };
 
-// Configuration de la compression
+// Compression configuration
 const compressionOptions = {
   filter: shouldCompress,
-  level: process.env.NODE_ENV === "production" ? 6 : 1, // Niveau de compression plus élevé en production
-  threshold: parseInt(process.env.COMPRESSION_THRESHOLD || "2048", 10), // Seuil minimum pour la compression
+  level: process.env.NODE_ENV === "production" ? 6 : 1, // Higher compression level in production
+  threshold: parseInt(process.env.COMPRESSION_THRESHOLD || "2048", 10), // Minimum threshold for compression
   windowBits: 15,
   memLevel: 8,
   strategy: 0,
 };
 
-// Middleware de compression avec monitoring
+// Compression middleware with monitoring
 export const compressionWithMonitoring = () => {
   const compress = compression(compressionOptions);
 
   return (req: Request, res: Response, next: NextFunction) => {
     const originalSize = res.getHeader("Content-Length");
 
-    // Intercepter la fin de la réponse pour logger les statistiques de compression
+    // Intercept the end of the response to log compression statistics
     const originalEnd = res.end;
     res.end = function (chunk?: any, encoding?: any, cb?: any) {
       const compressedSize = res.getHeader("Content-Length");

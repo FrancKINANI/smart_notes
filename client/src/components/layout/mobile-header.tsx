@@ -66,7 +66,7 @@ export default function MobileHeader({ onMenuClick }: MobileHeaderProps) {
             <Link href="/profile">
               <DropdownMenuItem className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
-                <span>Mon profil</span>
+                <span>My profile</span>
               </DropdownMenuItem>
             </Link>
             <DropdownMenuSeparator />
@@ -76,7 +76,7 @@ export default function MobileHeader({ onMenuClick }: MobileHeaderProps) {
               disabled={isLogoutLoading}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Déconnexion</span>
+              <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

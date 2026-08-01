@@ -34,24 +34,24 @@ export function CommentSection({ noteId }: CommentSectionProps) {
   const { toast } = useToast();
   const [comment, setComment] = useState("");
 
-  // Récupérer les commentaires
+  // Fetch comments
   const { data: comments, isLoading } = useQuery<Comment[]>({
     queryKey: [`/api/notes/${noteId}/comments`],
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/notes/${noteId}/comments`);
       if (!res.ok) {
-        throw new Error("Impossible de récupérer les commentaires");
+        throw new Error("Unable to fetch comments");
       }
       return res.json();
     },
-    refetchInterval: 30000, // Rafraîchir toutes les 30 secondes
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Ajouter un commentaire
+  // Add a comment
   const addCommentMutation = useMutation({
     mutationFn: async () => {
       if (!comment.trim()) {
-        throw new Error("Le commentaire ne peut pas être vide");
+        throw new Error("Comment cannot be empty");
       }
       
       const res = await apiRequest("POST", `/api/notes/${noteId}/comments`, {
@@ -60,7 +60,7 @@ export function CommentSection({ noteId }: CommentSectionProps) {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Erreur lors de l'ajout du commentaire");
+        throw new Error(error.message || "Error adding the comment");
       }
       
       return res.json();
@@ -71,7 +71,7 @@ export function CommentSection({ noteId }: CommentSectionProps) {
     },
     onError: (error: any) => {
       toast({
-        title: "Erreur",
+        title: "Error",
         description: error.message,
         variant: "destructive",
       });
@@ -90,16 +90,16 @@ export function CommentSection({ noteId }: CommentSectionProps) {
     const diffMins = Math.floor(diffMs / (1000 * 60));
     
     if (diffMins < 1) {
-      return "à l'instant";
+      return "just now";
     } else if (diffMins < 60) {
-      return `il y a ${diffMins} minute${diffMins > 1 ? 's' : ''}`;
+      return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
     } else if (diffMins < 24 * 60) {
       const hours = Math.floor(diffMins / 60);
-      return `il y a ${hours} heure${hours > 1 ? 's' : ''}`;
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
     } else {
       const days = Math.floor(diffMins / (24 * 60));
       if (days < 7) {
-        return `il y a ${days} jour${days > 1 ? 's' : ''}`;
+        return `${days} day${days > 1 ? 's' : ''} ago`;
       } else {
         return date.toLocaleDateString();
       }
@@ -109,9 +109,9 @@ export function CommentSection({ noteId }: CommentSectionProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Commentaires</h3>
+        <h3 className="text-lg font-medium">Comments</h3>
         <span className="text-muted-foreground text-sm">
-          {comments?.length || 0} commentaire{comments?.length !== 1 ? "s" : ""}
+          {comments?.length || 0} comment{comments?.length !== 1 ? "s" : ""}
         </span>
       </div>
       
@@ -120,7 +120,7 @@ export function CommentSection({ noteId }: CommentSectionProps) {
       {isAuthenticated && (
         <form onSubmit={handleSubmit} className="space-y-4">
           <Textarea
-            placeholder="Ajouter un commentaire..."
+            placeholder="Add a comment..."
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             rows={3}
@@ -133,12 +133,12 @@ export function CommentSection({ noteId }: CommentSectionProps) {
               {addCommentMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Envoi...
+                  Sending...
                 </>
               ) : (
                 <>
                   <Send className="mr-2 h-4 w-4" />
-                  Commenter
+                  Comment
                 </>
               )}
             </Button>
@@ -178,7 +178,7 @@ export function CommentSection({ noteId }: CommentSectionProps) {
         ) : (
           <div className="text-center py-8">
             <p className="text-muted-foreground">
-              Aucun commentaire pour le moment. Soyez le premier à partager vos réflexions!
+              No comments yet. Be the first to share your thoughts!
             </p>
           </div>
         )}

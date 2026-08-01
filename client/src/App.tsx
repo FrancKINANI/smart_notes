@@ -36,13 +36,13 @@ import MobileHeader from "@/components/layout/mobile-header";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/hooks/use-auth";
 
-// Le hook useAuth est déjà implémenté dans src/hooks/use-auth.ts
+// The useAuth hook is already implemented in src/hooks/use-auth.ts
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
       <div className="text-center">
-        <h2 className="text-lg font-semibold mb-2">Une erreur est survenue</h2>
+        <h2 className="text-lg font-semibold mb-2">An error occurred</h2>
         <pre className="text-sm text-red-500 bg-red-50 p-4 rounded">
           {error.message}
         </pre>
@@ -119,7 +119,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { isAuthenticated } = useAuth();
 
-  // Si l'utilisateur n'est pas authentifié, ne pas afficher la mise en page principale
+  // If the user is not authenticated, do not display the main layout
   if (!isAuthenticated) {
     return <>{children}</>;
   }

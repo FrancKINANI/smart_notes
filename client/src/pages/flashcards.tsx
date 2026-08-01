@@ -67,7 +67,7 @@ export default function Flashcards() {
       fetch(`/api/notes?userId=${userId}`).then((res) => res.json()),
   });
 
-  // Démarrer le chronomètre lorsque la carte est retournée
+  // Start the stopwatch when the card is flipped
   useEffect(() => {
     if (isFlipped) {
       setAnswerStartTime(Date.now());
@@ -88,7 +88,7 @@ export default function Flashcards() {
       const flashcard = flashcards.find((card: any) => card.id === id);
       if (!flashcard) throw new Error("Flashcard not found");
       
-      // Calcul du temps de réponse en secondes
+      // Compute the response time in seconds
       const timeToAnswer = answerStartTime 
         ? Math.round((Date.now() - answerStartTime) / 1000) 
         : undefined;
@@ -107,8 +107,8 @@ export default function Flashcards() {
     },
     onSuccess: () => {
       toast({
-        title: "Progrès enregistré",
-        description: "Votre révision a été enregistrée.",
+        title: "Progress saved",
+        description: "Your review has been saved.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/flashcards"] });
       queryClient.invalidateQueries({ queryKey: ["/api/flashcards/review"] });
@@ -116,9 +116,9 @@ export default function Flashcards() {
     },
     onError: () => {
       toast({
-        title: "Erreur",
+        title: "Error",
         description:
-          "Impossible d'enregistrer votre progression. Veuillez réessayer.",
+          "Unable to save your progress. Please try again.",
         variant: "destructive",
       });
     },
@@ -142,8 +142,8 @@ export default function Flashcards() {
     } else {
       setCurrentIndex(0);
       toast({
-        title: "Fin du paquet",
-        description: "Vous avez parcouru toutes les cartes de ce paquet.",
+        title: "End of deck",
+        description: "You have gone through all the cards in this deck.",
       });
     }
   };
@@ -168,7 +168,7 @@ export default function Flashcards() {
     updateFlashcardMutation.mutate({ id: currentCard.id, quality });
   };
   
-  // Calculer les statistiques de la carte courante
+  // Compute the stats of the current card
   const getCurrentCardStats = () => {
     if (!currentFlashcards || currentFlashcards.length === 0) return null;
     
@@ -178,9 +178,9 @@ export default function Flashcards() {
     return getLearningStats(currentCard);
   };
   
-  // Prédire la difficulté du concept
+  // Predict the concept difficulty
   const getConceptDifficulty = () => {
-    if (!currentFlashcards || currentFlashcards.length === 0) return "Inconnue";
+    if (!currentFlashcards || currentFlashcards.length === 0) return "Unknown";
     
     const currentCard = currentFlashcards[currentIndex];
     const difficulty = predictConceptDifficulty(
@@ -188,9 +188,9 @@ export default function Flashcards() {
       flashcards
     );
     
-    if (difficulty < 0.3) return "Facile";
-    if (difficulty < 0.7) return "Moyenne";
-    return "Difficile";
+    if (difficulty < 0.3) return "Easy";
+    if (difficulty < 0.7) return "Medium";
+    return "Hard";
   };
 
   // Toggle statistics view
@@ -205,8 +205,8 @@ export default function Flashcards() {
         <div className="flex justify-center items-center h-64">
           <p className="text-gray-500 text-center">
             {activeTab === "review"
-              ? "Aucune carte à réviser pour le moment. Revenez plus tard !"
-              : "Aucune carte disponible. Créez-en à partir de vos notes !"}
+              ? "No cards to review right now. Come back later!"
+              : "No cards available. Create some from your notes!"}
           </p>
         </div>
       );
@@ -218,12 +218,12 @@ export default function Flashcards() {
 
     return (
       <div className="flex flex-col items-center">
-        {/* Badge de difficulté estimée */}
+        {/* Estimated difficulty badge */}
         <div className="self-end mb-2">
           <span className={cn(
             "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", 
-            conceptDifficulty === "Facile" ? "bg-green-100 text-green-800" :
-            conceptDifficulty === "Moyenne" ? "bg-yellow-100 text-yellow-800" :
+            conceptDifficulty === "Easy" ? "bg-green-100 text-green-800" :
+            conceptDifficulty === "Medium" ? "bg-yellow-100 text-yellow-800" :
             "bg-red-100 text-red-800"
           )}>
             {conceptDifficulty}
@@ -253,7 +253,7 @@ export default function Flashcards() {
               </p>
               {!isFlipped && (
                 <p className="text-sm text-gray-500 mt-4">
-                  Cliquez pour voir la réponse
+                  Click to see the answer
                 </p>
               )}
             </div>
@@ -268,7 +268,7 @@ export default function Flashcards() {
               onClick={() => handleResponse(0)}
               className="border-red-500 text-red-500 hover:bg-red-50"
             >
-              Je ne savais pas
+              I didn't know
             </Button>
             <Button
               variant="outline"
@@ -276,7 +276,7 @@ export default function Flashcards() {
               onClick={() => handleResponse(3)}
               className="border-yellow-500 text-yellow-500 hover:bg-yellow-50"
             >
-              Difficile
+              Hard
             </Button>
             <Button
               variant="outline"
@@ -284,7 +284,7 @@ export default function Flashcards() {
               onClick={() => handleResponse(4)}
               className="border-green-500 text-green-500 hover:bg-green-50"
             >
-              Bien
+              Good
             </Button>
             <Button
               variant="outline"
@@ -292,7 +292,7 @@ export default function Flashcards() {
               onClick={() => handleResponse(5)}
               className="border-primary-500 text-primary-500 hover:bg-primary-50"
             >
-              Parfait
+              Perfect
             </Button>
           </div>
         )}
@@ -308,7 +308,7 @@ export default function Flashcards() {
           </Button>
 
           <p className="text-sm text-gray-500">
-            Carte {currentIndex + 1} sur {currentFlashcards.length}
+            Card {currentIndex + 1} of {currentFlashcards.length}
           </p>
 
           <Button
@@ -321,7 +321,7 @@ export default function Flashcards() {
           </Button>
         </div>
         
-        {/* Chronomètre pendant la révision */}
+        {/* Stopwatch during review */}
         {isFlipped && answerStartTime && (
           <div className="mt-2 flex items-center text-sm text-gray-500">
             <Clock className="h-4 w-4 mr-1" />
@@ -331,10 +331,10 @@ export default function Flashcards() {
           </div>
         )}
         
-        {/* Affichage des statistiques */}
+        {/* Statistics display */}
         {showStats && stats && (
           <div className="mt-8 w-full max-w-md">
-            <LearningStatsCard stats={stats} title="Statistiques de cette carte" />
+            <LearningStatsCard stats={stats} title="Stats for this card" />
           </div>
         )}
       </div>
@@ -354,19 +354,19 @@ export default function Flashcards() {
               className={cn(showStats && "bg-primary-50")}
             >
               <BarChart4 className="h-4 w-4 mr-2" />
-              {showStats ? "Masquer stats" : "Voir stats"}
+              {showStats ? "Hide stats" : "View stats"}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
-                // Réinitialiser l'état
+                // Reset the state
                 setCurrentIndex(0);
                 setIsFlipped(false);
               }}
             >
               <RotateCcw className="h-4 w-4 mr-2" />
-              Recommencer
+              Restart
             </Button>
           </div>
         </div>
@@ -382,8 +382,8 @@ export default function Flashcards() {
           >
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <TabsList>
-                <TabsTrigger value="all">Toutes les cartes</TabsTrigger>
-                <TabsTrigger value="review">À réviser</TabsTrigger>
+                <TabsTrigger value="all">All cards</TabsTrigger>
+                <TabsTrigger value="review">To review</TabsTrigger>
               </TabsList>
 
               {activeTab === "all" && (
@@ -397,10 +397,10 @@ export default function Flashcards() {
                     }}
                   >
                     <SelectTrigger className="w-full sm:w-[200px]">
-                      <SelectValue placeholder="Filtrer par note" />
+                      <SelectValue placeholder="Filter by note" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Toutes les notes</SelectItem>
+                      <SelectItem value="all">All notes</SelectItem>
                       {!isLoadingNotes &&
                         notes?.map((note: any) => (
                           <SelectItem key={note.id} value={note.id.toString()}>

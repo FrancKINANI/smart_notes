@@ -55,9 +55,9 @@ export default function NoteEditor({ initialData, onSave }: NoteEditorProps) {
           updatedAt: new Date().toISOString(),
         });
         toast({
-          title: "Note sauvegardée hors-ligne",
+          title: "Note saved offline",
           description:
-            "La note sera synchronisée une fois la connexion rétablie",
+            "The note will be synced once the connection is restored",
           variant: "default",
         });
       } else {
@@ -65,10 +65,10 @@ export default function NoteEditor({ initialData, onSave }: NoteEditorProps) {
         queryClient.invalidateQueries({ queryKey: ["/api/notes"] });
       }
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde:", error);
+      console.error("Error while saving:", error);
       toast({
-        title: "Erreur de sauvegarde",
-        description: "Impossible de sauvegarder la note",
+        title: "Save error",
+        description: "Unable to save the note",
         variant: "destructive",
       });
     }
@@ -100,9 +100,9 @@ export default function NoteEditor({ initialData, onSave }: NoteEditorProps) {
           updatedAt: new Date().toISOString(),
         });
         toast({
-          title: "Note sauvegardée hors-ligne",
+          title: "Note saved offline",
           description:
-            "La note sera synchronisée une fois la connexion rétablie",
+            "The note will be synced once the connection is restored",
           variant: "default",
         });
       } else {
@@ -112,10 +112,10 @@ export default function NoteEditor({ initialData, onSave }: NoteEditorProps) {
 
       navigate("/notes");
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde:", error);
+      console.error("Error while saving:", error);
       toast({
-        title: "Erreur de sauvegarde",
-        description: "Impossible de sauvegarder la note",
+        title: "Save error",
+        description: "Unable to save the note",
         variant: "destructive",
       });
     } finally {
@@ -204,7 +204,7 @@ export default function NoteEditor({ initialData, onSave }: NoteEditorProps) {
         <input
           {...register("title")}
           type="text"
-          placeholder="Titre de la note"
+          placeholder="Note title"
           className="w-full p-2 border rounded-md"
           required
         />
@@ -238,7 +238,7 @@ export default function NoteEditor({ initialData, onSave }: NoteEditorProps) {
           <TabsContent value="edit" className="p-4 pt-0">
             <Textarea
               {...register("content")}
-              placeholder="Contenu de la note..."
+              placeholder="Note content..."
               className="min-h-[200px] border-none focus-visible:ring-0 resize-y"
               required
             />
@@ -264,9 +264,9 @@ export default function NoteEditor({ initialData, onSave }: NoteEditorProps) {
           className="w-full p-2 border rounded-md"
           required
         >
-          <option value="1">Mathématiques</option>
-          <option value="2">Physique</option>
-          <option value="3">Chimie</option>
+          <option value="1">Mathematics</option>
+          <option value="2">Physics</option>
+          <option value="3">Chemistry</option>
           {/* Add more subjects */}
         </select>
       </div>
@@ -277,17 +277,16 @@ export default function NoteEditor({ initialData, onSave }: NoteEditorProps) {
           variant="outline"
           onClick={() => navigate("/notes")}
         >
-          Annuler
+          Cancel
         </Button>
         <Button type="submit" disabled={isSaving}>
-          {isSaving ? "Sauvegarde..." : "Sauvegarder"}
+          {isSaving ? "Saving..." : "Save"}
         </Button>
       </div>
 
       {isOffline && (
         <div className="mt-4 p-2 bg-yellow-50 text-yellow-800 rounded-md">
-          Mode hors-ligne : Les modifications seront synchronisées une fois la
-          connexion rétablie
+          Offline mode: Changes will be synced once the connection is restored
         </div>
       )}
     </form>

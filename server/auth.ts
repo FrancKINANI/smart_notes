@@ -7,7 +7,7 @@ import { User, registerSchema, loginSchema } from "@shared/schema";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 
-// Définir un type pour Express.User qui correspond à notre type User
+// Define a type for Express.User that matches our User type
 declare global {
   namespace Express {
     interface User {
@@ -33,7 +33,7 @@ const registerSchema = z
     email: z.string().email(),
     password: z.string().regex(PASSWORD_REGEX, {
       message:
-        "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial",
+        "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character",
     }),
     confirmPassword: z.string(),
     displayName: z.string().optional(),
@@ -41,12 +41,12 @@ const registerSchema = z
     lastName: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
+    message: "Passwords do not match",
     path: ["confirmPassword"],
   });
 
 export function setupAuth(app: Express) {
-  // Configuration de la session avec sécurité renforcée
+  // Session configuration with enhanced security
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "dev-secret-key",
@@ -55,9 +55,9 @@ export function setupAuth(app: Express) {
       store: storage.sessionStore,
       cookie: {
         secure: process.env.NODE_ENV === "production",
-        httpOnly: true, // Protection XSS
-        maxAge: 24 * 60 * 60 * 1000, // 1 jour
-        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // Protection CSRF
+        httpOnly: true, // XSS protection
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // CSRF protection
         domain:
           process.env.NODE_ENV === "production"
             ? process.env.COOKIE_DOMAIN
@@ -67,11 +67,11 @@ export function setupAuth(app: Express) {
     })
   );
 
-  // Initialisation de Passport
+  // Passport initialization
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Configuration de la stratégie locale
+  // Local strategy configuration
   passport.use(
     new LocalStrategy(
       {
@@ -82,7 +82,7 @@ export function setupAuth(app: Express) {
         try {
           const user = await storage.getUserByEmail(email);
           if (!user) {
-            return done(null, false, { message: "Email inconnu" });
+            return done(null, false, { message: "Unknown email" });
           }
 
           const isPasswordValid = await storage.verifyPassword(
@@ -90,7 +90,7 @@ export function setupAuth(app: Express) {
             user.password
           );
           if (!isPasswordValid) {
-            return done(null, false, { message: "Mot de passe incorrect" });
+            return done(null, false, { message: "Incorrect password" });
           }
 
           return done(null, user);
@@ -101,7 +101,7 @@ export function setupAuth(app: Express) {
     )
   );
 
-  // Sérialisation et désérialisation de l'utilisateur pour les sessions
+  // User serialization and deserialization for sessions
   passport.serializeUser((user, done) => {
     done(null, user.id);
   });
@@ -115,19 +115,19 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Rate limiting pour la protection contre les attaques par force brute
+  // Rate limiting for brute force attack protection
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 tentatives
-    message: "Trop de tentatives de connexion, veuillez réessayer plus tard",
+    max: 5, // 5 attempts
+    message: "Too many login attempts, please try again later",
   });
 
-  // Routes d'authentification sécurisées
+  // Secure authentication routes
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
       const validatedData = registerSchema.parse(req.body);
 
-      // Vérification asynchrone de l'email et du nom d'utilisateur
+      // Async check of email and username
       const [existingEmail, existingUsername] = await Promise.all([
         storage.getUserByEmail(validatedData.email),
         storage.getUserByUsername(validatedData.username),
@@ -135,14 +135,14 @@ export function setupAuth(app: Express) {
 
       if (existingEmail) {
         return res.status(400).json({
-          message: "Cet email est déjà utilisé",
+          message: "This email is already in use",
           field: "email",
         });
       }
 
       if (existingUsername) {
         return res.status(400).json({
-          message: "Ce nom d'utilisateur est déjà utilisé",
+          message: "This username is already in use",
           field: "username",
         });
       }
@@ -150,7 +150,7 @@ export function setupAuth(app: Express) {
       const { confirmPassword, ...userData } = validatedData;
       const user = await storage.createUser(userData);
 
-      // Création du profil utilisateur avec validation
+      // Create the user profile with validation
       try {
         await storage.createUserProfile({
           userId: user.id,
@@ -158,16 +158,16 @@ export function setupAuth(app: Express) {
           notificationSettings: {},
         });
       } catch (profileError) {
-        // Si la création du profil échoue, supprimer l'utilisateur
+        // If profile creation fails, delete the user
         await storage.deleteUser(user.id);
         throw profileError;
       }
 
-      // Connexion automatique après inscription avec gestion d'erreur
+      // Automatic login after registration with error handling
       req.login(user, (loginErr) => {
         if (loginErr) {
           return res.status(500).json({
-            message: "Erreur lors de la connexion automatique",
+            message: "Error during automatic login",
             error:
               process.env.NODE_ENV === "development"
                 ? loginErr.message
@@ -185,14 +185,14 @@ export function setupAuth(app: Express) {
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
-          message: "Données d'inscription invalides",
+          message: "Invalid registration data",
           errors: error.errors,
         });
       }
 
-      console.error("Erreur lors de l'inscription:", error);
+      console.error("Error during registration:", error);
       res.status(500).json({
-        message: "Erreur lors de l'inscription",
+        message: "Error during registration",
         error:
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
@@ -213,7 +213,7 @@ export function setupAuth(app: Express) {
 
           if (!user) {
             return res.status(401).json({
-              message: info.message || "Identifiants invalides",
+              message: info.message || "Invalid credentials",
               field: info.field,
             });
           }
@@ -223,7 +223,7 @@ export function setupAuth(app: Express) {
               return next(loginErr);
             }
 
-            // Mise à jour du dernier accès
+            // Update last access
             storage
               .updateUserProfile(user.id, {
                 lastActive: new Date(),
@@ -241,12 +241,12 @@ export function setupAuth(app: Express) {
       } catch (error) {
         if (error instanceof z.ZodError) {
           return res.status(400).json({
-            message: "Données de connexion invalides",
+            message: "Invalid login data",
             errors: error.errors,
           });
         }
         res.status(500).json({
-          message: "Erreur lors de la connexion",
+          message: "Error during login",
           error:
             process.env.NODE_ENV === "development" ? error.message : undefined,
         });
@@ -260,7 +260,7 @@ export function setupAuth(app: Express) {
     req.logout((err) => {
       if (err) {
         return res.status(500).json({
-          message: "Erreur lors de la déconnexion",
+          message: "Error during logout",
           error:
             process.env.NODE_ENV === "development" ? err.message : undefined,
         });
@@ -268,25 +268,22 @@ export function setupAuth(app: Express) {
 
       req.session.destroy((sessionErr) => {
         if (sessionErr) {
-          console.error(
-            "Erreur lors de la destruction de la session:",
-            sessionErr
-          );
+          console.error("Error while destroying the session:", sessionErr);
         }
 
         if (!wasAuthenticated) {
-          return res.status(401).json({ message: "Aucune session active" });
+          return res.status(401).json({ message: "No active session" });
         }
 
-        res.json({ message: "Déconnexion réussie" });
+        res.json({ message: "Logout successful" });
       });
     });
   });
 
-  // Obtenir l'utilisateur actuel
+  // Get the current user
   app.get("/api/auth/user", (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Non authentifié" });
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user;
@@ -303,12 +300,12 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // Middleware d'authentification pour protéger les routes
+  // Authentication middleware to protect routes
   app.use(
     "/api/protected",
     (req: Request, res: Response, next: NextFunction) => {
       if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "Non authentifié" });
+        return res.status(401).json({ message: "Not authenticated" });
       }
       next();
     }

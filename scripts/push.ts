@@ -6,7 +6,7 @@ import * as schema from "../shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Script pour pousser le schéma vers la base de données en utilisant des requêtes SQL directes
+// Script to push the schema to the database using direct SQL queries
 async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error(
@@ -20,7 +20,7 @@ async function main() {
 
   console.log("Creating tables...");
   try {
-    // Créer les tables dans le bon ordre (gérer les dépendances)
+    // Create the tables in the right order (handle dependencies)
     
     // Tables de base
     await db.execute(sql`
@@ -98,7 +98,7 @@ async function main() {
       );
     `);
     
-    // Tables pour profils et préférences
+    // Tables for profiles and preferences
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS user_profiles (
         id SERIAL PRIMARY KEY,
@@ -119,7 +119,7 @@ async function main() {
       );
     `);
     
-    // Tables pour fonctionnalités collaboratives
+    // Tables for collaborative features
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS study_groups (
         id SERIAL PRIMARY KEY,
@@ -159,7 +159,7 @@ async function main() {
       );
     `);
     
-    // Contraintes de clé étrangère
+    // Foreign key constraints
     await db.execute(sql`
       ALTER TABLE notes ADD CONSTRAINT fk_notes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
       ALTER TABLE notes ADD CONSTRAINT fk_notes_subject FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE;
@@ -194,11 +194,11 @@ async function main() {
       ALTER TABLE comments ADD CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
     `);
     
-    // Ajout de quelques matières par défaut
+    // Add a few default subjects
     await db.execute(sql`
       INSERT INTO subjects (name, color)
       VALUES 
-        ('Mathématiques', '#3730a3'),
+        ('Mathematics', '#3730a3'),
         ('Biologie', '#059669'),
         ('Informatique', '#7c3aed'),
         ('Histoire', '#b45309'),

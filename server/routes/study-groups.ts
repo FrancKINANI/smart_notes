@@ -4,7 +4,7 @@ import { resolveUserId } from "../services/llm-utils";
 
 const router = Router();
 
-// GET /api/study-groups — groupes de l'utilisateur courant
+// GET /api/study-groups — current user's groups
 router.get("/", async (req, res) => {
   try {
     const userId = resolveUserId(req, res);
@@ -12,9 +12,9 @@ router.get("/", async (req, res) => {
     const groups = await storage.getStudyGroupsByUser(userId);
     res.json(groups);
   } catch (error) {
-    console.error("Erreur study-groups:", error);
+    console.error("Study-groups error:", error);
     res.status(500).json({
-      message: "Impossible de récupérer les groupes d'étude",
+      message: "Unable to retrieve study groups",
     });
   }
 });
@@ -26,7 +26,7 @@ router.post("/", async (req, res) => {
     if (!name || !String(name).trim()) {
       return res
         .status(400)
-        .json({ message: "Le nom du groupe est requis" });
+        .json({ message: "Group name is required" });
     }
     const userId = resolveUserId(req, res);
     if (userId === null) return;
@@ -39,19 +39,19 @@ router.post("/", async (req, res) => {
     });
     res.status(201).json(group);
   } catch (error) {
-    console.error("Erreur création groupe:", error);
+    console.error("Group creation error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la création du groupe" });
+      .json({ message: "Error while creating the group" });
   }
 });
 
-// GET /api/study-groups/:id/members — doit être déclarée AVANT /:id
+// GET /api/study-groups/:id/members — must be declared BEFORE /:id
 router.get("/:id/members", async (req, res) => {
   try {
     const groupId = parseInt(req.params.id, 10);
     if (Number.isNaN(groupId)) {
-      return res.status(400).json({ message: "Identifiant invalide" });
+      return res.status(400).json({ message: "Invalid id" });
     }
     const members = await storage.getGroupMembers(groupId);
     const withUsers = await Promise.all(
@@ -66,16 +66,16 @@ router.get("/:id/members", async (req, res) => {
                 displayName: user.displayName,
                 avatar: user.avatar,
               }
-            : { id: member.userId, username: "inconnu", displayName: null, avatar: null },
+            : { id: member.userId, username: "unknown", displayName: null, avatar: null },
         };
       })
     );
     res.json(withUsers);
   } catch (error) {
-    console.error("Erreur membres groupe:", error);
+    console.error("Group members error:", error);
     res
       .status(500)
-      .json({ message: "Impossible de récupérer les membres du groupe" });
+      .json({ message: "Unable to retrieve group members" });
   }
 });
 
@@ -84,7 +84,7 @@ router.get("/:id/shared-notes", async (req, res) => {
   try {
     const groupId = parseInt(req.params.id, 10);
     if (Number.isNaN(groupId)) {
-      return res.status(400).json({ message: "Identifiant invalide" });
+      return res.status(400).json({ message: "Invalid id" });
     }
     const shared = await storage.getSharedNotes(groupId);
     const enriched = await Promise.all(
@@ -114,25 +114,25 @@ router.get("/:id/shared-notes", async (req, res) => {
     );
     res.json(enriched);
   } catch (error) {
-    console.error("Erreur notes partagées:", error);
+    console.error("Shared notes error:", error);
     res
       .status(500)
-      .json({ message: "Impossible de récupérer les notes partagées" });
+      .json({ message: "Unable to retrieve shared notes" });
   }
 });
 
-// POST /api/study-groups/:id/shared-notes — partage une note dans le groupe
+// POST /api/study-groups/:id/shared-notes — shares a note in the group
 router.post("/:id/shared-notes", async (req, res) => {
   try {
     const groupId = parseInt(req.params.id, 10);
     if (Number.isNaN(groupId)) {
-      return res.status(400).json({ message: "Identifiant invalide" });
+      return res.status(400).json({ message: "Invalid id" });
     }
     const { noteId, permissions } = req.body;
     if (!noteId) {
       return res
         .status(400)
-        .json({ message: "Veuillez sélectionner une note à partager" });
+        .json({ message: "Please select a note to share" });
     }
     const userId = resolveUserId(req, res);
     if (userId === null) return;
@@ -145,10 +145,10 @@ router.post("/:id/shared-notes", async (req, res) => {
     });
     res.status(201).json(shared);
   } catch (error) {
-    console.error("Erreur partage note:", error);
+    console.error("Note sharing error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors du partage de la note" });
+      .json({ message: "Error while sharing the note" });
   }
 });
 
@@ -157,19 +157,19 @@ router.get("/:id", async (req, res) => {
   try {
     const groupId = parseInt(req.params.id, 10);
     if (Number.isNaN(groupId)) {
-      return res.status(400).json({ message: "Identifiant invalide" });
+      return res.status(400).json({ message: "Invalid id" });
     }
     const group = await storage.getStudyGroup(groupId);
     if (!group) {
       return res
         .status(404)
-        .json({ message: "Le groupe d'étude demandé n'existe pas" });
+        .json({ message: "The requested study group does not exist" });
     }
     res.json(group);
   } catch (error) {
-    console.error("Erreur groupe:", error);
+    console.error("Group error:", error);
     res.status(500).json({
-      message: "Impossible de récupérer les détails du groupe",
+      message: "Unable to retrieve group details",
     });
   }
 });

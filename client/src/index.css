@@ -585,7 +585,7 @@
   }
 }
 
-/* Animation de défilement pour les questions suggérées */
+/* Scrolling animation for suggested questions */
 @keyframes marquee {
   0% {
     transform: translateX(0);
@@ -604,7 +604,7 @@
   animation-play-state: paused;
 }
 
-/* Style pour masquer la barre de défilement tout en gardant la fonctionnalité */
+/* Style to hide the scrollbar while keeping scroll functionality */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

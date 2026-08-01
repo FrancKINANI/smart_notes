@@ -6,7 +6,7 @@ import * as schema from "../shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Script pour pousser le schéma vers la base de données
+// Script to push the schema to the database
 async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error(
@@ -20,7 +20,7 @@ async function main() {
 
   console.log("Pushing schema to database...");
   try {
-    // Utiliser le migrator pour créer les tables sans fichiers de migration
+    // Use the migrator to create the tables without migration files
     const dbToPush = drizzle(pool);
     await migrate(dbToPush, { migrationsFolder: 'migrations' });
     

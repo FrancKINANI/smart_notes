@@ -4,7 +4,7 @@ import { resolveUserId } from "../services/llm-utils";
 
 const router = Router();
 
-// GET /api/user/stats — stats agrégées pour ProgressSection
+// GET /api/user/stats — aggregated stats for ProgressSection
 router.get("/user/stats", async (req, res) => {
   try {
     const userId = resolveUserId(req, res);
@@ -25,18 +25,18 @@ router.get("/user/stats", async (req, res) => {
     res.json({
       notesCount: notes.length,
       quizzesCompleted: quizResults.length,
-      studyTimeMinutes: 0, // Aucune session de suivi de temps enregistrée pour l'instant
+      studyTimeMinutes: 0, // No time-tracking session recorded yet
       averageScore,
     });
   } catch (error) {
-    console.error("Erreur user stats:", error);
+    console.error("User stats error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la récupération des statistiques" });
+      .json({ message: "Error while retrieving statistics" });
   }
 });
 
-// GET /api/dashboard/stats?userId= — stats pour EnhancedDashboard
+// GET /api/dashboard/stats?userId= — stats for EnhancedDashboard
 router.get("/dashboard/stats", async (req, res) => {
   try {
     const userId = resolveUserId(req, res);
@@ -57,7 +57,7 @@ router.get("/dashboard/stats", async (req, res) => {
     res.json({
       totalNotes: notes.length,
       totalFlashcards: flashcards.length,
-      studyStreak: 0, // Calcul de série non disponible — à enrichir
+      studyStreak: 0, // Streak calculation not available — to be enriched
       weeklyGoalProgress: 0,
       masteryLevel: quizResults.length
         ? Math.round(
@@ -70,14 +70,14 @@ router.get("/dashboard/stats", async (req, res) => {
       studyTime: 0,
     });
   } catch (error) {
-    console.error("Erreur dashboard stats:", error);
+    console.error("Dashboard stats error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la récupération des statistiques" });
+      .json({ message: "Error while retrieving statistics" });
   }
 });
 
-// GET /api/dashboard/activity?userId= — activité récente pour EnhancedDashboard
+// GET /api/dashboard/activity?userId= — recent activity for EnhancedDashboard
 router.get("/dashboard/activity", async (req, res) => {
   try {
     const userId = resolveUserId(req, res);
@@ -100,7 +100,7 @@ router.get("/dashboard/activity", async (req, res) => {
       activity.push({
         id: `note-${note.id}`,
         type: "note",
-        title: `Note créée : ${note.title}`,
+        title: `Note created: ${note.title}`,
         timestamp: new Date(note.createdAt).toISOString(),
       });
     }
@@ -109,7 +109,7 @@ router.get("/dashboard/activity", async (req, res) => {
       activity.push({
         id: `quiz-${result.id}`,
         type: "quiz",
-        title: "Quiz complété",
+        title: "Quiz completed",
         timestamp: new Date(result.completedAt).toISOString(),
         score: result.score,
       });
@@ -121,10 +121,10 @@ router.get("/dashboard/activity", async (req, res) => {
 
     res.json(activity.slice(0, 10));
   } catch (error) {
-    console.error("Erreur dashboard activity:", error);
+    console.error("Dashboard activity error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la récupération de l'activité" });
+      .json({ message: "Error while retrieving activity" });
   }
 });
 

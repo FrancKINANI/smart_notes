@@ -75,8 +75,8 @@ export default function Schedule() {
   return (
     <>
       <PageHeader 
-        title="Planning de révision" 
-        description="Organisez et suivez vos sessions de révision"
+        title="Revision schedule" 
+        description="Organize and track your revision sessions"
       />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
@@ -86,7 +86,7 @@ export default function Schedule() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <CalendarIcon className="mr-2 h-5 w-5 text-primary-500" />
-                Calendrier
+                Calendar
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -104,7 +104,7 @@ export default function Schedule() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Clock className="mr-2 h-5 w-5 text-primary-500" />
-                Révisions du {date ? format(date, 'dd MMMM yyyy') : 'jour sélectionné'}
+                Revisions for {date ? format(date, 'dd MMMM yyyy') : 'selected day'}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -121,12 +121,12 @@ export default function Schedule() {
                       <div>
                         <h3 className="font-medium text-gray-900">{item.noteTitle}</h3>
                         <p className="text-sm text-gray-500">
-                          Niveau de maîtrise: {item.masteryLevel}%
+                          Mastery level: {item.masteryLevel}%
                         </p>
                       </div>
                       <Button asChild>
                         <Link to={`/notes/${item.noteId}`}>
-                          Réviser
+                          Review
                         </Link>
                       </Button>
                     </div>
@@ -136,14 +136,14 @@ export default function Schedule() {
                 <div className="flex flex-col items-center justify-center py-12 text-center h-60">
                   <AlertTriangle className="h-10 w-10 text-amber-500 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Aucune révision prévue
+                    No revision scheduled
                   </h3>
                   <p className="text-sm text-gray-500 mb-4">
-                    Vous n'avez aucune révision prévue pour cette date.
+                    You have no revision scheduled for this date.
                   </p>
                   <Button asChild variant="outline">
                     <Link to="/notes">
-                      Consulter vos notes
+                      View your notes
                     </Link>
                   </Button>
                 </div>
@@ -156,10 +156,10 @@ export default function Schedule() {
         <div className="mt-8">
           <Tabs defaultValue="weekly">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Aperçu des révisions</h2>
+              <h2 className="text-lg font-medium text-gray-900">Revision overview</h2>
               <TabsList>
-                <TabsTrigger value="weekly">Semaine</TabsTrigger>
-                <TabsTrigger value="monthly">Mois</TabsTrigger>
+                <TabsTrigger value="weekly">Week</TabsTrigger>
+                <TabsTrigger value="monthly">Month</TabsTrigger>
               </TabsList>
             </div>
             
@@ -192,13 +192,13 @@ export default function Schedule() {
                             ))}
                             {day.items.length > 3 && (
                               <p className="text-xs text-gray-500 text-center">
-                                +{day.items.length - 3} autres
+                                +{day.items.length - 3} more
                               </p>
                             )}
                           </div>
                         ) : (
                           <p className="text-xs text-gray-500 text-center py-2">
-                            Aucune révision
+                            No revision
                           </p>
                         )}
                       </CardContent>
@@ -212,10 +212,10 @@ export default function Schedule() {
               <div className="flex items-center justify-center py-12 text-center">
                 <div>
                   <p className="text-gray-500 mb-4">
-                    La vue mensuelle sera disponible prochainement.
+                    The monthly view will be available soon.
                   </p>
                   <Button onClick={() => document.querySelector<HTMLButtonElement>('[value="weekly"]')?.click()}>
-                    Voir la vue hebdomadaire
+                    View the weekly view
                   </Button>
                 </div>
               </div>

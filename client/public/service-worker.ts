@@ -12,10 +12,10 @@ import { ExpirationPlugin } from "workbox-expiration";
 
 declare let self: ServiceWorkerGlobalScope;
 
-// Précache des ressources statiques
+// Precache static resources
 precacheAndRoute(self.__WB_MANIFEST);
 
-// Cache pour les ressources statiques (images, CSS, JS)
+// Cache for static resources (images, CSS, JS)
 registerRoute(
   ({ request }) =>
     request.destination === "style" ||
@@ -29,13 +29,13 @@ registerRoute(
       }),
       new ExpirationPlugin({
         maxEntries: 60,
-        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 jours
+        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
       }),
     ],
   })
 );
 
-// Cache pour les données de l'API
+// Cache for API data
 registerRoute(
   ({ url }) => url.pathname.startsWith("/api/"),
   new NetworkFirst({
@@ -52,7 +52,7 @@ registerRoute(
   })
 );
 
-// Cache pour les notes de l'utilisateur
+// Cache for the user's notes
 registerRoute(
   ({ url }) => url.pathname.includes("/api/notes"),
   new StaleWhileRevalidate({
@@ -63,20 +63,20 @@ registerRoute(
       }),
       new ExpirationPlugin({
         maxEntries: 50,
-        maxAgeSeconds: 60 * 60, // 1 heure
+        maxAgeSeconds: 60 * 60, // 1 hour
       }),
     ],
   })
 );
 
-// Gestionnaire de synchronisation en arrière-plan
+// Background sync handler
 self.addEventListener("sync", (event) => {
   if (event.tag === "sync-notes") {
     event.waitUntil(syncNotes());
   }
 });
 
-// Fonction pour synchroniser les notes
+// Function to sync notes
 async function syncNotes() {
   try {
     const cache = await caches.open("offline-notes");
@@ -89,15 +89,15 @@ async function syncNotes() {
           await cache.delete(request);
         }
       } catch (error) {
-        console.error("Erreur de synchronisation:", error);
+        console.error("Sync error:", error);
       }
     }
   } catch (error) {
-    console.error("Erreur lors de la synchronisation des notes:", error);
+    console.error("Error syncing notes:", error);
   }
 }
 
-// Gestionnaire de notifications push
+// Push notification handler
 self.addEventListener("push", (event) => {
   const data = event.data?.json();
 
@@ -110,11 +110,11 @@ self.addEventListener("push", (event) => {
       actions: [
         {
           action: "open",
-          title: "Ouvrir",
+          title: "Open",
         },
         {
           action: "close",
-          title: "Fermer",
+          title: "Close",
         },
       ],
     };
@@ -123,7 +123,7 @@ self.addEventListener("push", (event) => {
   }
 });
 
-// Gestionnaire de clics sur les notifications
+// Notification click handler
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
@@ -132,13 +132,13 @@ self.addEventListener("notificationclick", (event) => {
 
     event.waitUntil(
       clients.matchAll({ type: "window" }).then((windowClients) => {
-        // Ouvrir l'URL dans une fenêtre existante si possible
+        // Open the URL in an existing window if possible
         for (const client of windowClients) {
           if (client.url === urlToOpen && "focus" in client) {
             return client.focus();
           }
         }
-        // Sinon ouvrir une nouvelle fenêtre
+        // Otherwise open a new window
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }

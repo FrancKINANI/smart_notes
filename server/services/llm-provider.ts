@@ -12,26 +12,26 @@ import {
 } from "@qvac/sdk";
 
 // ---------------------------------------------------------------------------
-// NB sur le workaround `b4a` (boîte noire historiquement, documenté ici pour
-// éviter de la casser lors de la réplication du pattern sur d'autres projets) :
+// Note on the `b4a` workaround (historically a black box, documented here to
+// avoid breaking it when replicating the pattern on other projects):
 //
-// `b4a` est déclaré en DEPENDANCE DIRECTE dans package.json alors que le code
-// de ce projet ne l'importe jamais. C'est un workaround pour une dépendance
-// transitive manquante de la stack P2P de QVAC (`hyperdht` → `bogon`) : sans
-// `b4a` présent dans node_modules à l'installation, le worker Bare de QVAC
-// (qvac-fabric) ne démarre pas et `completion()`/`loadModel()` échouent avec
-// un "Cannot find module 'b4a'" au moment du bootstrap. NE PAS le retirer lors
-// d'un nettoyage de dépendances. Voir aussi la section README "Note on b4a".
+// `b4a` is declared as a DIRECT DEPENDENCY in package.json even though the code
+// of this project never imports it. It is a workaround for a missing transitive
+// dependency of the QVAC P2P stack (`hyperdht` → `bogon`): without `b4a` present
+// in node_modules at install time, the QVAC Bare worker (qvac-fabric) does not
+// start and `completion()`/`loadModel()` fail with a "Cannot find module 'b4a'"
+// error at bootstrap. DO NOT remove it during dependency cleanup. See also the
+// README section "Note on b4a".
 // ---------------------------------------------------------------------------
 
 /**
- * Interface unique de fournisseur LLM.
- * Tous les providers (cloud OpenAI-compatible, QVAC local) l'implémentent.
+ * Single LLM provider interface.
+ * All providers (cloud OpenAI-compatible, local QVAC) implement it.
  */
 export interface LLMProvider {
-  /** Identifiant du provider (ex: "openrouter", "qvac") */
+  /** Provider id (e.g. "openrouter", "qvac") */
   readonly name: string;
-  /** Modèle utilisé (ex: "openai/gpt-4o-mini", "LLAMA_3_2_1B_INST_Q4_0") */
+  /** Model used (e.g. "openai/gpt-4o-mini", "LLAMA_3_2_1B_INST_Q4_0") */
   readonly model: string;
   chat(
     messages: { role: string; content: string }[],
@@ -42,7 +42,7 @@ export interface LLMProvider {
 export interface ChatOptions {
   temperature?: number;
   maxTokens?: number;
-  /** AbortSignal propagé jusqu'au binding sous-jacent (SDK openai / cancel QVAC). */
+  /** AbortSignal propagated down to the underlying binding (openai SDK / QVAC cancel). */
   signal?: AbortSignal;
 }
 
@@ -55,7 +55,7 @@ export interface OpenAICompatibleConfig {
   baseURL: string;
   apiKey?: string;
   model: string;
-  /** true si le provider exige une clé API (sinon OK pour endpoints locaux type Ollama) */
+  /** true if the provider requires an API key (otherwise fine for local endpoints like Ollama) */
   requireApiKey?: boolean;
 }
 
@@ -104,7 +104,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
   readonly baseURL: string;
   private client: OpenAI;
 
-  /** Dernière utilisation (tokens réels) rapportée par l'API, pour calculs de coût. */
+  /** Last usage (actual tokens) reported by the API, for cost calculations. */
   lastUsage?: { promptTokens: number; completionTokens: number };
 
   constructor(config: OpenAICompatibleConfig) {
@@ -114,13 +114,13 @@ export class OpenAICompatibleProvider implements LLMProvider {
 
     if (config.requireApiKey && !config.apiKey) {
       throw new Error(
-        `Clé API manquante pour le provider "${config.name}". Définissez ${apiKeyEnvFor(config.name)} dans .env`
+        `Missing API key for provider "${config.name}". Set ${apiKeyEnvFor(config.name)} in .env`
       );
     }
 
-    // Le SDK openai v4 jette au constructeur si apiKey est absent/undefined
-    // (même avec baseURL custom). Pour les endpoints locaux sans clé (Ollama,
-    // LM Studio…), on passe un placeholder non vide que le serveur ignore.
+    // The openai SDK v4 throws in the constructor if apiKey is missing/undefined
+    // (even with a custom baseURL). For local keyless endpoints (Ollama,
+    // LM Studio...), we pass a non-empty placeholder that the server ignores.
     this.client = new OpenAI({
       apiKey: config.apiKey || "local",
       baseURL: config.baseURL,
@@ -144,8 +144,8 @@ export class OpenAICompatibleProvider implements LLMProvider {
         temperature,
         max_tokens: maxTokens,
       },
-      // L'AbortSignal est transmis au SDK openai (RequestOptions) : un abort
-      // annule la requête HTTP en vol (fetch) au lieu de la laisser finir.
+      // The AbortSignal is passed to the openai SDK (RequestOptions): an abort
+      // cancels the in-flight HTTP request (fetch) instead of letting it finish.
       { signal: opts.signal }
     );
 
@@ -167,15 +167,15 @@ function apiKeyEnvFor(name: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Provider QVAC (inférence locale, llama.cpp via qvac-fabric)
+// QVAC provider (local inference, llama.cpp via qvac-fabric)
 // ---------------------------------------------------------------------------
 
 /**
- * Forme structurelle minimale d'un descripteur de modèle du registry QVAC.
- * `loadModel` accepte ces objets (avec modelType) comme `modelSrc` :
- * https://github.com/tetherto/qvac (quickstart : modelSrc: LLAMA_3_2_1B_INST_Q4_0, modelType: "llm").
- * Seules les propriétés nécessaires sont déclarées pour rester compatible avec
- * le type `LoadModelOptions` du SDK (typage structurel).
+ * Minimal structural shape of a QVAC registry model descriptor.
+ * `loadModel` accepts these objects (with modelType) as `modelSrc`:
+ * https://github.com/tetherto/qvac (quickstart: modelSrc: LLAMA_3_2_1B_INST_Q4_0, modelType: "llm").
+ * Only the needed properties are declared to stay compatible with the SDK's
+ * `LoadModelOptions` type (structural typing).
  */
 interface RegistryDescriptor {
   src: string;
@@ -190,10 +190,10 @@ interface RegistryDescriptor {
   sha256Checksum?: string;
 }
 
-/** Source de modèle QVAC : constante du registry (objet) ou URL / chemin local (string). */
+/** QVAC model source: registry constant (object) or URL / local path (string). */
 type QvacModelSrc = string | RegistryDescriptor;
 
-/** Constantes du registry QVAC résolubles par nom via QVAC_MODEL_SRC */
+/** QVAC registry constants resolvable by name via QVAC_MODEL_SRC */
 const REGISTRY_MODELS: Record<string, RegistryDescriptor> = {
   LLAMA_3_2_1B_INST_Q4_0,
   QWEN3_600M_INST_Q4,
@@ -201,7 +201,7 @@ const REGISTRY_MODELS: Record<string, RegistryDescriptor> = {
 };
 
 export interface QvacProviderOptions {
-  /** Constante du registry (ex: "QWEN3_600M_INST_Q4"), URL http(s) ou chemin local .gguf */
+  /** Registry constant (e.g. "QWEN3_600M_INST_Q4"), http(s) URL or local .gguf path */
   modelSrc?: string;
   onProgress?: (p: { percentage: number; downloaded: number; total: number }) => void;
 }
@@ -214,7 +214,7 @@ export class QvacProvider implements LLMProvider {
   private modelId: string | null = null;
   private loadPromise: Promise<string> | null = null;
 
-  /** Dernières stats d'inférence (tok/s, device, tokens) pour le benchmark. */
+  /** Latest inference stats (tok/s, device, tokens) for the benchmark. */
   lastStats?: CompletionFinal["stats"];
 
   constructor(opts?: QvacProviderOptions) {
@@ -223,7 +223,7 @@ export class QvacProvider implements LLMProvider {
       this.modelSrc = REGISTRY_MODELS[src];
       this.model = src;
     } else {
-      // URL / chemin local / constante par défaut
+      // URL / local path / default constant
       this.modelSrc = src ?? LLAMA_3_2_1B_INST_Q4_0;
       this.model =
         typeof this.modelSrc === "string" ? this.modelSrc : this.modelSrc.name ?? "default";
@@ -232,9 +232,9 @@ export class QvacProvider implements LLMProvider {
   }
 
   /**
-   * Charge le modèle une seule fois (téléchargement P2P au premier appel).
-   * `modelType: "llm"` est accepté à la fois pour une constante du registry et
-   * pour un URL/chemin .gguf (voir quickstart officiel QVAC).
+   * Loads the model only once (P2P download on first call).
+   * `modelType: "llm"` is accepted both for a registry constant and
+   * for a .gguf URL/path (see the official QVAC quickstart).
    */
   private async doLoadModel(): Promise<string> {
     const options: LoadModelOptions = {
@@ -245,7 +245,7 @@ export class QvacProvider implements LLMProvider {
     return loadModel(options);
   }
 
-  /** Charge le modèle une seule fois (téléchargement P2P au premier appel). */
+  /** Loads the model only once (P2P download on first call). */
   private ensureModel(): Promise<string> {
     if (this.modelId) return Promise.resolve(this.modelId);
     if (!this.loadPromise) {
@@ -280,16 +280,16 @@ export class QvacProvider implements LLMProvider {
       },
     });
 
-    // Annulation RÉELLE de l'inférence en cours : au lieu de laisser la
-    // génération tourner en arrière-plan jusqu'au bout (comportement du simple
-    // timeout de l'ancien benchmark), on propage l'AbortSignal jusqu'au binding
-    // QVAC via cancel({ requestId }), ce qui stoppe l'inférence dans le worker
-    // Bare et libère le slot d'inférence immédiatement.
+    // REAL cancellation of the running inference: instead of letting the
+    // generation run in the background until completion (the old benchmark's
+    // simple-timeout behavior), we propagate the AbortSignal down to the QVAC
+    // binding via cancel({ requestId }), which stops the inference in the Bare
+    // worker and immediately frees the inference slot.
     //
-    // On race en plus run.final contre une promesse de rejet à l'abort : cancel()
-    // n'est pas garanti de faire rejeter run.final selon l'état de la requête,
-    // cette race garantit que chat() se termine (et que le withTimeout du
-    // benchmark / la route /test admin ne restent pas pendants indéfiniment).
+    // We also race run.final against an abort-rejection promise: cancel()
+    // is not guaranteed to make run.final reject depending on the request state,
+    // this race guarantees chat() terminates (and the benchmark's withTimeout /
+    // the admin /test route do not hang indefinitely).
     const signal = opts.signal;
     let onAbortCancel: (() => void) | null = null;
     let onAbortReject: (() => void) | null = null;
@@ -302,7 +302,7 @@ export class QvacProvider implements LLMProvider {
       else signal.addEventListener("abort", onAbortCancel, { once: true });
     }
 
-    const abortError = new Error("Inférence QVAC annulée (abort)");
+    const abortError = new Error("QVAC inference cancelled (abort)");
     const chatPromise: Promise<CompletionFinal> = signal
       ? Promise.race([
           run.final,
@@ -314,8 +314,8 @@ export class QvacProvider implements LLMProvider {
         ])
       : run.final;
 
-    // Nettoyage des listeners d'abort dès que la requête est terminée (évite
-    // l'accumulation sur un signal partagé/réutilisé et tout cancel() tardif).
+    // Clean up the abort listeners as soon as the request is done (avoids
+    // accumulation on a shared/reused signal and any late cancel()).
     const final: CompletionFinal = await chatPromise.finally(() => {
       if (signal) {
         if (onAbortCancel) signal.removeEventListener("abort", onAbortCancel);
@@ -326,7 +326,7 @@ export class QvacProvider implements LLMProvider {
     return final.contentText || final.raw?.fullText || "";
   }
 
-  /** Libère la mémoire du modèle (utile en fin de benchmark, arrêt propre). */
+  /** Frees the model memory (useful at the end of a benchmark, clean shutdown). */
   async unload(): Promise<void> {
     if (this.modelId) {
       await unloadModel({ modelId: this.modelId, clearStorage: false });
@@ -337,8 +337,8 @@ export class QvacProvider implements LLMProvider {
 }
 
 // ---------------------------------------------------------------------------
-// Sélection du provider : config DB prioritaire (bascule à chaud admin),
-// fallback sur les variables d'environnement (compat rétroactive).
+// Provider selection: DB config takes priority (admin hot switch),
+// fallback on environment variables (backward compatibility).
 // ---------------------------------------------------------------------------
 
 export const SUPPORTED_PROVIDERS = [
@@ -352,7 +352,7 @@ export const SUPPORTED_PROVIDERS = [
 
 export type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
 
-/** Config LLM telle que stockée en DB (table llm_settings) — la clé API reste en env. */
+/** LLM config as stored in the DB (llm_settings table) — the API key stays in env. */
 export interface LlmProviderConfig {
   provider?: string;
   baseUrl?: string | null;
@@ -361,10 +361,10 @@ export interface LlmProviderConfig {
 }
 
 /**
- * Crée un provider à partir d'une config (DB ou env). Valeurs acceptées :
- *  - openai | openrouter | grok | deepseek  (presets cloud OpenAI-compatible)
- *  - openai-compatible                      (endpoint générique via baseUrl/modelName ou LLM_*)
- *  - qvac                                   (inférence locale)
+ * Creates a provider from a config (DB or env). Accepted values:
+ *  - openai | openrouter | grok | deepseek  (cloud OpenAI-compatible presets)
+ *  - openai-compatible                      (generic endpoint via baseUrl/modelName or LLM_*)
+ *  - qvac                                   (local inference)
  */
 export function createProviderFromConfig(config: LlmProviderConfig = {}): LLMProvider {
   const provider = (config.provider || process.env.LLM_PROVIDER || "openrouter").toLowerCase();
@@ -378,7 +378,7 @@ export function createProviderFromConfig(config: LlmProviderConfig = {}): LLMPro
     const model = config.modelName || process.env.LLM_MODEL;
     if (!baseURL || !model) {
       throw new Error(
-        "LLM_PROVIDER=openai-compatible nécessite baseUrl et modelName (config admin ou LLM_BASE_URL/LLM_MODEL dans .env)"
+        "LLM_PROVIDER=openai-compatible requires baseUrl and modelName (admin config or LLM_BASE_URL/LLM_MODEL in .env)"
       );
     }
     return new OpenAICompatibleProvider({
@@ -401,23 +401,23 @@ export function createProviderFromConfig(config: LlmProviderConfig = {}): LLMPro
   }
 
   throw new Error(
-    `LLM_PROVIDER inconnu: "${provider}". Valeurs possibles: ${SUPPORTED_PROVIDERS.join(", ")}`
+    `Unknown LLM_PROVIDER: "${provider}". Possible values: ${SUPPORTED_PROVIDERS.join(", ")}`
   );
 }
 
-/** Compat benchmark : crée un provider par nom (fallback env). */
+/** Benchmark compat: creates a provider by name (env fallback). */
 export function createLLMProvider(name?: string): LLMProvider {
   return createProviderFromConfig({ provider: name });
 }
 
 /**
- * Résout la config active : table llm_settings en priorité (bascule à chaud
- * sans redémarrage), sinon variables d'environnement (comportement historique).
+ * Resolves the active config: llm_settings table first (hot switch without
+ * restart), otherwise environment variables (historical behavior).
  */
 export async function resolveProviderConfig(): Promise<LlmProviderConfig> {
-  // Cache court (5 s) : évite une requête SELECT sur chaque appel chat tout en
-  // gardant une bascule à chaud quasi immédiate (le PUT admin appelle
-  // resetProviderCache() qui vide ce cache).
+  // Short cache (5 s): avoids a SELECT query on every chat call while
+  // keeping a nearly immediate hot switch (the admin PUT calls
+  // resetProviderCache() which clears this cache).
   if (
     cachedConfig &&
     Date.now() - cachedConfigAt < PROVIDER_CONFIG_CACHE_TTL_MS
@@ -443,7 +443,7 @@ export async function resolveProviderConfig(): Promise<LlmProviderConfig> {
     cachedConfigAt = Date.now();
   } catch (error) {
     console.warn(
-      "getLLMProvider: config DB indisponible, fallback sur l'environnement:",
+      "getLLMProvider: DB config unavailable, falling back to environment:",
       error
     );
     cachedConfig = {
@@ -460,19 +460,19 @@ export async function resolveProviderConfig(): Promise<LlmProviderConfig> {
 let defaultProvider: LLMProvider | null = null;
 let defaultProviderKey: string | null = null;
 
-// Cache TTL de la config résolue (5 s) pour ne pas requêter la DB à chaque chat.
+// TTL of the resolved config cache (5 s) to avoid querying the DB on every chat.
 const PROVIDER_CONFIG_CACHE_TTL_MS = 5_000;
 let cachedConfig: LlmProviderConfig | null = null;
 let cachedConfigAt = 0;
 
 /**
- * Provider actif (singleton paresseux). Priorité : config DB (llm_settings,
- * modifiable à chaud via l'interface admin) puis LLM_PROVIDER env.
- * Rien n'est chargé à l'import : QVAC ne télécharge le modèle qu'au 1er chat().
+ * Active provider (lazy singleton). Priority: DB config (llm_settings,
+ * hot-switchable via the admin interface) then LLM_PROVIDER env.
+ * Nothing is loaded at import: QVAC only downloads the model on the 1st chat().
  *
- * La bascule à chaud fonctionne via la clé de cache : si la config DB change
- * (PUT /api/admin/llm-settings), la clé change et l'instance est recréée au
- * prochain appel — sans redémarrage du serveur.
+ * The hot switch works through the cache key: if the DB config changes
+ * (PUT /api/admin/llm-settings), the key changes and the instance is recreated
+ * on the next call — without a server restart.
  */
 export async function getLLMProvider(): Promise<LLMProvider> {
   const config = await resolveProviderConfig();
@@ -481,8 +481,8 @@ export async function getLLMProvider(): Promise<LLMProvider> {
     const previous = defaultProvider;
     defaultProvider = createProviderFromConfig(config);
     defaultProviderKey = key;
-    // Bascule à chaud : libère le modèle QVAC de l'ancienne instance pour ne pas
-    // laisser ~1-5 Go de RAM chargés dans le worker Bare.
+    // Hot switch: unloads the old instance's QVAC model so ~1-5 GB of RAM
+    // is not left loaded in the Bare worker.
     if (previous instanceof QvacProvider) {
       previous.unload().catch(() => undefined);
     }
@@ -490,13 +490,13 @@ export async function getLLMProvider(): Promise<LLMProvider> {
   return defaultProvider;
 }
 
-/** Force la recréation du provider au prochain appel (appelé après un PUT admin). */
+/** Forces the provider to be recreated on the next call (called after an admin PUT). */
 export function resetProviderCache(): void {
   const previous = defaultProvider;
   defaultProvider = null;
   defaultProviderKey = null;
-  // Vide aussi le cache TTL de config pour que le prochain getLLMProvider()
-  // relise immédiatement la table llm_settings (bascule à chaud sans délai).
+  // Also clears the config TTL cache so the next getLLMProvider() immediately
+  // re-reads the llm_settings table (instant hot switch).
   cachedConfig = null;
   cachedConfigAt = 0;
   if (previous instanceof QvacProvider) {
@@ -504,7 +504,7 @@ export function resetProviderCache(): void {
   }
 }
 
-/** Clé de cache : config résolue + variables qui changent la config du provider actif. */
+/** Cache key: resolved config + variables that change the active provider config. */
 function providerConfigKey(config: LlmProviderConfig): string {
   const p = (config.provider || process.env.LLM_PROVIDER || "openrouter").toLowerCase();
   if (p === "qvac") return `${p}:${config.qvacModelSrc || "default"}`;

@@ -46,7 +46,7 @@ export default function AssistantModal({
         {
           id: "1",
           content:
-            "Bonjour ! Je suis votre assistant d'étude. Comment puis-je vous aider aujourd'hui ?",
+            "Hello! I'm your study assistant. How can I help you today?",
           sender: "assistant",
           timestamp: new Date(),
         },
@@ -114,9 +114,9 @@ export default function AssistantModal({
     } catch (error) {
       console.error("Error getting AI response:", error);
       toast({
-        title: "Erreur",
+        title: "Error",
         description:
-          "Impossible d'obtenir une réponse de l'assistant. Veuillez réessayer.",
+          "Unable to get a response from the assistant. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -160,7 +160,7 @@ export default function AssistantModal({
       <DialogContent className="sm:max-w-md p-0 h-[80vh] max-h-[600px] flex flex-col overflow-hidden">
         <DialogHeader className="bg-primary-700 px-4 py-3 sm:px-6 text-white">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-white">Assistant d'étude</DialogTitle>
+            <DialogTitle className="text-white">Study Assistant</DialogTitle>
             <Button
               variant="ghost"
               size="icon"
@@ -240,7 +240,7 @@ export default function AssistantModal({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Tapez votre message..."
+              placeholder="Type your message..."
               className="flex-1"
               disabled={isLoading}
             />
@@ -250,7 +250,7 @@ export default function AssistantModal({
             >
               <Send className="h-4 w-4 mr-1" />
               <span className="sr-only md:not-sr-only md:ml-1">
-                {isLoading ? "Envoi..." : "Envoyer"}
+                {isLoading ? "Sending..." : "Send"}
               </span>
             </Button>
           </div>
@@ -263,7 +263,7 @@ export default function AssistantModal({
               <Image className="h-4 w-4 mr-1" /> Image
             </Button>
             <Button variant="outline" size="sm" disabled>
-              <Paperclip className="h-4 w-4 mr-1" /> Fichier
+              <Paperclip className="h-4 w-4 mr-1" /> File
             </Button>
           </div>
         </div>

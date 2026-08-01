@@ -29,7 +29,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-// Types pour les annotations collaboratives
+// Types for collaborative annotations
 interface Annotation {
   id: string;
   content: string;
@@ -44,7 +44,7 @@ interface Annotation {
     x: number;
     y: number;
   };
-  likes: string[]; // IDs des utilisateurs qui ont aimé
+  likes: string[]; // IDs of users who liked this annotation
   replies?: AnnotationReply[];
 }
 
@@ -91,12 +91,12 @@ export function CollaborativeNotes({
   const noteContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Ajouter une nouvelle annotation
+  // Add a new annotation
   const addAnnotation = () => {
     if (!newAnnotationText.trim()) {
       toast({
-        title: "Annotation vide",
-        description: "Veuillez saisir du texte pour votre annotation",
+        title: "Empty annotation",
+        description: "Please enter some text for your annotation",
         variant: "destructive",
       });
       return;
@@ -126,12 +126,12 @@ export function CollaborativeNotes({
     }
 
     toast({
-      title: "Annotation ajoutée",
-      description: "Votre annotation a été ajoutée avec succès",
+      title: "Annotation added",
+      description: "Your annotation was added successfully",
     });
   };
 
-  // Ajouter une réponse à une annotation
+  // Add a reply to an annotation
   const addReply = (annotationId: string) => {
     if (!replyText.trim()) return;
 
@@ -163,7 +163,7 @@ export function CollaborativeNotes({
     }
   };
 
-  // Liker une annotation
+  // Like an annotation
   const toggleLike = (annotationId: string) => {
     const annotationIndex = annotations.findIndex((a) => a.id === annotationId);
     if (annotationIndex === -1) return;
@@ -174,10 +174,10 @@ export function CollaborativeNotes({
     const userLikedIndex = annotation.likes.indexOf(currentUserId);
     
     if (userLikedIndex === -1) {
-      // Ajouter un like
+      // Add a like
       annotation.likes = [...annotation.likes, currentUserId];
     } else {
-      // Retirer un like
+      // Remove a like
       annotation.likes = annotation.likes.filter(id => id !== currentUserId);
     }
     
@@ -189,7 +189,7 @@ export function CollaborativeNotes({
     }
   };
 
-  // Supprimer une annotation
+  // Delete an annotation
   const deleteAnnotation = (annotationId: string) => {
     const updatedAnnotations = annotations.filter((a) => a.id !== annotationId);
     setAnnotations(updatedAnnotations);
@@ -199,12 +199,12 @@ export function CollaborativeNotes({
     }
 
     toast({
-      title: "Annotation supprimée",
-      description: "L'annotation a été supprimée avec succès",
+      title: "Annotation deleted",
+      description: "The annotation was deleted successfully",
     });
   };
 
-  // Gérer le clic pour ajouter une annotation
+  // Handle click to add an annotation
   const handleNoteClick = (e: React.MouseEvent) => {
     if (readOnly || isAddingAnnotation) return;
 
@@ -218,7 +218,7 @@ export function CollaborativeNotes({
     setIsAddingAnnotation(true);
   };
 
-  // Obtenir les initiales d'un nom
+  // Get the initials of a name
   const getInitials = (name: string): string => {
     return name
       .split(" ")
@@ -228,9 +228,9 @@ export function CollaborativeNotes({
       .substring(0, 2);
   };
 
-  // Formater la date
+  // Format the date
   const formatDate = (date: Date): string => {
-    return new Date(date).toLocaleDateString("fr-FR", {
+    return new Date(date).toLocaleDateString("en-US", {
       day: "numeric",
       month: "short",
       hour: "2-digit",
@@ -240,16 +240,16 @@ export function CollaborativeNotes({
 
   return (
     <div className="relative">
-      {/* Conteneur de note avec annotations */}
+      {/* Note container with annotations */}
       <div
         ref={noteContainerRef}
         className="relative border rounded-lg p-4 bg-white min-h-[400px]"
         onClick={handleNoteClick}
       >
-        {/* Contenu de la note */}
+        {/* Note content */}
         <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
 
-        {/* Bouton d'ajout d'annotation */}
+        {/* Add annotation button */}
         {!readOnly && !isAddingAnnotation && (
           <TooltipProvider>
             <Tooltip>
@@ -267,12 +267,12 @@ export function CollaborativeNotes({
                   <Plus className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Ajouter une annotation</TooltipContent>
+              <TooltipContent>Add annotation</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
 
-        {/* Annotations existantes */}
+        {/* Existing annotations */}
         {annotations.map((annotation) => (
           <div
             key={annotation.id}
@@ -368,7 +368,7 @@ export function CollaborativeNotes({
                     </div>
                   </div>
 
-                  {/* Réponses */}
+                  {/* Replies */}
                   {annotation.replies && annotation.replies.length > 0 && (
                     <ScrollArea className="max-h-40">
                       <div className="pl-10 space-y-3">
@@ -396,7 +396,7 @@ export function CollaborativeNotes({
                     </ScrollArea>
                   )}
 
-                  {/* Ajouter une réponse */}
+                  {/* Add a reply */}
                   {!readOnly && (
                     <div className="flex items-center space-x-2">
                       <Avatar className="h-6 w-6">
@@ -407,7 +407,7 @@ export function CollaborativeNotes({
                       <Input
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Ajouter une réponse..."
+                        placeholder="Add a reply..."
                         className="h-8 text-sm"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
@@ -432,7 +432,7 @@ export function CollaborativeNotes({
           </div>
         ))}
 
-        {/* Interface d'ajout d'annotation */}
+        {/* Add annotation interface */}
         {isAddingAnnotation && (
           <div
             className="absolute inline-block z-10"
@@ -445,7 +445,7 @@ export function CollaborativeNotes({
           >
             <div className="bg-white border rounded-lg shadow-lg p-3 w-64">
               <div className="flex justify-between items-center mb-2">
-                <p className="text-sm font-medium">Nouvelle annotation</p>
+                <p className="text-sm font-medium">New annotation</p>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -458,7 +458,7 @@ export function CollaborativeNotes({
               <Textarea
                 value={newAnnotationText}
                 onChange={(e) => setNewAnnotationText(e.target.value)}
-                placeholder="Votre annotation..."
+                placeholder="Your annotation..."
                 className="min-h-20 text-sm mb-2"
                 autoFocus
               />
@@ -468,11 +468,11 @@ export function CollaborativeNotes({
                   size="sm"
                   onClick={() => setIsAddingAnnotation(false)}
                 >
-                  Annuler
+                  Cancel
                 </Button>
                 <Button size="sm" onClick={addAnnotation}>
                   <Save className="h-4 w-4 mr-1" />
-                  Enregistrer
+                  Save
                 </Button>
               </div>
             </div>
@@ -480,7 +480,7 @@ export function CollaborativeNotes({
         )}
       </div>
 
-      {/* Indicateur du nombre d'annotations */}
+      {/* Annotation count indicator */}
       <div className="mt-2 flex items-center text-sm text-gray-500">
         <MessageSquare className="h-4 w-4 mr-1" />
         {annotations.length} annotation{annotations.length !== 1 ? "s" : ""}

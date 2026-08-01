@@ -20,14 +20,14 @@ export function SyncStatus() {
         setUnsyncedCount(pendingNotes.length + pendingFlashcards.length);
       } catch (error) {
         console.error(
-          "Erreur lors de la vérification des éléments non synchronisés:",
+          "Error checking unsynced items:",
           error
         );
       }
     };
 
     checkUnsyncedItems();
-    const interval = setInterval(checkUnsyncedItems, 30000); // Vérifier toutes les 30 secondes
+    const interval = setInterval(checkUnsyncedItems, 30000); // Check every 30 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -37,21 +37,21 @@ export function SyncStatus() {
 
     setIsSyncing(true);
     try {
-      // Déclencher la synchronisation via le service worker
+      // Trigger sync via the service worker
       const registration = await navigator.serviceWorker.ready;
       await registration.sync.register("sync-notes");
 
-      // Attendre un peu pour laisser le temps à la synchronisation de démarrer
+      // Wait a bit to let the sync start
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Mettre à jour le compteur
+      // Update the counter
       const [pendingNotes, pendingFlashcards] = await Promise.all([
         getPendingNotes(),
         getPendingFlashcards(),
       ]);
       setUnsyncedCount(pendingNotes.length + pendingFlashcards.length);
     } catch (error) {
-      console.error("Erreur lors de la synchronisation:", error);
+      console.error("Error during sync:", error);
     } finally {
       setIsSyncing(false);
     }
@@ -76,10 +76,10 @@ export function SyncStatus() {
 
       <span>
         {isOffline
-          ? "Mode hors-ligne"
-          : `${unsyncedCount} élément${
+          ? "Offline mode"
+          : `${unsyncedCount} item${
               unsyncedCount > 1 ? "s" : ""
-            } non synchronisé${unsyncedCount > 1 ? "s" : ""}`}
+            } unsynced`}
       </span>
 
       {!isOffline && unsyncedCount > 0 && (
@@ -95,7 +95,7 @@ export function SyncStatus() {
               "animate-spin": isSyncing,
             })}
           />
-          <span className="sr-only">Synchroniser</span>
+          <span className="sr-only">Sync</span>
         </Button>
       )}
     </div>

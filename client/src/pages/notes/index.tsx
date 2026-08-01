@@ -53,13 +53,13 @@ export default function Notes() {
       <Button asChild>
         <Link to="/notes/create">
           <PlusIcon className="mr-2 h-4 w-4" />
-          <span className="hidden sm:inline">Nouvelle note</span>
+          <span className="hidden sm:inline">New note</span>
           <span className="sm:hidden">Note</span>
         </Link>
       </Button>
       <Button variant="outline" onClick={() => setIsUploadModalOpen(true)}>
         <UploadIcon className="mr-2 h-4 w-4" />
-        <span className="hidden sm:inline">Importer</span>
+        <span className="hidden sm:inline">Import</span>
         <span className="sm:hidden">Import</span>
       </Button>
     </>
@@ -68,8 +68,8 @@ export default function Notes() {
   return (
     <>
       <PageHeader 
-        title="Mes Notes" 
-        description="Gérez et organisez toutes vos notes d'étude"
+        title="My Notes" 
+        description="Manage and organize all your study notes"
         actions={headerActions}
       />
       
@@ -82,7 +82,7 @@ export default function Notes() {
             </div>
             <Input
               type="text"
-              placeholder="Rechercher dans vos notes..."
+              placeholder="Search in your notes..."
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -91,10 +91,10 @@ export default function Notes() {
           <div className="w-full sm:w-48">
             <Select value={selectedSubject} onValueChange={setSelectedSubject}>
               <SelectTrigger>
-                <SelectValue placeholder="Tous les sujets" />
+                <SelectValue placeholder="All subjects" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous les sujets</SelectItem>
+                <SelectItem value="all">All subjects</SelectItem>
                 {subjects && subjects.map((subject: Subject) => (
                   <SelectItem key={subject.id} value={subject.id.toString()}>
                     {subject.name}
@@ -111,8 +111,8 @@ export default function Notes() {
         <Tabs defaultValue="grid">
           <div className="flex justify-end mb-4">
             <TabsList>
-              <TabsTrigger value="grid">Grille</TabsTrigger>
-              <TabsTrigger value="list">Liste</TabsTrigger>
+              <TabsTrigger value="grid">Grid</TabsTrigger>
+              <TabsTrigger value="list">List</TabsTrigger>
             </TabsList>
           </div>
           
@@ -135,7 +135,7 @@ export default function Notes() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">Aucune note trouvée. Créez votre première note !</p>
+                <p className="text-gray-500">No note found. Create your first note!</p>
               </div>
             )}
           </TabsContent>
@@ -190,7 +190,7 @@ export default function Notes() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">Aucune note trouvée. Créez votre première note !</p>
+                <p className="text-gray-500">No note found. Create your first note!</p>
               </div>
             )}
           </TabsContent>

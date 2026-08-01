@@ -1,7 +1,7 @@
 import mysql from "mysql2/promise";
 
 async function main() {
-  // Créer une connexion sans spécifier de base de données
+  // Create a connection without specifying a database
   const connection = await mysql.createConnection({
     host: "localhost",
     user: "root",
@@ -9,15 +9,15 @@ async function main() {
   });
 
   try {
-    // Créer la base de données si elle n'existe pas
+    // Create the database if it doesn't exist
     await connection.execute("CREATE DATABASE IF NOT EXISTS smart_notes");
-    console.log("Base de données créée ou déjà existante");
+    console.log("Database created or already exists");
 
-    // Utiliser la base de données
+    // Use the database
     await connection.execute("USE smart_notes");
-    console.log("Base de données sélectionnée");
+    console.log("Database selected");
   } catch (error) {
-    console.error("Erreur lors de la création de la base de données:", error);
+    console.error("Error while creating the database:", error);
   } finally {
     await connection.end();
   }

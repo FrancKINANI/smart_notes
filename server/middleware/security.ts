@@ -2,16 +2,16 @@ import { Request, Response, NextFunction } from "express";
 import { rateLimit } from "express-rate-limit";
 import { PATTERNS } from "@shared/validation";
 
-// Rate limiting par IP pour les routes sensibles
+// Per-IP rate limiting for sensitive routes
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 tentatives
-  message: "Trop de tentatives, veuillez réessayer plus tard",
+  max: 5, // 5 attempts
+  message: "Too many attempts, please try again later",
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Protection contre les injections
+// Protection against injections
 export const sanitizeInput = (
   req: Request,
   res: Response,
@@ -23,12 +23,12 @@ export const sanitizeInput = (
     const sanitized: any = Array.isArray(obj) ? [] : {};
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === "string") {
-        // Échapper les caractères spéciaux HTML
+        // Escape HTML special characters
         sanitized[key] = value
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
+          .replace(/\"/g, "&quot;")
           .replace(/'/g, "&#x27;")
           .replace(/\\/g, "&#x5C;");
       } else if (typeof value === "object" && value !== null) {
@@ -46,7 +46,7 @@ export const sanitizeInput = (
   next();
 };
 
-// Validation des paramètres de requête
+// Request parameter validation
 export const validateParams = (schema: any) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -62,29 +62,29 @@ export const validateParams = (schema: any) => {
       next();
     } catch (error) {
       res.status(400).json({
-        message: "Données invalides",
+        message: "Invalid data",
         errors: error.errors,
       });
     }
   };
 };
 
-// Vérification des autorisations
+// Permission checks
 export const checkPermissions = (requiredRole: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ message: "Non authentifié" });
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     if (req.user.role !== requiredRole && req.user.role !== "admin") {
-      return res.status(403).json({ message: "Permission refusée" });
+      return res.status(403).json({ message: "Permission denied" });
     }
 
     next();
   };
 };
 
-// Protection contre les attaques CSRF
+// CSRF attack protection
 export const csrfProtection = (
   req: Request,
   res: Response,
@@ -92,12 +92,12 @@ export const csrfProtection = (
 ) => {
   const token = req.headers["x-csrf-token"] || req.body._csrf;
   if (!token || token !== req.session?.csrfToken) {
-    return res.status(403).json({ message: "Token CSRF invalide" });
+    return res.status(403).json({ message: "Invalid CSRF token" });
   }
   next();
 };
 
-// Headers de sécurité supplémentaires
+// Additional security headers
 export const securityHeaders = (
   _req: Request,
   res: Response,
@@ -114,7 +114,7 @@ export const securityHeaders = (
   next();
 };
 
-// Validation des données sensibles
+// Sensitive data validation
 export const validateSensitiveData = (
   req: Request,
   res: Response,
@@ -123,17 +123,17 @@ export const validateSensitiveData = (
   const { email, password, username } = req.body;
 
   if (email && !PATTERNS.EMAIL.test(email)) {
-    return res.status(400).json({ message: "Format d'email invalide" });
+    return res.status(400).json({ message: "Invalid email format" });
   }
 
   if (password && !PATTERNS.PASSWORD.test(password)) {
-    return res.status(400).json({ message: "Format de mot de passe invalide" });
+    return res.status(400).json({ message: "Invalid password format" });
   }
 
   if (username && !PATTERNS.USERNAME.test(username)) {
     return res
       .status(400)
-      .json({ message: "Format de nom d'utilisateur invalide" });
+      .json({ message: "Invalid username format" });
   }
 
   next();

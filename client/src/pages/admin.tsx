@@ -51,14 +51,14 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Formulaire
+  // Form
   const [mode, setMode] = useState<"cloud" | "edge">("cloud");
   const [provider, setProvider] = useState("openrouter");
   const [baseUrl, setBaseUrl] = useState("");
   const [modelName, setModelName] = useState("");
   const [qvacModelSrc, setQvacModelSrc] = useState("");
 
-  // Test de connexion
+  // Connection test
   const [testing, setTesting] = useState(false);
   const [testElapsed, setTestElapsed] = useState(0);
   const [testResult, setTestResult] = useState<{
@@ -69,7 +69,7 @@ export default function AdminPage() {
     message?: string;
   } | null>(null);
 
-  // Charger la config actuelle
+  // Load the current config
   useEffect(() => {
     if (user?.role !== "admin") return;
     api
@@ -86,15 +86,15 @@ export default function AdminPage() {
       })
       .catch((err) => {
         toast({
-          title: "Erreur",
-          description: err.message || "Impossible de charger la configuration LLM",
+          title: "Error",
+          description: err.message || "Unable to load the LLM configuration",
           variant: "destructive",
         });
       })
       .finally(() => setLoading(false));
   }, [user, toast]);
 
-  // Message explicatif si le test dure > 10 s (warm-up QVAC attendu)
+  // Explanatory message if the test takes > 10 s (expected QVAC warm-up)
   useEffect(() => {
     if (!testing) {
       setTestElapsed(0);
@@ -104,8 +104,8 @@ export default function AdminPage() {
     return () => clearInterval(interval);
   }, [testing]);
 
-  // Pendant le chargement de la session, on attend avant d'afficher quoi que
-  // ce soit (évite un flash « Accès réservé » pour un admin en cours d'auth).
+  // While the session loads, we wait before displaying anything
+  // (avoids a "Restricted access" flash for an admin who is still authenticating).
   if (isAuthLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -119,10 +119,10 @@ export default function AdminPage() {
       <div className="p-8 max-w-2xl mx-auto">
         <Alert variant="destructive">
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Accès réservé</AlertTitle>
+          <AlertTitle>Restricted access</AlertTitle>
           <AlertDescription>
-            Cette page est réservée aux administrateurs de l'instance. La
-            bascule Cloud/Edge est une action d'administration.
+            This page is reserved for instance administrators. The Cloud/Edge
+            switch is an administration action.
           </AlertDescription>
         </Alert>
       </div>
@@ -155,13 +155,13 @@ export default function AdminPage() {
         prev ? { ...prev, settings: data.settings, source: "database", active: { ...data.settings } } : prev
       );
       toast({
-        title: "Configuration enregistrée",
-        description: "La bascule à chaud est active : les prochains appels LLM utilisent le nouveau provider.",
+        title: "Configuration saved",
+        description: "Hot switch is active: the next LLM calls use the new provider.",
       });
     } catch (err) {
       toast({
-        title: "Erreur",
-        description: err instanceof Error ? err.message : "Échec de l'enregistrement",
+        title: "Error",
+        description: err instanceof Error ? err.message : "Save failed",
         variant: "destructive",
       });
     } finally {
@@ -174,9 +174,9 @@ export default function AdminPage() {
     setTestResult(null);
     try {
       const data = await api.post("/api/admin/llm-settings/test", buildPayload(), {
-        // Le warm-up QVAC peut dépasser 60 s (téléchargement P2P initial) — pas de timeout client.
-        // retries: 0 → un abort/timeout remonte immédiatement sans 3 retries bruyants
-        // (apiRequest ne reconnaît pas AbortError et relancerait 3× sinon).
+        // QVAC warm-up can exceed 60 s (initial P2P download) — no client timeout.
+        // retries: 0 → an abort/timeout surfaces immediately without 3 noisy retries
+        // (apiRequest does not recognize AbortError and would retry 3x otherwise).
         signal: AbortSignal.timeout(320_000),
         retries: 0,
       });
@@ -184,7 +184,7 @@ export default function AdminPage() {
     } catch (err) {
       setTestResult({
         ok: false,
-        message: err instanceof Error ? err.message : "Échec du test",
+        message: err instanceof Error ? err.message : "Test failed",
       });
     } finally {
       setTesting(false);
@@ -196,21 +196,21 @@ export default function AdminPage() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Administration LLM</h1>
+        <h1 className="text-2xl font-bold">LLM Administration</h1>
         <p className="text-muted-foreground">
-          Choisissez le mode d'inférence de cette instance : cloud
-          (OpenAI-compatible) ou edge (QVAC local). Action d'administration —
-          les utilisateurs finaux ne choisissent pas.
+          Choose the inference mode of this instance: cloud
+          (OpenAI-compatible) or edge (local QVAC). Administration action —
+          end users do not choose.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Fournisseur d'inférence</CardTitle>
+          <CardTitle>Inference provider</CardTitle>
           <CardDescription>
-            Source actuelle :{" "}
+            Current source:{" "}
             <Badge variant="secondary">{settings?.source ?? "env"}</Badge>
-            {settings?.settings ? " (config en base, prioritaire)" : " (variable d'environnement LLM_PROVIDER, fallback)"}
+            {settings?.settings ? " (DB config, takes priority)" : " (LLM_PROVIDER environment variable, fallback)"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -227,7 +227,7 @@ export default function AdminPage() {
               >
                 <span className="text-lg font-semibold">☁️ Cloud</span>
                 <span className="text-xs text-muted-foreground text-center">
-                  OpenAI, OpenRouter, Grok, DeepSeek ou tout endpoint OpenAI-compatible
+                  OpenAI, OpenRouter, Grok, DeepSeek or any OpenAI-compatible endpoint
                 </span>
               </Label>
             </div>
@@ -237,9 +237,9 @@ export default function AdminPage() {
                 htmlFor="mode-edge"
                 className="flex flex-col items-center gap-2 rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
               >
-                <span className="text-lg font-semibold">💻 Edge (QVAC local)</span>
+                <span className="text-lg font-semibold">💻 Edge (local QVAC)</span>
                 <span className="text-xs text-muted-foreground text-center">
-                  Inférence sur cette machine via llama.cpp — aucune clé API
+                  Inference on this machine via llama.cpp — no API key
                 </span>
               </Label>
             </div>
@@ -248,15 +248,15 @@ export default function AdminPage() {
           {!isEdgeMode ? (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Provider cloud</Label>
+                <Label>Cloud provider</Label>
                 <Select value={provider} onValueChange={setProvider}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choisir un provider" />
+                    <SelectValue placeholder="Choose a provider" />
                   </SelectTrigger>
                   <SelectContent>
                     {CLOUD_PROVIDERS.map((p) => (
                       <SelectItem key={p} value={p}>
-                        {p === "openai-compatible" ? "Endpoint OpenAI-compatible (custom)" : p}
+                        {p === "openai-compatible" ? "OpenAI-compatible endpoint (custom)" : p}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -275,7 +275,7 @@ export default function AdminPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="modelName">Nom du modèle</Label>
+                    <Label htmlFor="modelName">Model name</Label>
                     <Input
                       id="modelName"
                       placeholder="mistral-medium"
@@ -288,7 +288,7 @@ export default function AdminPage() {
 
               {!isCustomEndpoint && (
                 <div className="space-y-2">
-                  <Label htmlFor="modelName">Modèle (optionnel — défaut du preset)</Label>
+                  <Label htmlFor="modelName">Model (optional — preset default)</Label>
                   <Input
                     id="modelName"
                     placeholder={provider === "openai" ? "gpt-4o-mini" : undefined}
@@ -299,19 +299,19 @@ export default function AdminPage() {
               )}
 
               <Alert>
-                <AlertTitle>Clé API</AlertTitle>
+                <AlertTitle>API key</AlertTitle>
                 <AlertDescription>
-                  La clé API cloud est lue <strong>uniquement</strong> depuis les
-                  variables d'environnement du serveur (ex: OPENROUTER_API_KEY,
+                  The cloud API key is read <strong>only</strong> from the
+                  server environment variables (e.g. OPENROUTER_API_KEY,
                   OPENAI_API_KEY, XAI_API_KEY, DEEPSEEK_API_KEY, LLM_API_KEY) —
-                  jamais stockée en base de données.
+                  never stored in the database.
                 </AlertDescription>
               </Alert>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="qvacModelSrc">Modèle QVAC</Label>
+                <Label htmlFor="qvacModelSrc">QVAC model</Label>
                 <Input
                   id="qvacModelSrc"
                   placeholder="LLAMA_3_2_1B_INST_Q4_0"
@@ -319,41 +319,41 @@ export default function AdminPage() {
                   onChange={(e) => setQvacModelSrc(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Constante du registry (LLAMA_3_2_1B_INST_Q4_0, QWEN3_600M_INST_Q4,
-                  QWEN3_1_7B_INST_Q4) ou URL / chemin local vers un .gguf.
+                  Registry constant (LLAMA_3_2_1B_INST_Q4_0, QWEN3_600M_INST_Q4,
+                  QWEN3_1_7B_INST_Q4) or URL / local path to a .gguf.
                 </p>
               </div>
               <Alert>
-                <AlertTitle>⚠️ Chargement du modèle local</AlertTitle>
+                <AlertTitle>⚠️ Local model loading</AlertTitle>
                 <AlertDescription>
-                  Le premier appel peut prendre <strong>plusieurs dizaines de
-                  secondes, voire une minute</strong> : chargement du modèle en RAM
-                  (et téléchargement P2P au tout premier démarrage). Ne basculez en
-                  mode Edge qu'après avoir validé la connexion ci-dessous.
+                  The first call can take <strong>several tens of seconds, or
+                  even a minute</strong>: loading the model into RAM
+                  (and a P2P download on the very first start). Only switch to
+                  Edge mode after validating the connection below.
                 </AlertDescription>
               </Alert>
             </div>
           )}
 
-          {/* Test de connexion */}
+          {/* Connection test */}
           <div className="space-y-3 border-t pt-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <h3 className="text-sm font-medium">Tester la connexion</h3>
+                <h3 className="text-sm font-medium">Test the connection</h3>
                 <p className="text-xs text-muted-foreground">
-                  Envoie un prompt de test et affiche la latence + un extrait de la réponse.
+                  Sends a test prompt and shows the latency + a snippet of the response.
                 </p>
               </div>
               <Button onClick={handleTest} disabled={testing || saving} variant="outline">
                 {testing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Test en cours…
+                    Testing...
                   </>
                 ) : (
                   <>
                     <PlugZap className="mr-2 h-4 w-4" />
-                    Tester la connexion
+                    Test the connection
                   </>
                 )}
               </Button>
@@ -361,10 +361,10 @@ export default function AdminPage() {
 
             {showWarmupMessage && (
               <Alert>
-                <AlertTitle>Chargement du modèle local…</AlertTitle>
+                <AlertTitle>Loading the local model...</AlertTitle>
                 <AlertDescription>
-                  Ça peut prendre jusqu'à une minute la première fois (chargement
-                  du modèle en RAM, voire téléchargement P2P initial). Merci de patienter.
+                  This can take up to a minute the first time (loading the model
+                  into RAM, or even the initial P2P download). Please wait.
                 </AlertDescription>
               </Alert>
             )}
@@ -373,12 +373,12 @@ export default function AdminPage() {
               <Alert variant={testResult.ok ? "default" : "destructive"}>
                 <AlertTitle>
                   {testResult.ok
-                    ? `✅ Connexion OK — ${testResult.latencyMs} ms (${testResult.model})`
-                    : "❌ Échec du test"}
+                    ? `✅ Connection OK — ${testResult.latencyMs} ms (${testResult.model})`
+                    : "❌ Test failed"}
                 </AlertTitle>
                 <AlertDescription className="whitespace-pre-wrap">
                   {testResult.ok
-                    ? `Réponse : « ${testResult.reply} »`
+                    ? `Response: "${testResult.reply}"`
                     : testResult.message}
                 </AlertDescription>
               </Alert>
@@ -392,7 +392,7 @@ export default function AdminPage() {
               ) : (
                 <Save className="mr-2 h-4 w-4" />
               )}
-              Enregistrer et appliquer (bascule à chaud)
+              Save and apply (hot switch)
             </Button>
           </div>
         </CardContent>

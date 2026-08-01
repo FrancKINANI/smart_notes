@@ -7,9 +7,9 @@ import type { QuizQuestion } from "@shared/schema";
 const router = Router();
 
 const QUIZ_SYSTEM_PROMPT = (count: number) =>
-  `Tu es un expert en évaluation éducative. À partir de la note fournie, génère ${count} questions de quiz à choix multiples de qualité. Chaque question doit avoir exactement 4 options, une seule réponse correcte, et un niveau de difficulté varié. Retourne UNIQUEMENT un tableau JSON valide de la forme : [{"question": "énoncé", "options": ["A", "B", "C", "D"], "correctAnswer": "A", "type": "multiple-choice"}, ...]. La valeur de "correctAnswer" doit être l'une des options. Ne mets aucun texte autour du JSON.`;
+  `You are an expert in educational assessment. From the provided note, generate ${count} high-quality multiple-choice quiz questions. Each question must have exactly 4 options, a single correct answer, and a varied difficulty level. Return ONLY a valid JSON array of the form: [{"question": "stem", "options": ["A", "B", "C", "D"], "correctAnswer": "A", "type": "multiple-choice"}, ...]. The value of "correctAnswer" must be one of the options. Do not put any text around the JSON.`;
 
-// GET /api/quizzes/results — doit être déclarée AVANT /:id
+// GET /api/quizzes/results — must be declared BEFORE /:id
 router.get("/results", async (req, res) => {
   try {
     const userId = resolveUserId(req, res);
@@ -17,31 +17,31 @@ router.get("/results", async (req, res) => {
     const results = await storage.getQuizResultsByUser(userId);
     res.json(results);
   } catch (error) {
-    console.error("Erreur résultats quiz:", error);
+    console.error("Quiz results error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de la récupération des résultats" });
+      .json({ message: "Error while retrieving results" });
   }
 });
 
-// POST /api/quizzes/generate — génère un quiz via LLM (generateQuiz)
+// POST /api/quizzes/generate — generates a quiz via LLM (generateQuiz)
 router.post("/generate", async (req, res) => {
   try {
     const { noteId, questionCount } = req.body;
     if (!noteId) {
       return res
         .status(400)
-        .json({ message: "noteId est requis pour générer un quiz" });
+        .json({ message: "noteId is required to generate a quiz" });
     }
     const userId = resolveUserId(req, res);
     if (userId === null) return;
 
     const note = await storage.getNote(Number(noteId));
-    if (!note) return res.status(404).json({ message: "Note introuvable" });
+    if (!note) return res.status(404).json({ message: "Note not found" });
     if (!note.content || !note.content.trim()) {
       return res
         .status(400)
-        .json({ message: "La note doit contenir du contenu pour générer un quiz" });
+        .json({ message: "The note must contain content to generate a quiz" });
     }
 
     const count = Math.min(Math.max(parseInt(questionCount, 10) || 5, 1), 20);
@@ -59,11 +59,11 @@ router.post("/generate", async (req, res) => {
     if (!parsed || parsed.length === 0) {
       return res.status(422).json({
         message:
-          "Impossible de générer un quiz de qualité à partir de cette note. Essayez d'enrichir le contenu.",
+          "Unable to generate a quality quiz from this note. Try enriching the content.",
       });
     }
 
-    // Normaliser les questions au format QuizQuestion attendu par le frontend
+    // Normalize the questions into the QuizQuestion format expected by the frontend
     const questions: QuizQuestion[] = parsed
       .slice(0, count)
       .map((entry, index) => {
@@ -75,7 +75,7 @@ router.post("/generate", async (req, res) => {
         return {
           id: `q${index + 1}`,
           question: String(q.question ?? ""),
-          options: options.length >= 2 ? options : ["Vrai", "Faux"],
+          options: options.length >= 2 ? options : ["True", "False"],
           correctAnswer: options.includes(correctAnswer)
             ? correctAnswer
             : options[0],
@@ -87,7 +87,7 @@ router.post("/generate", async (req, res) => {
     if (questions.length === 0) {
       return res.status(422).json({
         message:
-          "Impossible de générer un quiz de qualité à partir de cette note.",
+          "Unable to generate a quality quiz from this note.",
       });
     }
 
@@ -99,9 +99,9 @@ router.post("/generate", async (req, res) => {
 
     res.status(201).json(quiz);
   } catch (error) {
-    console.error("Erreur génération quiz:", error);
+    console.error("Quiz generation error:", error);
     res.status(500).json({
-      message: "Erreur lors de la génération du quiz",
+      message: "Error while generating the quiz",
       error:
         process.env.NODE_ENV === "development" && error instanceof Error
           ? error.message
@@ -116,7 +116,7 @@ router.get("/", async (req, res) => {
     const userId = resolveUserId(req, res);
     if (userId === null) return;
     const quizzes = await storage.getQuizzesByUser(userId);
-    // Joindre la note pour afficher le titre (quiz.note?.title)
+    // Join the note to display its title (quiz.note?.title)
     const withNotes = await Promise.all(
       quizzes.map(async (quiz) => {
         const note = await storage.getNote(quiz.noteId);
@@ -125,8 +125,8 @@ router.get("/", async (req, res) => {
     );
     res.json(withNotes);
   } catch (error) {
-    console.error("Erreur quizzes:", error);
-    res.status(500).json({ message: "Erreur lors de la récupération des quiz" });
+    console.error("Quizzes error:", error);
+    res.status(500).json({ message: "Error while retrieving quizzes" });
   }
 });
 
@@ -135,26 +135,26 @@ router.get("/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const quiz = await storage.getQuiz(id);
-    if (!quiz) return res.status(404).json({ message: "Quiz introuvable" });
+    if (!quiz) return res.status(404).json({ message: "Quiz not found" });
     res.json(quiz);
   } catch (error) {
-    console.error("Erreur récupération quiz:", error);
-    res.status(500).json({ message: "Erreur lors de la récupération du quiz" });
+    console.error("Quiz retrieval error:", error);
+    res.status(500).json({ message: "Error while retrieving the quiz" });
   }
 });
 
-// POST /api/quizzes/:id/submit — enregistre un résultat de quiz
+// POST /api/quizzes/:id/submit — saves a quiz result
 router.post("/:id/submit", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const quiz = await storage.getQuiz(id);
-    if (!quiz) return res.status(404).json({ message: "Quiz introuvable" });
+    if (!quiz) return res.status(404).json({ message: "Quiz not found" });
 
     const { answers, score } = req.body;
     if (typeof score !== "number") {
       return res
         .status(400)
-        .json({ message: "Le score est requis (nombre entre 0 et 100)" });
+        .json({ message: "Score is required (a number between 0 and 100)" });
     }
     const userId = resolveUserId(req, res);
     if (userId === null) return;
@@ -168,10 +168,10 @@ router.post("/:id/submit", async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    console.error("Erreur soumission quiz:", error);
+    console.error("Quiz submission error:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de l'enregistrement des résultats" });
+      .json({ message: "Error while saving the results" });
   }
 });
 

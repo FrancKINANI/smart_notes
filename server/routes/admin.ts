@@ -13,13 +13,13 @@ import {
 
 const router = Router();
 
-// GET /api/admin/llm-settings — config actuelle (DB prioritaire, sinon env).
+// GET /api/admin/llm-settings — current config (DB takes priority, otherwise env).
 router.get("/llm-settings", checkPermissions("admin"), async (_req, res) => {
   try {
     const settings = await storage.getLlmSettings();
 
-    // Config effective = ce que getLLMProvider() utilisera réellement.
-    // resolveProviderConfig() est LA source de vérité unique (DB puis env).
+    // Effective config = what getLLMProvider() will actually use.
+    // resolveProviderConfig() is THE single source of truth (DB then env).
     const active: LlmProviderConfig = await resolveProviderConfig();
 
     res.json({
@@ -31,7 +31,7 @@ router.get("/llm-settings", checkPermissions("admin"), async (_req, res) => {
   } catch (error) {
     console.error("GET /api/admin/llm-settings:", error);
     res.status(500).json({
-      message: "Erreur lors de la lecture de la configuration LLM",
+      message: "Error while reading the LLM configuration",
       error:
         process.env.NODE_ENV === "development" && error instanceof Error
           ? error.message
@@ -40,21 +40,21 @@ router.get("/llm-settings", checkPermissions("admin"), async (_req, res) => {
   }
 });
 
-// PUT /api/admin/llm-settings — enregistre la config en DB et bascule à chaud
-// (resetProviderCache → l'instance est recréée au prochain appel, sans redémarrage).
+// PUT /api/admin/llm-settings — saves the config in DB and hot-switches
+// (resetProviderCache → the instance is recreated on the next call, without restart).
 router.put("/llm-settings", checkPermissions("admin"), async (req, res) => {
   try {
     const { provider, baseUrl, modelName, qvacModelSrc } = req.body ?? {};
 
     if (!provider || !SUPPORTED_PROVIDERS.includes(provider)) {
       return res.status(400).json({
-        message: `provider invalide: "${provider}". Valeurs possibles: ${SUPPORTED_PROVIDERS.join(", ")}`,
+        message: `invalid provider: "${provider}". Possible values: ${SUPPORTED_PROVIDERS.join(", ")}`,
       });
     }
 
     if (provider === "openai-compatible" && !baseUrl) {
       return res.status(400).json({
-        message: "baseUrl est requis pour le provider openai-compatible",
+        message: "baseUrl is required for the openai-compatible provider",
       });
     }
 
@@ -65,18 +65,18 @@ router.put("/llm-settings", checkPermissions("admin"), async (req, res) => {
       qvacModelSrc: qvacModelSrc || null,
     });
 
-    // Bascule à chaud : la prochaine requête LLM utilisera la nouvelle config.
+    // Hot switch: the next LLM request will use the new config.
     resetProviderCache();
 
     res.json({
       settings,
       source: "database",
-      message: "Configuration LLM enregistrée et appliquée (bascule à chaud active).",
+      message: "LLM configuration saved and applied (hot switch active).",
     });
   } catch (error) {
     console.error("PUT /api/admin/llm-settings:", error);
     res.status(500).json({
-      message: "Erreur lors de l'enregistrement de la configuration LLM",
+      message: "Error while saving the LLM configuration",
       error:
         process.env.NODE_ENV === "development" && error instanceof Error
           ? error.message
@@ -85,27 +85,27 @@ router.put("/llm-settings", checkPermissions("admin"), async (req, res) => {
   }
 });
 
-// POST /api/admin/llm-settings/test — envoie un prompt de test avec la config
-// fournie (ou la config active si absente) et mesure la latence. Ne modifie PAS
-// la config enregistrée : l'opérateur valide avant de basculer en prod.
+// POST /api/admin/llm-settings/test — sends a test prompt with the provided
+// config (or the active config if absent) and measures latency. It does NOT modify
+// the saved config: the operator validates before switching in prod.
 router.post("/llm-settings/test", checkPermissions("admin"), async (req, res) => {
   try {
     const body = req.body ?? {};
 
-    // Config résolue actuelle (DB prioritaire, sinon env) — source de vérité unique.
+    // Current resolved config (DB takes priority, otherwise env) — single source of truth.
     const activeConfig = await resolveProviderConfig();
 
     const providerName = body.provider || activeConfig.provider || "openrouter";
     if (!SUPPORTED_PROVIDERS.includes(providerName)) {
       return res.status(400).json({
         ok: false,
-        message: `provider invalide: "${providerName}". Valeurs possibles: ${SUPPORTED_PROVIDERS.join(", ")}`,
+        message: `invalid provider: "${providerName}". Possible values: ${SUPPORTED_PROVIDERS.join(", ")}`,
       });
     }
 
-    // La config testée = overrides du body sur la config active. Construite à
-    // partir d'activeConfig (et non d'une relecture DB) : garantit que la
-    // comparaison isActiveConfig compare exactement ce dont config est dérivée.
+    // The tested config = body overrides on the active config. Built from
+    // activeConfig (not a fresh DB read): guarantees that the
+    // isActiveConfig comparison compares exactly what config is derived from.
     const config: LlmProviderConfig = {
       provider: providerName,
       baseUrl: body.baseUrl ?? activeConfig.baseUrl ?? null,
@@ -113,9 +113,9 @@ router.post("/llm-settings/test", checkPermissions("admin"), async (req, res) =>
       qvacModelSrc: body.qvacModelSrc ?? activeConfig.qvacModelSrc ?? null,
     };
 
-    // Si la config testée est identique à la config active (DB OU fallback env),
-    // on réutilise le singleton getLLMProvider() : éviter de charger un SECOND
-    // modèle QVAC en RAM (~130 Mo à plusieurs Go) juste pour un test.
+    // If the tested config is identical to the active config (DB OR env fallback),
+    // reuse the getLLMProvider() singleton: avoid loading a SECOND
+    // QVAC model in RAM (~130 MB to several GB) just for a test.
     const isActiveConfig =
       activeConfig.provider === config.provider &&
       (activeConfig.baseUrl ?? null) === (config.baseUrl ?? null) &&
@@ -127,18 +127,18 @@ router.post("/llm-settings/test", checkPermissions("admin"), async (req, res) =>
       : createProviderFromConfig(config);
     const start = performance.now();
 
-    // Le 1er appel QVAC peut prendre plusieurs dizaines de secondes (chargement
-    // du modèle en RAM, voire téléchargement P2P initial) — c'est attendu.
+    // The first QVAC call can take several tens of seconds (loading the model
+    // into RAM, or even the initial P2P download) — this is expected.
     const reply = await provider.chat(
       [
         {
           role: "system",
-          content: "Vous êtes un assistant qui répond de manière très concise.",
+          content: "You are an assistant who answers very concisely.",
         },
         {
           role: "user",
           content:
-            "Réponds en une phrase : bonjour, dis-moi que la connexion fonctionne.",
+            "Answer in one sentence: hello, tell me the connection works.",
         },
       ],
       { temperature: 0.3, maxTokens: 80, signal: AbortSignal.timeout(300_000) }
@@ -146,8 +146,8 @@ router.post("/llm-settings/test", checkPermissions("admin"), async (req, res) =>
 
     const latencyMs = Math.round(performance.now() - start);
 
-    // Ne pas décharger une instance partagée (singleton) ; pour une instance
-    // de test jetable, libérer la RAM dès la fin du test.
+    // Do not unload a shared (singleton) instance; for a disposable
+    // test instance, free the RAM as soon as the test ends.
     if (!isActiveConfig && provider instanceof QvacProvider) {
       await provider.unload().catch(() => undefined);
     }

@@ -62,7 +62,7 @@ export function AIChat({ noteId }: AIChatProps) {
         ...prev,
         {
           role: "assistant",
-          content: "Désolé, une erreur est survenue. Veuillez réessayer.",
+          content: "Sorry, an error occurred. Please try again.",
         },
       ]);
     } finally {
@@ -110,7 +110,7 @@ export function AIChat({ noteId }: AIChatProps) {
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Posez une question sur cette note..."
+          placeholder="Ask a question about this note..."
           disabled={isLoading}
         />
         <Button type="submit" size="icon" disabled={isLoading}>

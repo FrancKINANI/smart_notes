@@ -11,17 +11,17 @@ const router = Router();
 router.get("/", async (req, res) => {
   try {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Non authentifié" });
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const userId = parseInt(req.query.userId as string);
     if (!userId) {
-      return res.status(400).json({ message: "userId est requis" });
+      return res.status(400).json({ message: "userId is required" });
     }
 
-    // Vérifier que l'utilisateur accède à ses propres données
+    // Check that the user is accessing their own data
     if (req.user.id !== userId) {
-      return res.status(403).json({ message: "Accès non autorisé" });
+      return res.status(403).json({ message: "Access denied" });
     }
 
     const cacheKey = `learning-stats:${userId}`;
@@ -37,7 +37,7 @@ router.get("/", async (req, res) => {
           storage.getSubjects(),
         ]);
 
-        // Si aucune donnée n'est trouvée, renvoyer des valeurs par défaut
+        // If no data is found, return default values
         if (!flashcards.length && !quizResults.length && !notes.length) {
           return {
             averageMastery: 0,
@@ -45,9 +45,9 @@ router.get("/", async (req, res) => {
             retentionHistory: [],
             averageRetention: 0,
             difficultyDistribution: [
-              { level: "Facile", count: 0 },
-              { level: "Moyen", count: 0 },
-              { level: "Difficile", count: 0 },
+              { level: "Easy", count: 0 },
+              { level: "Medium", count: 0 },
+              { level: "Hard", count: 0 },
             ],
             masteredConcepts: 0,
             conceptsToReview: 0,
@@ -92,7 +92,7 @@ router.get("/", async (req, res) => {
             (subjectMastery.length || 1)
         );
 
-        // S'assurer que les quiz ont tous un champ completedAt valide
+        // Make sure all quizzes have a valid completedAt field
         const validQuizResults = quizResults.filter(quiz => quiz && quiz.completedAt);
         
         const retentionHistory = calculateRetentionHistory(validQuizResults);
@@ -111,18 +111,18 @@ router.get("/", async (req, res) => {
 
         const difficultyDistribution = [
           {
-            level: "Facile",
+            level: "Easy",
             count: allFlashcards.filter((c) => (c.difficulty || 50) <= 30)
               .length,
           },
           {
-            level: "Moyen",
+            level: "Medium",
             count: allFlashcards.filter(
               (c) => (c.difficulty || 50) > 30 && (c.difficulty || 50) <= 70
             ).length,
           },
           {
-            level: "Difficile",
+            level: "Hard",
             count: allFlashcards.filter((c) => (c.difficulty || 50) > 70)
               .length,
           },
@@ -145,17 +145,17 @@ router.get("/", async (req, res) => {
           conceptsToReview,
         };
       },
-      { ttl: 300 } // Réduit à 5 minutes au lieu d'une heure
+      { ttl: 300 } // Reduced to 5 minutes instead of an hour
     );
 
-    // Ajouter les en-têtes de cache pour le client
+    // Add cache headers for the client
     res.setHeader("Cache-Control", "private, max-age=300");
     res.json(stats);
   } catch (error) {
-    console.error("Erreur lors de la récupération des statistiques:", error);
+    console.error("Error while retrieving statistics:", error);
     res.status(500).json({
       message:
-        "Erreur lors de la récupération des statistiques d'apprentissage",
+        "Error while retrieving learning statistics",
     });
   }
 });

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
 
-// Types de questions
+// Question types
 export enum QuestionType {
   MULTIPLE_CHOICE = "multiple_choice",
   TRUE_FALSE = "true_false",
@@ -16,21 +16,21 @@ export enum QuestionType {
   FILL_BLANK = "fill_blank",
 }
 
-// Niveaux de difficulté
+// Difficulty levels
 export enum DifficultyLevel {
   EASY = "easy",
   MEDIUM = "medium",
   HARD = "hard",
 }
 
-// Interface pour les questions de matching
+// Interface for matching questions
 export interface MatchingPair {
   id: string;
   left: string;
   right: string;
 }
 
-// Type pour représenter toutes les questions possibles
+// Type to represent all possible questions
 export interface QuizQuestion {
   id: string;
   question: string;
@@ -60,7 +60,7 @@ export function QuizQuestionComponent({
 }: QuizQuestionProps) {
   const [matchingSelections, setMatchingSelections] = useState<Record<string, string>>({});
 
-  // Gérer la sélection pour les questions de type matching
+  // Handle selection for matching questions
   const handleMatchingSelect = (leftId: string, rightValue: string) => {
     const newSelections = {
       ...matchingSelections,
@@ -69,11 +69,11 @@ export function QuizQuestionComponent({
     
     setMatchingSelections(newSelections);
     
-    // Mettre à jour la réponse complète
+    // Update the complete answer
     onAnswerSelect(question.id, newSelections);
   };
 
-  // Rendu en fonction du type de question
+  // Render based on question type
   switch (question.questionType) {
     case QuestionType.MULTIPLE_CHOICE:
       return (
@@ -89,7 +89,7 @@ export function QuizQuestionComponent({
                 className="text-primary-500 hover:text-primary-600"
               >
                 <HelpCircle className="h-4 w-4 mr-1" />
-                Indice
+                Hint
               </Button>
             )}
           </div>
@@ -127,7 +127,7 @@ export function QuizQuestionComponent({
                 className="text-primary-500 hover:text-primary-600"
               >
                 <HelpCircle className="h-4 w-4 mr-1" />
-                Indice
+                Hint
               </Button>
             )}
           </div>
@@ -137,15 +137,15 @@ export function QuizQuestionComponent({
             className="space-y-3"
           >
             <div className="flex items-center space-x-2">
-              <RadioGroupItem id={`true-${question.id}`} value="Vrai" />
+              <RadioGroupItem id={`true-${question.id}`} value="True" />
               <Label htmlFor={`true-${question.id}`} className="text-base font-normal">
-                Vrai
+                True
               </Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem id={`false-${question.id}`} value="Faux" />
+              <RadioGroupItem id={`false-${question.id}`} value="False" />
               <Label htmlFor={`false-${question.id}`} className="text-base font-normal">
-                Faux
+                False
               </Label>
             </div>
           </RadioGroup>
@@ -166,14 +166,14 @@ export function QuizQuestionComponent({
                 className="text-primary-500 hover:text-primary-600"
               >
                 <HelpCircle className="h-4 w-4 mr-1" />
-                Indice
+                Hint
               </Button>
             )}
           </div>
           <Textarea
             value={selectedAnswer || ""}
             onChange={(e) => onAnswerSelect(question.id, e.target.value)}
-            placeholder="Votre réponse..."
+            placeholder="Your answer..."
             className="min-h-24"
           />
         </div>
@@ -193,14 +193,14 @@ export function QuizQuestionComponent({
                 className="text-primary-500 hover:text-primary-600"
               >
                 <HelpCircle className="h-4 w-4 mr-1" />
-                Indice
+                Hint
               </Button>
             )}
           </div>
           <Input
             value={selectedAnswer || ""}
             onChange={(e) => onAnswerSelect(question.id, e.target.value)}
-            placeholder="Complétez..."
+            placeholder="Complete..."
             className="max-w-md"
           />
         </div>
@@ -222,12 +222,12 @@ export function QuizQuestionComponent({
                 className="text-primary-500 hover:text-primary-600"
               >
                 <HelpCircle className="h-4 w-4 mr-1" />
-                Indice
+                Hint
               </Button>
             )}
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Associez chaque élément de gauche avec sa correspondance à droite.
+            Match each item on the left with its corresponding item on the right.
           </p>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-4">
@@ -256,7 +256,7 @@ export function QuizQuestionComponent({
                     }
                     className="w-full p-2 border rounded-md"
                   >
-                    <option value="">Sélectionner une réponse</option>
+                    <option value="">Select an answer</option>
                     {question.matchingPairs.map((p, i) => (
                       <option key={i} value={p.right}>
                         {p.right}
@@ -271,11 +271,11 @@ export function QuizQuestionComponent({
       );
 
     default:
-      return <div>Type de question non pris en charge</div>;
+      return <div>Unsupported question type</div>;
   }
 }
 
-// Fonctions utilitaires pour évaluer les réponses
+// Utility functions to evaluate answers
 export function isAnswerCorrect(question: QuizQuestion, userAnswer: any): boolean {
   if (!userAnswer) return false;
 
@@ -285,19 +285,19 @@ export function isAnswerCorrect(question: QuizQuestion, userAnswer: any): boolea
     
     case QuestionType.SHORT_ANSWER:
     case QuestionType.FILL_BLANK:
-      // Normaliser et comparer pour les réponses textuelles
+      // Normalize and compare for text answers
       const normalize = (answer: string) => 
         answer.toString().toLowerCase().trim().replace(/\s+/g, ' ');
       
       return normalize(userAnswer) === normalize(question.correctAnswer || '');
     
     default:
-      // Pour les questions à choix et vrai/faux
+      // For choice and true/false questions
       return userAnswer === question.correctAnswer;
   }
 }
 
-// Vérifier si les réponses de matching sont correctes
+// Check if matching answers are correct
 function isMatchingCorrect(
   question: QuizQuestion,
   userAnswer: Record<string, string>
@@ -313,16 +313,16 @@ function isMatchingCorrect(
   return true;
 }
 
-// Formatter la réponse de l'utilisateur pour l'affichage
+// Format the user's answer for display
 export function formatUserAnswer(question: QuizQuestion, userAnswer: any): string {
-  if (!userAnswer) return "Aucune réponse";
+  if (!userAnswer) return "No answer";
 
   if (question.questionType === QuestionType.MATCHING && question.matchingPairs) {
     return question.matchingPairs
       .map((pair) => {
         const matchId = `${question.id}-${pair.id}`;
         const matchValue = userAnswer[matchId];
-        return `${pair.left} → ${matchValue || "Non associé"}`;
+        return `${pair.left} → ${matchValue || "Not matched"}`;
       })
       .join(", ");
   }
@@ -330,7 +330,7 @@ export function formatUserAnswer(question: QuizQuestion, userAnswer: any): strin
   return userAnswer.toString();
 }
 
-// Formatter la réponse correcte pour l'affichage
+// Format the correct answer for display
 export function formatCorrectAnswer(question: QuizQuestion): string {
   if (question.questionType === QuestionType.MATCHING && question.matchingPairs) {
     return question.matchingPairs
@@ -341,21 +341,21 @@ export function formatCorrectAnswer(question: QuizQuestion): string {
   return question.correctAnswer || "";
 }
 
-// Obtenir le label du niveau de difficulté
+// Get the difficulty level label
 export function getDifficultyLabel(difficulty: DifficultyLevel): string {
   switch (difficulty) {
     case DifficultyLevel.EASY:
-      return "Facile";
+      return "Easy";
     case DifficultyLevel.MEDIUM:
-      return "Moyen";
+      return "Medium";
     case DifficultyLevel.HARD:
-      return "Difficile";
+      return "Hard";
     default:
-      return "Inconnu";
+      return "Unknown";
   }
 }
 
-// Obtenir la couleur en fonction de la difficulté
+// Get the color based on difficulty
 export function getDifficultyColor(difficulty: DifficultyLevel): string {
   switch (difficulty) {
     case DifficultyLevel.EASY:

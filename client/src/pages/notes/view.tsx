@@ -107,17 +107,17 @@ export default function ViewNote() {
     mutationFn: () => generateFlashcards({ noteId, userId }),
     onSuccess: () => {
       toast({
-        title: "Cartes générées",
+        title: "Cards generated",
         description:
-          "De nouvelles cartes de révision ont été créées à partir de votre note.",
+          "New revision cards have been created from your note.",
       });
       navigate("/flashcards");
     },
     onError: () => {
       toast({
-        title: "Échec de la génération",
+        title: "Generation failed",
         description:
-          "Impossible de générer les cartes de révision. Veuillez réessayer.",
+          "Unable to generate the revision cards. Please try again.",
         variant: "destructive",
       });
     },
@@ -171,7 +171,7 @@ export default function ViewNote() {
   const handleDiscussWithAI = () => {
     if (note?.content) {
       openAssistantModal(
-        `Discutons de cette note sur : ${note.title}\n\n${note.content}`
+        `Let's discuss this note about: ${note.title}\n\n${note.content}`
       );
     }
   };
@@ -209,10 +209,10 @@ export default function ViewNote() {
   function convertJSONToMarkdown(content: any): string {
     if (!content) return "";
 
-    // Si le contenu est une chaîne, c'est déjà du markdown ou du texte brut
+    // If the content is a string, it is already markdown or plain text
     if (typeof content === "string") return content;
 
-    // Si le contenu est un objet avec enhancedContent
+    // If the content is an object with enhancedContent
     if (content.enhancedContent) {
       try {
         const parsed =
@@ -221,14 +221,14 @@ export default function ViewNote() {
             : content.enhancedContent;
         return convertJSONToMarkdown(parsed);
       } catch (error) {
-        console.error("Erreur lors du parsing du contenu amélioré:", error);
+        console.error("Error while parsing the enhanced content:", error);
         return content.enhancedContent?.toString() || "";
       }
     }
 
     let markdown = "";
 
-    // Fonction utilitaire pour convertir un array en liste markdown
+    // Utility function to convert an array to a markdown list
     const arrayToList = (items: any[]): string => {
       if (!Array.isArray(items)) return "";
       return items
@@ -237,38 +237,38 @@ export default function ViewNote() {
         .join("");
     };
 
-    // Traiter chaque section du contenu amélioré
+    // Process each section of the enhanced content
     if (content.Introduction) {
       markdown += "# Introduction\n\n";
       markdown += `${content.Introduction}\n\n`;
     }
 
-    if (content["Concepts Fondamentaux"]) {
-      markdown += "# Concepts Fondamentaux\n\n";
-      const concepts = content["Concepts Fondamentaux"];
+    if (content["Fundamental Concepts"]) {
+      markdown += "# Fundamental Concepts\n\n";
+      const concepts = content["Fundamental Concepts"];
 
-      if (concepts.Définitions?.length) {
-        markdown += "## Définitions\n\n";
-        markdown += arrayToList(concepts.Définitions);
+      if (concepts.Definitions?.length) {
+        markdown += "## Definitions\n\n";
+        markdown += arrayToList(concepts.Definitions);
         markdown += "\n";
       }
 
-      if (concepts.Principes?.length) {
-        markdown += "## Principes\n\n";
-        markdown += arrayToList(concepts.Principes);
+      if (concepts.Principles?.length) {
+        markdown += "## Principles\n\n";
+        markdown += arrayToList(concepts.Principles);
         markdown += "\n";
       }
 
-      if (concepts.Exemples?.length) {
-        markdown += "## Exemples\n\n";
-        markdown += arrayToList(concepts.Exemples);
+      if (concepts.Examples?.length) {
+        markdown += "## Examples\n\n";
+        markdown += arrayToList(concepts.Examples);
         markdown += "\n";
       }
     }
 
-    if (content["Points Clés"]?.length) {
-      markdown += "# Points Clés\n\n";
-      markdown += arrayToList(content["Points Clés"]);
+    if (content["Key Points"]?.length) {
+      markdown += "# Key Points\n\n";
+      markdown += arrayToList(content["Key Points"]);
       markdown += "\n";
     }
 
@@ -278,9 +278,9 @@ export default function ViewNote() {
       markdown += "\n";
     }
 
-    if (content["Pour Aller Plus Loin"]) {
-      markdown += "# Pour Aller Plus Loin\n\n";
-      markdown += `${content["Pour Aller Plus Loin"]}\n\n`;
+    if (content["To Go Further"]) {
+      markdown += "# To Go Further\n\n";
+      markdown += `${content["To Go Further"]}\n\n`;
     }
 
     return markdown;
@@ -291,8 +291,8 @@ export default function ViewNote() {
       return (
         <div className="text-center py-12">
           <p className="text-gray-500">
-            Aucun contenu amélioré disponible. Cliquez sur "Améliorer avec l'IA"
-            pour le générer.
+            No enhanced content available. Click on "Enhance with AI"
+            to generate it.
           </p>
         </div>
       );
@@ -321,8 +321,8 @@ export default function ViewNote() {
         return (
           <div className="text-center py-12">
             <p className="text-gray-500">
-              Le contenu amélioré semble être vide. Essayez de régénérer le
-              contenu.
+              The enhanced content seems to be empty. Try regenerating the
+              content.
             </p>
           </div>
         );
@@ -336,15 +336,15 @@ export default function ViewNote() {
         </div>
       );
     } catch (error) {
-      console.error("Erreur lors du rendu du contenu amélioré:", error);
+      console.error("Error while rendering the enhanced content:", error);
       return (
         <div className="text-red-500 p-4 rounded-lg border border-red-200 bg-red-50">
           <p className="mb-2">
-            Une erreur est survenue lors de l'affichage du contenu amélioré.
+            An error occurred while displaying the enhanced content.
           </p>
           <p className="text-sm">
-            Détail de l'erreur :{" "}
-            {error instanceof Error ? error.message : "Erreur inconnue"}
+            Error details:{" "}
+            {error instanceof Error ? error.message : "Unknown error"}
           </p>
           <Button
             variant="outline"
@@ -352,7 +352,7 @@ export default function ViewNote() {
             onClick={() => enhanceMutation.mutate()}
           >
             <RefreshCw className="mr-2 h-4 w-4" />
-            Réessayer l'amélioration
+            Retry the enhancement
           </Button>
         </div>
       );
@@ -361,7 +361,7 @@ export default function ViewNote() {
 
   console.log("Note data:", note);
   console.log("Enhanced content:", note?.enhancedContent);
-  console.log("Note ID used in API request:", noteId); // Log pour vérifier l'ID utilisé dans la requête
+  console.log("Note ID used in API request:", noteId); // Log to verify the ID used in the request
 
   return (
     <div className="py-6">
@@ -464,14 +464,14 @@ export default function ViewNote() {
               disabled={quizMutation.isPending || !note?.content}
               title={
                 !note?.content
-                  ? "La note doit avoir du contenu pour générer un quiz"
+                  ? "The note must have content to generate a quiz"
                   : ""
               }
             >
               <FileQuestion className="mr-2 h-4 w-4" />
               {quizMutation.isPending
-                ? "Génération en cours..."
-                : "Générer un Quiz à partir de cette Note"}
+                ? "Generating..."
+                : "Generate a Quiz from this Note"}
             </Button>
 
             <Button
@@ -480,14 +480,14 @@ export default function ViewNote() {
               disabled={flashcardsMutation.isPending || !note?.content}
               title={
                 !note?.content
-                  ? "La note doit avoir du contenu pour générer des cartes"
+                  ? "The note must have content to generate cards"
                   : ""
               }
             >
               <FileQuestion className="mr-2 h-4 w-4" />
               {flashcardsMutation.isPending
-                ? "Génération en cours..."
-                : "Générer des Cartes de Révision"}
+                ? "Generating..."
+                : "Generate Revision Cards"}
             </Button>
           </div>
         </div>
@@ -535,8 +535,8 @@ export default function ViewNote() {
                 ) : (
                   <div className="text-center py-12">
                     <p className="text-gray-500">
-                      Aucun contenu amélioré disponible. Cliquez sur "Améliorer
-                      avec l'IA" pour le générer.
+                      No enhanced content available. Click on "Enhance
+                      with AI" to generate it.
                     </p>
                   </div>
                 )}
@@ -565,9 +565,9 @@ export default function ViewNote() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow">
               <div className="p-4 border-b">
-                <h3 className="text-lg font-medium">Discuter avec l'IA</h3>
+                <h3 className="text-lg font-medium">Chat with AI</h3>
                 <p className="text-sm text-muted-foreground">
-                  Posez des questions sur cette note à l'IA
+                  Ask questions about this note to the AI
                 </p>
               </div>
               <div className="h-[600px]">

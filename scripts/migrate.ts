@@ -17,30 +17,30 @@ async function migrate() {
   });
 
   try {
-    // Lecture des fichiers SQL dans le dossier migrations
+    // Read SQL files in the migrations folder
     const migrationFiles = await fs.readdir(
       path.join(process.cwd(), "migrations")
     );
     const sqlFiles = migrationFiles
       .filter((file) => file.endsWith(".sql"))
-      .sort(); // Tri pour assurer l'ordre d'exécution
+      .sort(); // Sort to ensure execution order
 
-    // Exécution de chaque fichier de migration
+    // Execute each migration file
     for (const file of sqlFiles) {
-      console.log(`Exécution de la migration: ${file}`);
+      console.log(`Running migration: ${file}`);
       try {
         const sql = await fs.readFile(
           path.join(process.cwd(), "migrations", file),
           "utf8"
         );
 
-        // Séparation des instructions SQL par le séparateur de migration
+        // Split SQL statements by the migration separator
         const statements = sql
           .split("-- statement-breakpoint")
           .map((stmt) => stmt.trim())
           .filter((stmt) => stmt.length > 0);
 
-        // Exécution de chaque instruction séparément
+        // Execute each statement separately
         for (const statement of statements) {
           try {
             await poolConnection.query(statement);
@@ -52,20 +52,20 @@ async function migrate() {
             ) {
               throw stmtError;
             }
-            console.log(`Info: Table déjà existante, continuation...`);
+            console.log(`Info: Table already exists, continuing...`);
           }
         }
 
-        console.log(`Migration ${file} exécutée avec succès`);
+        console.log(`Migration ${file} executed successfully`);
       } catch (fileError) {
-        console.error(`Erreur lors de l'exécution de ${file}:`, fileError);
+        console.error(`Error while executing ${file}:`, fileError);
         throw fileError;
       }
     }
 
-    console.log("Toutes les migrations ont été exécutées avec succès");
+    console.log("All migrations executed successfully");
   } catch (error) {
-    console.error("Erreur lors des migrations:", error);
+    console.error("Error during migrations:", error);
     process.exit(1);
   } finally {
     await poolConnection.end();

@@ -1,4 +1,4 @@
-// Algorithme de répétition espacée optimisé basé sur SM-2 avec des améliorations
+// Optimized spaced repetition algorithm based on SM-2 with improvements
 
 export interface SpacedRepetitionItem {
   id: number;
@@ -9,27 +9,27 @@ export interface SpacedRepetitionItem {
   totalReviews: number;
   lastResponseQuality: number;
   difficulty: number;
-  // Nouvelles propriétés pour des statistiques améliorées
-  responseHistory: number[]; // Historique des qualités de réponse
-  reviewDates: Date[]; // Dates des révisions précédentes
-  timeToAnswer?: number; // Temps pour répondre (en secondes), facultatif
+  // New properties for improved statistics
+  responseHistory: number[]; // Response quality history
+  reviewDates: Date[]; // Dates of previous reviews
+  timeToAnswer?: number; // Time to answer (in seconds), optional
 }
 
 export interface LearningStats {
   masteryLevel: number; // 0-100
-  retentionRate: number; // % de rétention
-  averageResponseQuality: number; // Qualité moyenne des réponses
-  predictedDifficulty: number; // 0-1 (0: facile, 1: difficile)
-  // Statistiques étendues
-  learningEfficiency: number; // % d'efficacité d'apprentissage
-  forgettingIndex: number; // Vitesse d'oubli (plus c'est bas, mieux c'est)
-  optimalReviewInterval: number; // Intervalle optimal de révision en jours
-  improvementRate: number; // Taux d'amélioration sur les 5 dernières révisions
+  retentionRate: number; // % retention
+  averageResponseQuality: number; // Average response quality
+  predictedDifficulty: number; // 0-1 (0: easy, 1: hard)
+  // Extended statistics
+  learningEfficiency: number; // % learning efficiency
+  forgettingIndex: number; // Forgetting speed (lower is better)
+  optimalReviewInterval: number; // Optimal review interval in days
+  improvementRate: number; // Improvement rate over the last 5 reviews
   mastery: {
-    beginner: boolean; // <30% de maîtrise
-    intermediate: boolean; // 30-70% de maîtrise
-    advanced: boolean; // 70-90% de maîtrise
-    expert: boolean; // >90% de maîtrise
+    beginner: boolean; // <30% mastery
+    intermediate: boolean; // 30-70% mastery
+    advanced: boolean; // 70-90% mastery
+    expert: boolean; // >90% mastery
   };
 }
 
@@ -42,7 +42,7 @@ export interface LearningStats {
 // 5 - Perfect recall
 export type ResponseQuality = 0 | 1 | 2 | 3 | 4 | 5;
 
-// Traitement de la réponse de l'utilisateur et mise à jour des statistiques
+// Process the user's response and update statistics
 export function processResponse(
   item: SpacedRepetitionItem,
   quality: ResponseQuality,
@@ -50,31 +50,31 @@ export function processResponse(
 ): SpacedRepetitionItem {
   const updatedItem = { ...item };
   
-  // Maintien de l'historique des réponses
+  // Maintain the response history
   updatedItem.responseHistory = updatedItem.responseHistory || [];
   updatedItem.responseHistory.push(quality);
   
-  // Maintien des dates de révision
+  // Maintain the review dates
   updatedItem.reviewDates = updatedItem.reviewDates || [];
   updatedItem.reviewDates.push(new Date());
   
-  // Stocker le temps de réponse si disponible
+  // Store the response time if available
   if (timeToAnswer !== undefined) {
     updatedItem.timeToAnswer = timeToAnswer;
   }
 
-  // Mise à jour des statistiques de base
+  // Update the base statistics
   updatedItem.lastResponseQuality = quality;
   updatedItem.totalReviews = (item.totalReviews || 0) + 1;
 
-  // Mise à jour des séquences correctes
+  // Update the correct streaks
   if (quality >= 3) {
     updatedItem.consecutiveCorrect = (item.consecutiveCorrect || 0) + 1;
   } else {
     updatedItem.consecutiveCorrect = 0;
   }
 
-  // Calcul du facteur de facilité avec adaptation dynamique
+  // Calculate the ease factor with dynamic adaptation
   const difficultyWeight = 0.05 * updatedItem.difficulty;
   updatedItem.easeFactor = Math.max(
     1.3,
@@ -83,7 +83,7 @@ export function processResponse(
       difficultyWeight
   );
 
-  // Calcul de l'intervalle avec bonus de séquence correcte
+  // Calculate the interval with a correct-streak bonus
   if (quality < 3) {
     updatedItem.interval = Math.max(1, Math.floor(item.interval * 0.5));
   } else {
@@ -99,10 +99,10 @@ export function processResponse(
     }
   }
 
-  // Mise à jour de la difficulté basée sur la performance
+  // Update the difficulty based on performance
   updatedItem.difficulty = calculateDifficulty(updatedItem);
 
-  // Calcul de la prochaine date de révision avec fenêtre optimale
+  // Calculate the next review date with an optimal window
   const now = new Date();
   const optimalInterval = calculateOptimalInterval(updatedItem);
   const nextDate = new Date();
@@ -112,7 +112,7 @@ export function processResponse(
   return updatedItem;
 }
 
-// Calcul du niveau de maîtrise amélioré
+// Calculate the improved mastery level
 export function calculateMasteryLevel(item: SpacedRepetitionItem): number {
   const maxInterval = 30;
   const intervalComponent = Math.min(
@@ -125,14 +125,14 @@ export function calculateMasteryLevel(item: SpacedRepetitionItem): number {
   return intervalComponent + qualityComponent + streakComponent;
 }
 
-// Exporter les fonctions d'aide
+// Export the helper functions
 export function calculateDifficulty(item: SpacedRepetitionItem): number {
-  // Si nous avons un historique de réponses, utilisons-le pour une meilleure prédiction
+  // If we have a response history, use it for a better prediction
   if (item.responseHistory && item.responseHistory.length > 0) {
-    const recentResponses = item.responseHistory.slice(-5); // Prendre les 5 dernières réponses
+    const recentResponses = item.responseHistory.slice(-5); // Take the last 5 responses
     const recentPerformance = recentResponses.reduce((sum, quality) => sum + quality, 0) / (recentResponses.length * 5);
     
-    // Intégrer le temps de réponse si disponible
+    // Integrate the response time if available
     const timeWeight = item.timeToAnswer ? Math.min(0.2, item.timeToAnswer / 30) : 0;
     
     const historicalDifficulty = item.difficulty || 0.5;
@@ -144,7 +144,7 @@ export function calculateDifficulty(item: SpacedRepetitionItem): number {
       timeWeight
     ));
   } else {
-    // Fallback sur la méthode existante
+    // Fallback to the existing method
     const recentPerformance = item.lastResponseQuality / 5;
     const historicalDifficulty = item.difficulty || 0.5;
     const learningRate = 0.2;
@@ -156,24 +156,24 @@ export function calculateDifficulty(item: SpacedRepetitionItem): number {
   }
 }
 
-// Nouvelle fonction pour calculer l'intervalle optimal
+// New function to calculate the optimal interval
 export function calculateOptimalInterval(item: SpacedRepetitionItem): number {
   const baseInterval = item.interval;
-  const retentionTarget = 0.9; // 90% de rétention ciblée
+  const retentionTarget = 0.9; // 90% target retention
 
-  // Ajustement basé sur la difficulté
+  // Adjustment based on difficulty
   const difficultyFactor = 1 - item.difficulty * 0.5;
 
-  // Ajustement basé sur la performance historique
+  // Adjustment based on historical performance
   const performanceFactor =
     item.consecutiveCorrect > 0
       ? 1 + Math.log(item.consecutiveCorrect) * 0.1
       : 1;
       
-  // Nouveau: Ajustement basé sur l'historique complet
+  // New: Adjustment based on the complete history
   let historyFactor = 1;
   if (item.responseHistory && item.responseHistory.length > 2) {
-    // Analyser la tendance des dernières réponses
+    // Analyze the trend of the last responses
     const recentTrend = calculateTrend(item.responseHistory.slice(-5));
     historyFactor = 1 + recentTrend * 0.15;
   }
@@ -181,7 +181,7 @@ export function calculateOptimalInterval(item: SpacedRepetitionItem): number {
   return Math.round(baseInterval * difficultyFactor * performanceFactor * historyFactor);
 }
 
-// Calcule la tendance des performances (-1 à 1, négatif = en baisse, positif = en hausse)
+// Calculate the performance trend (-1 to 1, negative = declining, positive = improving)
 function calculateTrend(values: number[]): number {
   if (values.length < 2) return 0;
   
@@ -200,24 +200,24 @@ function calculateTrend(values: number[]): number {
   const n = values.length;
   const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
   
-  // Normaliser la pente entre -1 et 1
+  // Normalize the slope between -1 and 1
   return Math.max(-1, Math.min(1, slope / 2.5));
 }
 
-// Nouvelle fonction pour obtenir les statistiques d'apprentissage détaillées
+// New function to get detailed learning statistics
 export function getLearningStats(item: SpacedRepetitionItem): LearningStats {
   const masteryLevel = calculateMasteryLevel(item);
   const retentionRate = calculateRetentionRate(item);
   const averageResponseQuality = calculateAverageResponseQuality(item);
   const predictedDifficulty = item.difficulty;
   
-  // Nouvelles statistiques
+  // New statistics
   const learningEfficiency = calculateLearningEfficiency(item);
   const forgettingIndex = calculateForgettingIndex(item);
   const optimalReviewInterval = calculateOptimalInterval(item);
   const improvementRate = calculateImprovementRate(item);
   
-  // Calcul des niveaux de maîtrise
+  // Calculate the mastery levels
   const mastery = {
     beginner: masteryLevel < 30,
     intermediate: masteryLevel >= 30 && masteryLevel < 70,
@@ -238,12 +238,12 @@ export function getLearningStats(item: SpacedRepetitionItem): LearningStats {
   };
 }
 
-// Calcule le taux de rétention
+// Calculate the retention rate
 function calculateRetentionRate(item: SpacedRepetitionItem): number {
   if (item.totalReviews === 0) return 0;
   
   if (item.responseHistory && item.responseHistory.length > 0) {
-    // Compter les réponses considérées comme "retenues" (qualité >= 3)
+    // Count responses considered as "retained" (quality >= 3)
     const retainedCount = item.responseHistory.filter(q => q >= 3).length;
     return (retainedCount / item.responseHistory.length) * 100;
   }
@@ -253,7 +253,7 @@ function calculateRetentionRate(item: SpacedRepetitionItem): number {
   return (correctResponses / item.totalReviews) * 100;
 }
 
-// Calcule la qualité moyenne des réponses
+// Calculate the average response quality
 function calculateAverageResponseQuality(item: SpacedRepetitionItem): number {
   if (item.responseHistory && item.responseHistory.length > 0) {
     return item.responseHistory.reduce((sum, q) => sum + q, 0) / item.responseHistory.length;
@@ -263,21 +263,21 @@ function calculateAverageResponseQuality(item: SpacedRepetitionItem): number {
   return item.totalReviews > 0 ? item.lastResponseQuality : 0;
 }
 
-// Calcule l'efficacité d'apprentissage (rapport entre la maîtrise et l'effort)
+// Calculate the learning efficiency (ratio between mastery and effort)
 function calculateLearningEfficiency(item: SpacedRepetitionItem): number {
   if (item.totalReviews === 0) return 0;
   
   const masteryLevel = calculateMasteryLevel(item);
-  const effortMetric = Math.log(item.totalReviews + 1) * 20; // logarithmique pour éviter les valeurs extrêmes
+  const effortMetric = Math.log(item.totalReviews + 1) * 20; // logarithmic to avoid extreme values
   
   return Math.min(100, (masteryLevel / effortMetric) * 100);
 }
 
-// Calcule l'indice d'oubli (vitesse à laquelle l'information est oubliée)
+// Calculate the forgetting index (speed at which information is forgotten)
 function calculateForgettingIndex(item: SpacedRepetitionItem): number {
   if (!item.responseHistory || item.responseHistory.length < 3) return 0.5;
   
-  // Analyse les régressions (après une bonne réponse, une mauvaise suit)
+  // Analyze regressions (after a good response, a bad one follows)
   let regressions = 0;
   for (let i = 1; i < item.responseHistory.length; i++) {
     if (item.responseHistory[i-1] >= 4 && item.responseHistory[i] <= 2) {
@@ -288,7 +288,7 @@ function calculateForgettingIndex(item: SpacedRepetitionItem): number {
   return regressions / (item.responseHistory.length - 1);
 }
 
-// Calcule le taux d'amélioration sur les dernières révisions
+// Calculate the improvement rate over the recent reviews
 function calculateImprovementRate(item: SpacedRepetitionItem): number {
   if (!item.responseHistory || item.responseHistory.length < 5) return 0;
   
@@ -301,13 +301,13 @@ function calculateImprovementRate(item: SpacedRepetitionItem): number {
   return Math.min(100, Math.max(-100, ((secondAvg - firstAvg) / 5) * 100));
 }
 
-// Fonction pour calculer l'historique de rétention basé sur les résultats des quiz
+// Function to calculate the retention history based on quiz results
 export function calculateRetentionHistory(
   quizResults: any[]
 ): { date: string; retention: number }[] {
   if (!quizResults || quizResults.length === 0) return [];
 
-  // Filtrer les résultats sans date de complétion
+  // Filter results without a completion date
   const validResults = quizResults.filter(result => result.completedAt);
 
   if (validResults.length === 0) return [];
@@ -317,7 +317,7 @@ export function calculateRetentionHistory(
       new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
   );
 
-  // Grouper les résultats par jour
+  // Group the results by day
   const dailyResults = sortedResults.reduce(
     (acc: Record<string, number[]>, result) => {
       if (!result.completedAt) return acc;
@@ -332,7 +332,7 @@ export function calculateRetentionHistory(
     {}
   );
 
-  // Calculer la moyenne de rétention par jour
+  // Calculate the average retention per day
   return Object.entries(dailyResults).map(([date, scores]) => ({
     date,
     retention: Math.round(
@@ -341,20 +341,20 @@ export function calculateRetentionHistory(
   }));
 }
 
-// Nouvelle fonction pour prédire la difficulté d'un concept
+// New function to predict the difficulty of a concept
 export function predictConceptDifficulty(
   conceptText: string,
   userPerformanceData: SpacedRepetitionItem[]
 ): number {
-  // Facteurs influençant la difficulté
-  const lengthFactor = Math.min(1, conceptText.length / 500) * 0.2; // Plus long = plus difficile
-  const complexityFactor = calculateTextComplexity(conceptText) * 0.3; // Complexité linguistique
+  // Factors influencing difficulty
+  const lengthFactor = Math.min(1, conceptText.length / 500) * 0.2; // Longer = harder
+  const complexityFactor = calculateTextComplexity(conceptText) * 0.3; // Linguistic complexity
   
-  // Analyse des performances antérieures de l'utilisateur sur des concepts similaires
-  let performanceFactor = 0.5; // Valeur par défaut
+  // Analyze the user's past performance on similar concepts
+  let performanceFactor = 0.5; // Default value
   
   if (userPerformanceData && userPerformanceData.length > 0) {
-    // Calculer la difficulté moyenne des éléments précédents
+    // Calculate the average difficulty of previous items
     const avgDifficulty = userPerformanceData.reduce(
       (sum, item) => sum + item.difficulty, 
       0
@@ -363,28 +363,28 @@ export function predictConceptDifficulty(
     performanceFactor = avgDifficulty * 0.5;
   }
   
-  // Combinaison des facteurs pour prédire la difficulté globale (0-1)
+  // Combine the factors to predict the overall difficulty (0-1)
   return Math.min(1, Math.max(0, lengthFactor + complexityFactor + performanceFactor));
 }
 
-// Fonction auxiliaire pour calculer la complexité linguistique d'un texte
+// Helper function to calculate the linguistic complexity of a text
 function calculateTextComplexity(text: string): number {
-  // Implémentation simplifiée
+  // Simplified implementation
   const words = text.split(/\s+/).filter(w => w.length > 0);
   if (words.length === 0) return 0;
   
-  // Longueur moyenne des mots (indicateur simple de complexité)
+  // Average word length (simple complexity indicator)
   const avgWordLength = words.reduce((sum, word) => sum + word.length, 0) / words.length;
   
-  // Nombre de mots longs (plus de 8 caractères)
+  // Number of long words (more than 8 characters)
   const longWords = words.filter(w => w.length > 8).length;
   const longWordRatio = longWords / words.length;
   
-  // Calculer un score de complexité entre 0 et 1
+  // Calculate a complexity score between 0 and 1
   return Math.min(1, (avgWordLength / 12) * 0.5 + longWordRatio * 0.5);
 }
 
-// Nouvelle fonction pour recommander un planning de révision optimal
+// New function to recommend an optimal review schedule
 export function generateOptimalReviewSchedule(
   items: SpacedRepetitionItem[],
   daysAhead: number = 30
@@ -392,7 +392,7 @@ export function generateOptimalReviewSchedule(
   const schedule: Record<string, number[]> = {};
   const today = new Date();
   
-  // Initialiser le planning pour chaque jour
+  // Initialize the schedule for each day
   for (let i = 0; i < daysAhead; i++) {
     const futureDate = new Date(today);
     futureDate.setDate(today.getDate() + i);
@@ -400,20 +400,20 @@ export function generateOptimalReviewSchedule(
     schedule[dateStr] = [];
   }
   
-  // Répartir les éléments dans le planning
+  // Distribute the items in the schedule
   items.forEach(item => {
     if (!item.nextReviewDate) return;
     
     const reviewDate = new Date(item.nextReviewDate);
     const dateStr = reviewDate.toISOString().split('T')[0];
     
-    // Vérifier si la date est dans notre fenêtre de planning
+    // Check if the date is in our schedule window
     if (schedule[dateStr] !== undefined) {
       schedule[dateStr].push(item.id);
     }
   });
   
-  // Convertir en tableau pour faciliter l'utilisation
+  // Convert to an array for easier use
   return Object.entries(schedule)
     .map(([date, items]) => ({ date, items }))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

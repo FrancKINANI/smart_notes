@@ -30,7 +30,7 @@ interface RegisterData {
   lastName?: string;
 }
 
-// Hook d'authentification pour interagir avec l'API
+// Authentication hook to interact with the API
 export function useAuth() {
   const { toast } = useToast();
 
@@ -54,7 +54,7 @@ export function useAuth() {
     retry: false,
   });
 
-  // Mutation pour l'inscription
+  // Mutation for registration
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterData) => {
       return api.post("/api/auth/register", data);
@@ -62,20 +62,20 @@ export function useAuth() {
     onSuccess: (data: User) => {
       queryClient.setQueryData(["auth", "user"], data);
       toast({
-        title: "Inscription réussie",
-        description: "Bienvenue sur l'application !",
+        title: "Registration successful",
+        description: "Welcome to the app!",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erreur d'inscription",
+        title: "Registration error",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  // Mutation pour la connexion
+  // Mutation for login
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
       return api.post("/api/auth/login", credentials);
@@ -83,20 +83,20 @@ export function useAuth() {
     onSuccess: (data: User) => {
       queryClient.setQueryData(["auth", "user"], data);
       toast({
-        title: "Connexion réussie",
-        description: `Bon retour, ${data.displayName || data.username}!`,
+        title: "Login successful",
+        description: `Welcome back, ${data.displayName || data.username}!`,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erreur de connexion",
+        title: "Login error",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  // Mutation pour la déconnexion
+  // Mutation for logout
   const logoutMutation = useMutation({
     mutationFn: async () => {
       return api.post("/api/auth/logout", {});
@@ -105,13 +105,13 @@ export function useAuth() {
       queryClient.setQueryData(["auth", "user"], null);
       queryClient.invalidateQueries({ queryKey: ["auth"] });
       toast({
-        title: "Déconnexion réussie",
-        description: "À bientôt !",
+        title: "Logout successful",
+        description: "See you soon!",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erreur de déconnexion",
+        title: "Logout error",
         description: error.message,
         variant: "destructive",
       });

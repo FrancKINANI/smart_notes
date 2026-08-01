@@ -55,7 +55,7 @@ import { MySqlRawQueryResult } from "drizzle-orm/mysql2";
 
 const scryptAsync = promisify(scrypt);
 
-// Déclaration du module pour éviter l'erreur de typage
+// Module declaration to avoid the typing error
 declare module "express-mysql-session" {
   interface SessionData extends session.SessionData {
     [key: string]: any;
@@ -177,7 +177,7 @@ export interface IStorage {
   getConversationsByNote(noteId: number): Promise<Conversation[]>;
   deleteConversation(id: number): Promise<boolean>;
 
-  // LLM settings (bascule cloud/edge à chaud)
+  // LLM settings (hot cloud/edge switching)
   getLlmSettings(): Promise<LlmSettings | undefined>;
   saveLlmSettings(
     settings: {
@@ -189,14 +189,14 @@ export interface IStorage {
   ): Promise<LlmSettings>;
 
   // Session store
-  sessionStore: any; // Changé de session.SessionStore à any pour éviter l'erreur
+  sessionStore: any; // Changed from session.SessionStore to any to avoid the error
 }
 
 export class DatabaseStorage implements IStorage {
-  public sessionStore: any; // Changé en public et type any
+  public sessionStore: any; // Changed to public and typed any
 
   constructor() {
-    // Configuration MySQL session store avec les variables d'environnement
+    // MySQL session store configuration with environment variables
     const options = {
       host: process.env.DB_HOST || "localhost",
       port: parseInt(process.env.DB_PORT || "3306"),
@@ -209,11 +209,11 @@ export class DatabaseStorage implements IStorage {
     this.sessionStore = new SessionStore(options);
   }
 
-  // Méthodes pour gérer les résultats MySQL
+  // Methods to handle MySQL results
   private getInsertId(result: MySQLResult): number {
     const insertId = result.insertId || (result[0] as any)?.insertId;
     if (!insertId) {
-      throw new Error("ID d'insertion manquant");
+      throw new Error("Missing insert id");
     }
     return insertId;
   }
@@ -251,12 +251,12 @@ export class DatabaseStorage implements IStorage {
       createdAt: new Date(),
       updatedAt: new Date(),
     })) as MySQLResult;
-    // MySQL: récupérer l'id inséré
+    // MySQL: retrieve the inserted id
     const insertId = this.getInsertId(result);
-    // Récupérer l'utilisateur inséré
+    // Retrieve the inserted user
     const [user] = await db.select().from(users).where(eq(users.id, insertId));
     if (!user) {
-      throw new Error("Utilisateur non trouvé après insertion");
+      throw new Error("User not found after insertion");
     }
     return user;
   }
@@ -332,7 +332,7 @@ export class DatabaseStorage implements IStorage {
       .from(userProfiles)
       .where(eq(userProfiles.id, insertId));
     if (!userProfile) {
-      throw new Error("Profil utilisateur non trouvé après insertion");
+      throw new Error("User profile not found after insertion");
     }
     return userProfile;
   }
@@ -397,7 +397,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(subjects)
       .where(eq(subjects.id, insertId));
-    if (!subject) throw new Error("Sujet non trouvé après insertion");
+    if (!subject) throw new Error("Subject not found after insertion");
     return subject;
   }
 
@@ -463,7 +463,7 @@ export class DatabaseStorage implements IStorage {
     })) as MySQLResult;
     const insertId = this.getInsertId(result);
     const [note] = await db.select().from(notes).where(eq(notes.id, insertId));
-    if (!note) throw new Error("Note non trouvée après insertion");
+    if (!note) throw new Error("Note not found after insertion");
     return note;
   }
 
@@ -505,7 +505,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(quizzes)
       .where(eq(quizzes.id, insertId));
-    if (!quiz) throw new Error("Quiz non trouvé après insertion");
+    if (!quiz) throw new Error("Quiz not found after insertion");
     return quiz;
   }
 
@@ -551,7 +551,7 @@ export class DatabaseStorage implements IStorage {
       .from(quizResults)
       .where(eq(quizResults.id, insertId));
     if (!quizResult)
-      throw new Error("Résultat de quiz non trouvé après insertion");
+      throw new Error("Quiz result not found after insertion");
     return quizResult;
   }
 
@@ -598,7 +598,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(flashcards)
       .where(eq(flashcards.id, insertId));
-    if (!flashcard) throw new Error("Flashcard non trouvée après insertion");
+    if (!flashcard) throw new Error("Flashcard not found after insertion");
     return flashcard;
   }
 
@@ -668,7 +668,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(revisionItems)
       .where(eq(revisionItems.id, insertId));
-    if (!item) throw new Error("Item de révision non trouvé après insertion");
+    if (!item) throw new Error("Revision item not found after insertion");
     return item;
   }
 
@@ -700,7 +700,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(studyGroups)
       .where(eq(studyGroups.id, insertId));
-    if (!studyGroup) throw new Error("Groupe non trouvé après insertion");
+    if (!studyGroup) throw new Error("Group not found after insertion");
     // Add creator as admin
     await this.addGroupMember({
       groupId: studyGroup.id,
@@ -719,7 +719,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudyGroupsByUser(userId: number): Promise<StudyGroup[]> {
-    // Correction : requête simple sans select({...}) ni alias
+    // Fix: simple query without select({...}) or alias
     const result = await db
       .select()
       .from(studyGroups)
@@ -730,7 +730,7 @@ export class DatabaseStorage implements IStorage {
           eq(groupMembers.userId, userId)
         )
       );
-    // On ne garde que la partie studyGroups
+    // We only keep the studyGroups part
     return result.map((row: any) => row.studyGroups);
   }
 
@@ -762,7 +762,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(groupMembers)
       .where(eq(groupMembers.id, insertId));
-    if (!groupMember) throw new Error("Membre non trouvé après insertion");
+    if (!groupMember) throw new Error("Member not found after insertion");
     return groupMember;
   }
 
@@ -791,7 +791,7 @@ export class DatabaseStorage implements IStorage {
       .from(sharedNotes)
       .where(eq(sharedNotes.id, insertId));
     if (!sharedNote)
-      throw new Error("Note partagée non trouvée après insertion");
+      throw new Error("Shared note not found after insertion");
     return sharedNote;
   }
 
@@ -813,7 +813,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(comments)
       .where(eq(comments.id, insertId));
-    if (!newComment) throw new Error("Commentaire non trouvé après insertion");
+    if (!newComment) throw new Error("Comment not found after insertion");
     return newComment;
   }
 
@@ -855,7 +855,7 @@ export class DatabaseStorage implements IStorage {
       .from(aiConversations)
       .where(eq(aiConversations.id, insertId));
     if (!newConversation)
-      throw new Error("Conversation non trouvée après insertion");
+      throw new Error("Conversation not found after insertion");
     return newConversation;
   }
 
@@ -898,7 +898,7 @@ export class DatabaseStorage implements IStorage {
     return (result as any).affectedRows > 0;
   }
 
-  // LLM settings methods (config unique — ligne id=1, sinon env)
+  // LLM settings methods (single config — id=1 row, otherwise env)
   async getLlmSettings(): Promise<LlmSettings | undefined> {
     const [settings] = await db
       .select()
@@ -924,7 +924,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(llmSettings)
         .where(eq(llmSettings.id, existing.id));
-      if (!updated) throw new Error("Config LLM non trouvée après mise à jour");
+      if (!updated) throw new Error("LLM config not found after update");
       return updated;
     }
     const result = (await db.insert(llmSettings).values({
@@ -936,7 +936,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(llmSettings)
       .where(eq(llmSettings.id, insertId));
-    if (!created) throw new Error("Config LLM non trouvée après insertion");
+    if (!created) throw new Error("LLM config not found after insertion");
     return created;
   }
 
